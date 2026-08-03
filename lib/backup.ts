@@ -20,6 +20,7 @@ const TABLE_NAMES = [
   "spark",
   "weight",
   "bowel",
+  "favorite",
   "growth",
   "settings",
 ] as const;

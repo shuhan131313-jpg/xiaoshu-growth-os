@@ -29,6 +29,7 @@ export const repos = {
   spark: repo(db.spark),
   weight: repo(db.weight),
   bowel: repo(db.bowel),
+  favorite: repo(db.favorite),
   growth: repo(db.growth),
   settings: repo(db.settings),
 };

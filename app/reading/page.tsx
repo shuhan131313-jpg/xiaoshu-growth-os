@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BookOpen, RefreshCw, Check, Sparkles, Trash2 } from "lucide-react";
+import { BookOpen, RefreshCw, Sparkles, Trash2, Bookmark } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/common/page-header";
 import { repos } from "@/lib/db/repo";
-import type { ReadingRecord, SparkRecord } from "@/lib/db/db";
+import type { ReadingRecord, SparkRecord, FavoriteRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
 import { BOOK_POOL, pickDistinct, type BookExcerpt } from "@/lib/ai/content";
 
@@ -19,14 +19,20 @@ export default function ReadingPage() {
   const [history, setHistory] = useState<ReadingRecord[]>([]);
   const [sparkText, setSparkText] = useState("");
   const [sparks, setSparks] = useState<SparkRecord[]>([]);
+  const [favs, setFavs] = useState<FavoriteRecord[]>([]);
+
+  const bookKey = `book:${book.book}`;
+  const bookFav = favs.some((f) => f.type === "book" && f.key === bookKey);
 
   async function refresh() {
-    const [all, sp] = await Promise.all([
+    const [all, sp, fv] = await Promise.all([
       repos.reading.all(),
       repos.spark.all(),
+      repos.favorite.all(),
     ]);
     setHistory(all.sort((a, b) => b.createdAt - a.createdAt));
     setSparks(sp.sort((a, b) => b.createdAt - a.createdAt));
+    setFavs(fv);
   }
 
   useEffect(() => {
@@ -35,14 +41,13 @@ export default function ReadingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function saveSession(elapsedSec: number) {
-    // 仅保存感想（未计时）时 elapsedSec=0，不记时长；计时结束时按实际时长取整
-    const dur = elapsedSec > 0 ? Math.max(1, Math.round(elapsedSec / 60)) : 0;
+  async function saveFeeling() {
+    if (!feeling.trim()) return;
     await repos.reading.add({
       date: today,
       book: book.book,
-      duration: dur,
-      feeling: feeling.trim() || undefined,
+      duration: 0,
+      feeling: feeling.trim(),
       createdAt: Date.now(),
     });
     setFeeling("");
@@ -60,6 +65,29 @@ export default function ReadingPage() {
   async function deleteSpark(id: number) {
     await repos.spark.delete(id);
     refresh();
+  }
+
+  async function deleteHistory(id: number) {
+    await repos.reading.delete(id);
+    refresh();
+  }
+
+  async function toggleBookFav() {
+    if (bookFav) {
+      const ex = favs.find((f) => f.type === "book" && f.key === bookKey);
+      if (ex?.id) await repos.favorite.delete(ex.id);
+    } else {
+      await repos.favorite.add({
+        type: "book",
+        key: bookKey,
+        title: book.book,
+        author: book.author,
+        excerpt: book.passage,
+        date: today,
+        createdAt: Date.now(),
+      });
+    }
+    await refresh();
   }
 
   return (
@@ -118,19 +146,32 @@ export default function ReadingPage() {
         </CardContent>
       </Card>
 
-      {/* 每日书摘 */}
+      {/* 每日书摘（独立区块 + 收藏） */}
       <Card>
         <CardContent>
           <div className="mb-2 flex items-center justify-between">
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
               <BookOpen className="h-4 w-4" /> 每日书摘
             </span>
-            <button
-              onClick={() => setBook((b) => pickDistinct(BOOK_POOL, b))}
-              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-ink-faint hover:bg-line/50"
-            >
-              <RefreshCw className="h-3 w-3" /> 换一本
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setBook((b) => pickDistinct(BOOK_POOL, b))}
+                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-ink-faint hover:bg-line/50"
+              >
+                <RefreshCw className="h-3 w-3" /> 换一本
+              </button>
+              <button
+                onClick={toggleBookFav}
+                aria-label={bookFav ? "取消收藏" : "收藏书摘"}
+                className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] transition duration-200 hover:bg-line/50"
+              >
+                <Bookmark
+                  className={`h-4 w-4 ${
+                    bookFav ? "fill-accent text-accent" : "text-ink-faint"
+                  }`}
+                />
+              </button>
+            </div>
           </div>
           <p className="font-semibold text-ink">{book.book}</p>
           <p className="mt-0.5 text-xs text-ink-faint">{book.author}</p>
@@ -149,7 +190,7 @@ export default function ReadingPage() {
         </CardContent>
       </Card>
 
-      {/* 感想 */}
+      {/* 阅读感想（独立区块） */}
       <Card>
         <CardContent>
           <Label>阅读感想（随手记录，随时保存）</Label>
@@ -162,10 +203,10 @@ export default function ReadingPage() {
           <Button
             variant="soft"
             className="mt-3 w-full"
-            onClick={() => saveSession(0)}
+            onClick={saveFeeling}
             disabled={!feeling.trim()}
           >
-            仅保存感想
+            保存感想
           </Button>
         </CardContent>
       </Card>
@@ -184,22 +225,33 @@ export default function ReadingPage() {
             {history.map((r) => (
               <Card key={r.id}>
                 <CardContent>
-                  <div className="flex items-center justify-between">
-                    <span className="tabular text-sm font-medium text-ink">
-                      {r.date}
-                    </span>
-                    {r.duration > 0 && (
-                      <span className="tabular text-xs text-ink-faint">
-                        {r.duration} 分钟
-                      </span>
-                    )}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="tabular text-sm font-medium text-ink">
+                          {r.date}
+                        </span>
+                        {r.duration > 0 && (
+                          <span className="tabular text-xs text-ink-faint">
+                            {r.duration} 分钟
+                          </span>
+                        )}
+                      </div>
+                      {r.book && (
+                        <p className="mt-1 text-sm text-ink-soft">📖 {r.book}</p>
+                      )}
+                      {r.feeling && (
+                        <p className="mt-1 text-[13px] text-ink-soft">{r.feeling}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => deleteHistory(r.id!)}
+                      aria-label="删除记录"
+                      className="shrink-0 text-ink-faint transition duration-200 hover:text-red-500"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
-                  {r.book && (
-                    <p className="mt-1 text-sm text-ink-soft">📖 {r.book}</p>
-                  )}
-                  {r.feeling && (
-                    <p className="mt-1 text-[13px] text-ink-soft">{r.feeling}</p>
-                  )}
                 </CardContent>
               </Card>
             ))}

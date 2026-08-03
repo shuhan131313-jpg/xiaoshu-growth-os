@@ -105,6 +105,18 @@ export interface BowelRecord {
   createdAt: number;
 }
 
+export interface FavoriteRecord {
+  id?: number;
+  type: "book" | "english" | "paper";
+  key: string; // 去重稳定键，如 book:<书名>
+  title: string; // 书名 / 英文标题 / 文献标题
+  author?: string; // 作者 / 期刊
+  excerpt?: string; // 书摘段落 / 英文原文 / 文献摘要
+  zh?: string; // 英文中文翻译
+  date: string; // 收藏时的日期 YYYY-MM-DD
+  createdAt: number;
+}
+
 export interface GrowthReport {
   id?: number;
   period: string; // week-2026-31 | month-2026-08
@@ -134,6 +146,7 @@ export class XiaoShuDB extends Dexie {
   bowel!: Table<BowelRecord, number>;
   growth!: Table<GrowthReport, number>;
   settings!: Table<AppSettings, number>;
+  favorite!: Table<FavoriteRecord, number>;
 
   constructor() {
     super("xiaoshu-growth-os");
@@ -167,6 +180,9 @@ export class XiaoShuDB extends Dexie {
     this.version(3).stores({
       weight: "++id, date",
       bowel: "++id, date",
+    });
+    this.version(4).stores({
+      favorite: "++id, type, key",
     });
   }
 }

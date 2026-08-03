@@ -3,14 +3,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  RefreshCw,
-  BookOpen,
-  Languages,
   Flame,
   Sprout,
+  Bookmark,
+  BookOpen,
+  Languages,
+  FlaskConical,
+  ChevronDown,
+  Trash2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { GROWTH_MODULES } from "@/lib/constants";
 import { todayKey, greeting, weekdayCN } from "@/lib/utils";
 import {
@@ -19,13 +21,8 @@ import {
   getTodayDuration,
   getHeatmap,
 } from "@/lib/summary";
-import {
-  BOOK_POOL,
-  ENGLISH_POOL,
-  pickDistinct,
-  type BookExcerpt,
-  type EnglishPassage,
-} from "@/lib/ai/content";
+import { repos } from "@/lib/db/repo";
+import type { FavoriteRecord } from "@/lib/db/db";
 
 function heatColor(count: number, max: number): string {
   if (count <= 0) return "#ECE6DD";
@@ -38,26 +35,26 @@ export default function TodayPage() {
   const [taskMap, setTaskMap] = useState<Record<string, boolean>>({});
   const [duration, setDuration] = useState(0);
   const [heat, setHeat] = useState<{ date: string; count: number }[]>([]);
-  const [book, setBook] = useState<BookExcerpt>(BOOK_POOL[0]);
-  const [eng, setEng] = useState<EnglishPassage>(ENGLISH_POOL[0]);
+  const [favs, setFavs] = useState<FavoriteRecord[]>([]);
+  const [favOpen, setFavOpen] = useState(true);
   const [ready, setReady] = useState(false);
 
   async function load() {
-    const [map, dur, h] = await Promise.all([
+    const [map, dur, h, fv] = await Promise.all([
       getTodayTaskMap(date),
       getTodayDuration(date),
       getHeatmap(7),
+      repos.favorite.all(),
     ]);
     setTaskMap(map);
     setDuration(dur);
     setHeat(h);
+    setFavs(fv);
     setReady(true);
   }
 
   useEffect(() => {
     load();
-    setBook(pickDistinct(BOOK_POOL));
-    setEng(pickDistinct(ENGLISH_POOL));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -66,7 +63,16 @@ export default function TodayPage() {
     await setTodayTask(date, key, !done);
   }
 
+  async function removeFav(id?: number) {
+    if (id == null) return;
+    await repos.favorite.delete(id);
+    setFavs(await repos.favorite.all());
+  }
+
   const now = new Date();
+  const bookFavs = favs.filter((f) => f.type === "book");
+  const englishFavs = favs.filter((f) => f.type === "english");
+  const paperFavs = favs.filter((f) => f.type === "paper");
 
   return (
     <div className="space-y-5">
@@ -121,37 +127,65 @@ export default function TodayPage() {
         </CardContent>
       </Card>
 
-      {/* AI 推荐三卡片 */}
-      <div className="space-y-1">
-        <p className="px-1 text-sm font-medium text-ink-soft">今日为你推荐</p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {/* 书摘 */}
-          <AICard
-            icon={<BookOpen className="h-4 w-4" />}
-            label="今日书摘"
-            onRefresh={() => setBook((b) => pickDistinct(BOOK_POOL, b))}
+      {/* 收藏夹（折叠面板） */}
+      <Card>
+        <CardContent>
+          <button
+            onClick={() => setFavOpen((o) => !o)}
+            className="flex w-full items-center justify-between"
+            aria-expanded={favOpen}
           >
-            <p className="font-medium text-ink">{book.book}</p>
-            <p className="mt-0.5 text-xs text-ink-faint">{book.author}</p>
-            <p className="mt-2 line-clamp-4 text-[13px] leading-relaxed text-ink-soft">
-              {book.passage}
-            </p>
-          </AICard>
+            <span className="flex items-center gap-1.5 text-sm font-medium text-ink-soft">
+              <Bookmark className="h-4 w-4 text-accent" /> 收藏夹
+              <span className="text-[11px] text-ink-faint">
+                {favs.length}
+              </span>
+            </span>
+            <ChevronDown
+              className={`h-5 w-5 text-ink-faint transition-transform duration-200 ${
+                favOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
 
-          {/* 英文 */}
-          <AICard
-            icon={<Languages className="h-4 w-4" />}
-            label="今日英文"
-            onRefresh={() => setEng((e) => pickDistinct(ENGLISH_POOL, e))}
-          >
-            <p className="font-medium text-ink">{eng.title}</p>
-            <p className="mt-2 line-clamp-5 text-[13px] leading-relaxed text-ink-soft">
-              {eng.en}
-            </p>
-            <p className="mt-1 text-[11px] text-ink-faint">↓ 点开英文阅读看全文翻译</p>
-          </AICard>
-        </div>
-      </div>
+          {favOpen && (
+            <div className="mt-4 space-y-5">
+              {favs.length === 0 ? (
+                <p className="py-2 text-center text-sm text-ink-faint">
+                  还没有收藏内容，去书摘 / 英文 / 文献页点收藏吧 🔖
+                </p>
+              ) : (
+                <>
+                  {bookFavs.length > 0 && (
+                    <FavGroup
+                      icon={<BookOpen className="h-3.5 w-3.5" />}
+                      title="书摘收藏"
+                      items={bookFavs}
+                      onDelete={removeFav}
+                    />
+                  )}
+                  {englishFavs.length > 0 && (
+                    <FavGroup
+                      icon={<Languages className="h-3.5 w-3.5" />}
+                      title="英文收藏"
+                      items={englishFavs}
+                      onDelete={removeFav}
+                    />
+                  )}
+                  {paperFavs.length > 0 && (
+                    <FavGroup
+                      icon={<FlaskConical className="h-3.5 w-3.5" />}
+                      title="文献收藏"
+                      items={paperFavs}
+                      onDelete={removeFav}
+                    />
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* 时长统计 */}
       <Card>
@@ -201,35 +235,50 @@ export default function TodayPage() {
   );
 }
 
-function AICard({
+function FavGroup({
   icon,
-  label,
-  onRefresh,
-  children,
+  title,
+  items,
+  onDelete,
 }: {
   icon: React.ReactNode;
-  label: string;
-  onRefresh: () => void;
-  children: React.ReactNode;
+  title: string;
+  items: FavoriteRecord[];
+  onDelete: (id?: number) => void;
 }) {
   return (
-    <Card className="flex flex-col">
-      <CardContent className="flex flex-1 flex-col">
-        <div className="mb-2 flex items-center justify-between">
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
-            {icon}
-            {label}
-          </span>
-          <button
-            onClick={onRefresh}
-            aria-label="换一篇"
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-ink-faint hover:bg-line/50"
+    <div>
+      <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-primary">
+        {icon} {title}
+        <span className="text-[11px] text-ink-faint">（{items.length}）</span>
+      </p>
+      <ul className="space-y-2">
+        {items.map((f) => (
+          <li
+            key={f.id}
+            className="flex items-start justify-between gap-2 rounded-2xl bg-line/30 p-3"
           >
-            <RefreshCw className="h-3 w-3" /> 换一篇
-          </button>
-        </div>
-        <div className="flex-1">{children}</div>
-      </CardContent>
-    </Card>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-ink">{f.title}</p>
+              {f.author && (
+                <p className="mt-0.5 text-xs text-ink-faint">{f.author}</p>
+              )}
+              {f.excerpt && (
+                <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-ink-soft">
+                  {f.excerpt}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => onDelete(f.id)}
+              aria-label="删除收藏"
+              className="shrink-0 text-ink-faint transition duration-200 hover:text-red-500"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

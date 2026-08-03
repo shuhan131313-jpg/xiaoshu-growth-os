@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Dumbbell, Scale, CheckCircle2, Check, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Dumbbell, Scale, CheckCircle2, Check, Trash2, Pencil } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,10 +23,14 @@ export default function ExercisePage() {
   const [marked, setMarked] = useState<Record<string, number>>({}); // date -> count
   const [sheetDate, setSheetDate] = useState<string | null>(null);
   const [dayRecords, setDayRecords] = useState<ExerciseRecord[]>([]);
+  const [editing, setEditing] = useState<ExerciseRecord | null>(null);
   const [project, setProject] = useState("");
   const [duration, setDuration] = useState("");
   const [note, setNote] = useState("");
   const [monthStat, setMonthStat] = useState({ count: 0, minutes: 0 });
+
+  // 全部运动历史（可编辑 / 删除）
+  const [history, setHistory] = useState<ExerciseRecord[]>([]);
 
   // 体重 / 排便 简易记录
   const [weightInput, setWeightInput] = useState("");
@@ -35,7 +39,7 @@ export default function ExercisePage() {
   const [bowelDoneToday, setBowelDoneToday] = useState(false);
   const [bowelLog, setBowelLog] = useState<BowelRecord[]>([]); // 最新在前
 
-  // 日历日期详情（只读）
+  // 日历日期详情（页内内联展开，只读极简文字）
   const [detailDate, setDetailDate] = useState<string | null>(null);
   const [detailExercise, setDetailExercise] = useState<ExerciseRecord[]>([]);
   const [detailBowel, setDetailBowel] = useState(false);
@@ -59,10 +63,21 @@ export default function ExercisePage() {
     setMonthStat({ count, minutes });
   }
 
+  async function loadAll() {
+    const all = await db.exercise.toArray();
+    setHistory(all.sort((a, b) => b.createdAt - a.createdAt));
+  }
+
   useEffect(() => {
     loadMonth();
+    loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year, month]);
+
+  useEffect(() => {
+    loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function loadHealth() {
     const [wAll, bAll] = await Promise.all([
@@ -135,12 +150,13 @@ export default function ExercisePage() {
     await loadHealth();
   }
 
-  async function openDay(date: string) {
+  function openDay(date: string) {
     setSheetDate(date);
-    setDayRecords(await repos.exercise.whereDate(date));
+    setEditing(null);
     setProject("");
     setDuration("");
     setNote("");
+    repos.exercise.whereDate(date).then(setDayRecords);
   }
 
   async function openDetail(date: string) {
@@ -155,27 +171,56 @@ export default function ExercisePage() {
     setDetailDate(date);
   }
 
-  async function save() {
-    if (!sheetDate || !project.trim() || !duration) return;
-    await repos.exercise.add({
-      date: sheetDate,
-      project: project.trim(),
-      duration: Number(duration) || 0,
-      note: note.trim() || undefined,
-      createdAt: Date.now(),
-    });
-    setDayRecords(await repos.exercise.whereDate(sheetDate));
+  function startEdit(r: ExerciseRecord) {
+    setEditing(r);
+    setSheetDate(r.date);
+    setProject(r.project);
+    setDuration(String(r.duration));
+    setNote(r.note || "");
+  }
+
+  function cancelEdit() {
+    setEditing(null);
     setProject("");
     setDuration("");
     setNote("");
+  }
+
+  async function save() {
+    if (!sheetDate || !project.trim() || !duration) return;
+    if (editing?.id != null) {
+      await repos.exercise.update(editing.id, {
+        project: project.trim(),
+        duration: Number(duration) || 0,
+        note: note.trim() || undefined,
+      });
+    } else {
+      await repos.exercise.add({
+        date: sheetDate,
+        project: project.trim(),
+        duration: Number(duration) || 0,
+        note: note.trim() || undefined,
+        createdAt: Date.now(),
+      });
+    }
+    cancelEdit();
+    setDayRecords(await repos.exercise.whereDate(sheetDate));
     loadMonth();
+    loadAll();
   }
 
   async function remove(id?: number) {
-    if (id == null || !sheetDate) return;
+    if (id == null) return;
+    if (editing?.id === id) {
+      setEditing(null);
+      setProject("");
+      setDuration("");
+      setNote("");
+    }
     await repos.exercise.delete(id);
-    setDayRecords(await repos.exercise.whereDate(sheetDate));
+    if (sheetDate) setDayRecords(await repos.exercise.whereDate(sheetDate));
     loadMonth();
+    loadAll();
   }
 
   // 月历格子
@@ -237,12 +282,15 @@ export default function ExercisePage() {
               const date = `${monthPrefix}-${String(d).padStart(2, "0")}`;
               const cnt = marked[date] || 0;
               const isToday = date === todayKey();
+              const isActive = date === detailDate;
               return (
                 <button
                   key={date}
                   onClick={() => openDetail(date)}
                   className={`relative flex aspect-square items-center justify-center rounded-xl text-sm transition duration-200 ${
-                    isToday
+                    isActive
+                      ? "bg-accent/20 font-semibold text-accent-dark"
+                      : isToday
                       ? "bg-primary/15 font-semibold text-primary"
                       : "text-ink hover:bg-line/40"
                   }`}
@@ -267,10 +315,48 @@ export default function ExercisePage() {
         <Plus className="h-4 w-4" /> 记录今天的运动
       </Button>
 
-      {/* 日期记录弹层 */}
-      <Sheet open={!!sheetDate} onClose={() => setSheetDate(null)} title={sheetDate || ""}>
+      {/* 日历日期详情（页内内联展开，极简文字） */}
+      {detailDate && (
+        <Card>
+          <CardContent>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-medium text-ink-soft">{detailDate} 记录</p>
+              <button
+                onClick={() => setDetailDate(null)}
+                className="text-xs text-ink-faint transition duration-200 hover:text-primary"
+              >
+                收起
+              </button>
+            </div>
+            <div className="space-y-1 text-sm text-ink">
+              {detailExercise.map((r, i) => (
+                <p key={i}>
+                  {r.project} {r.duration} 分钟
+                </p>
+              ))}
+              {detailWeight != null && <p>体重 {detailWeight} kg</p>}
+              {detailBowel && <p>已排便</p>}
+              {detailExercise.length === 0 &&
+                detailWeight == null &&
+                !detailBowel && <p className="text-ink-faint">当天无记录</p>}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 记录 / 编辑弹层 */}
+      <Sheet
+        open={!!sheetDate}
+        onClose={() => {
+          setSheetDate(null);
+          cancelEdit();
+        }}
+        title={sheetDate || ""}
+      >
         <div className="space-y-4">
-          {dayRecords.length > 0 && (
+          {editing ? (
+            <p className="text-xs font-medium text-primary">编辑运动记录</p>
+          ) : dayRecords.length > 0 ? (
             <div className="space-y-2">
               <p className="text-xs font-medium text-ink-soft">当日记录</p>
               {dayRecords.map((r) => (
@@ -298,7 +384,7 @@ export default function ExercisePage() {
                 </div>
               ))}
             </div>
-          )}
+          ) : null}
 
           <div>
             <Label>运动项目</Label>
@@ -333,61 +419,71 @@ export default function ExercisePage() {
             onClick={save}
             disabled={!project.trim() || !duration}
           >
-            <Dumbbell className="h-4 w-4" /> 保存记录
+            <Dumbbell className="h-4 w-4" />
+            {editing ? "更新记录" : "保存记录"}
           </Button>
+          {editing && (
+            <Button variant="ghost" className="w-full" onClick={cancelEdit}>
+              取消编辑
+            </Button>
+          )}
         </div>
       </Sheet>
 
-      {/* 日历日期详情（只读） */}
-      <Sheet open={!!detailDate} onClose={() => setDetailDate(null)} title={detailDate || ""}>
-        <div className="space-y-5">
-          <div>
-            <p className="mb-2 text-xs font-medium text-ink-soft">运动记录</p>
-            {detailExercise.length > 0 ? (
-              <div className="space-y-2">
-                {detailExercise.map((r) => (
-                  <div key={r.id} className="rounded-2xl bg-line/30 p-3">
-                    <p className="text-sm font-medium text-ink">
-                      {r.project}
-                      <span className="ml-2 text-xs text-ink-faint">
-                        {r.duration} 分钟
-                      </span>
-                    </p>
-                    {r.note && (
-                      <p className="mt-0.5 text-xs text-ink-soft">{r.note}</p>
-                    )}
+      {/* 运动历史（可编辑 / 删除） */}
+      <div>
+        <p className="mb-3 px-1 text-sm font-medium text-ink-soft">
+          运动历史（{history.length}）
+        </p>
+        {history.length === 0 ? (
+          <Card>
+            <CardContent className="py-10 text-center text-sm text-ink-faint">
+              还没有运动记录
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {history.map((r) => (
+              <Card key={r.id}>
+                <CardContent>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink">
+                        {r.project}
+                        <span className="ml-2 text-xs text-ink-faint">
+                          {r.duration} 分钟
+                        </span>
+                      </p>
+                      <p className="mt-0.5 tabular text-[11px] text-ink-faint">
+                        {r.date}
+                      </p>
+                      {r.note && (
+                        <p className="mt-1 text-[13px] text-ink-soft">{r.note}</p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        onClick={() => startEdit(r)}
+                        aria-label="编辑"
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-ink-faint transition duration-200 hover:bg-line/50 hover:text-primary"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => remove(r.id)}
+                        aria-label="删除"
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-ink-faint transition duration-200 hover:bg-line/50 hover:text-red-500"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-ink-faint">无运动记录</p>
-            )}
+                </CardContent>
+              </Card>
+            ))}
           </div>
-
-          <div>
-            <p className="mb-2 text-xs font-medium text-ink-soft">排便打卡</p>
-            {detailBowel ? (
-              <p className="flex items-center gap-2 text-sm text-ink">
-                <Check className="h-4 w-4 text-accent" /> 已打卡
-              </p>
-            ) : (
-              <p className="text-sm text-ink-faint">未打卡</p>
-            )}
-          </div>
-
-          <div>
-            <p className="mb-2 text-xs font-medium text-ink-soft">体重数值</p>
-            {detailWeight != null ? (
-              <p className="text-sm text-ink">
-                <span className="tabular text-base font-semibold">{detailWeight}</span>
-                <span className="ml-1 text-xs text-ink-faint">kg</span>
-              </p>
-            ) : (
-              <p className="text-sm text-ink-faint">未记录</p>
-            )}
-          </div>
-        </div>
-      </Sheet>
+        )}
+      </div>
 
       {/* 身体指标：体重 / 排便 */}
       <div className="space-y-5 pt-1">

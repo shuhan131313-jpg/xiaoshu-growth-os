@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/common/page-header";
 import { repos } from "@/lib/db/repo";
+import type { FavoriteRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
 import {
   ENGLISH_POOL,
@@ -17,22 +18,33 @@ import {
 export default function EnglishPage() {
   const today = todayKey();
   const [p, setP] = useState<EnglishPassage>(ENGLISH_POOL[0]);
-  const [saved, setSaved] = useState(false);
+  const [favs, setFavs] = useState<FavoriteRecord[]>([]);
+
+  const engKey = `english:${p.title}`;
+  const engFav = favs.some((f) => f.type === "english" && f.key === engKey);
 
   useEffect(() => {
     setP(pickDistinct(ENGLISH_POOL));
+    repos.favorite.all().then(setFavs);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function saveToStudy() {
-    await repos.english.add({
-      date: today,
-      title: p.title,
-      content: p.en,
-      createdAt: Date.now(),
-    });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  async function toggleFav() {
+    if (engFav) {
+      const ex = favs.find((f) => f.type === "english" && f.key === engKey);
+      if (ex?.id) await repos.favorite.delete(ex.id);
+    } else {
+      await repos.favorite.add({
+        type: "english",
+        key: engKey,
+        title: p.title,
+        excerpt: p.en,
+        zh: p.zh,
+        date: today,
+        createdAt: Date.now(),
+      });
+    }
+    setFavs(await repos.favorite.all());
   }
 
   return (
@@ -43,12 +55,25 @@ export default function EnglishPage() {
         <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
           <Languages className="h-4 w-4" /> {p.title}
         </span>
-        <button
-          onClick={() => setP((x) => pickDistinct(ENGLISH_POOL, x))}
-          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-ink-faint hover:bg-line/50"
-        >
-          <RefreshCw className="h-3 w-3" /> 换一篇
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setP((x) => pickDistinct(ENGLISH_POOL, x))}
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-ink-faint hover:bg-line/50"
+          >
+            <RefreshCw className="h-3 w-3" /> 换一篇
+          </button>
+          <button
+            onClick={toggleFav}
+            aria-label={engFav ? "取消收藏" : "收藏"}
+            className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] transition duration-200 hover:bg-line/50"
+          >
+            <Bookmark
+              className={`h-4 w-4 ${
+                engFav ? "fill-accent text-accent" : "text-ink-faint"
+              }`}
+            />
+          </button>
+        </div>
       </div>
 
       {/* 原文 */}
@@ -114,13 +139,14 @@ export default function EnglishPage() {
       </Card>
 
       <Button
-        variant="soft"
+        variant={engFav ? "soft" : "accent"}
         className="w-full"
-        onClick={saveToStudy}
-        disabled={saved}
+        onClick={toggleFav}
       >
-        <Bookmark className="h-4 w-4" />
-        {saved ? "已加入我的学习" : "保存到我的学习"}
+        <Bookmark
+          className={engFav ? "h-4 w-4 fill-accent text-accent" : "h-4 w-4"}
+        />
+        {engFav ? "已收藏" : "收藏此篇"}
       </Button>
     </div>
   );

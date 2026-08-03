@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FlaskConical, RefreshCw, Check, Bookmark } from "lucide-react";
+import { FlaskConical, RefreshCw, Check, Bookmark, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Timer } from "@/components/common/timer";
 import { PageHeader } from "@/components/common/page-header";
 import { repos } from "@/lib/db/repo";
-import type { ResearchRecord, LiteratureItem as DbLiterature } from "@/lib/db/db";
+import type { ResearchRecord, FavoriteRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
 import {
   LITERATURE_POOL,
@@ -27,14 +27,15 @@ export default function ResearchPage() {
   const [saved, setSaved] = useState(false);
 
   const [lit, setLit] = useState<LiteratureItem>(LITERATURE_POOL[0]);
-  const [litSaved, setLitSaved] = useState(false);
-  const [litHistory, setLitHistory] = useState<DbLiterature[]>([]);
+  const [favs, setFavs] = useState<FavoriteRecord[]>([]);
+
+  const paperKey = `paper:${lit.title}`;
+  const paperFav = favs.some((f) => f.type === "paper" && f.key === paperKey);
 
   async function refresh() {
     const all = await repos.research.all();
     setHistory(all.sort((a, b) => b.createdAt - a.createdAt));
-    const ls = await repos.literature.all();
-    setLitHistory(ls.sort((a, b) => b.createdAt - a.createdAt).slice(0, 8));
+    setFavs(await repos.favorite.all());
   }
 
   useEffect(() => {
@@ -57,11 +58,28 @@ export default function ResearchPage() {
     refresh();
   }
 
-  async function saveLit() {
-    await repos.literature.add({ ...lit, date: today, createdAt: Date.now() });
-    setLitSaved(true);
-    setTimeout(() => setLitSaved(false), 2000);
-    refresh();
+  async function togglePaperFav() {
+    if (paperFav) {
+      const ex = favs.find((f) => f.type === "paper" && f.key === paperKey);
+      if (ex?.id) await repos.favorite.delete(ex.id);
+    } else {
+      await repos.favorite.add({
+        type: "paper",
+        key: paperKey,
+        title: lit.title,
+        author: lit.journal,
+        excerpt: lit.excerpt,
+        date: today,
+        createdAt: Date.now(),
+      });
+    }
+    setFavs(await repos.favorite.all());
+  }
+
+  async function removeFav(id?: number) {
+    if (id == null) return;
+    await repos.favorite.delete(id);
+    setFavs(await repos.favorite.all());
   }
 
   return (
@@ -166,13 +184,14 @@ export default function ResearchPage() {
             </div>
           </div>
           <Button
-            variant="soft"
+            variant={paperFav ? "soft" : "accent"}
             className="w-full"
-            onClick={saveLit}
-            disabled={litSaved}
+            onClick={togglePaperFav}
           >
-            <Bookmark className="h-4 w-4" />
-            {litSaved ? "已收藏此文献" : "收藏此文献"}
+            <Bookmark
+              className={paperFav ? "h-4 w-4 fill-accent text-accent" : "h-4 w-4"}
+            />
+            {paperFav ? "已收藏此文献" : "收藏此文献"}
           </Button>
         </CardContent>
       </Card>
@@ -203,18 +222,36 @@ export default function ResearchPage() {
         </Card>
       )}
 
-      {/* 收藏文献 */}
-      {litHistory.length > 0 && (
+      {/* 收藏文献（来自收藏夹 paper 列表） */}
+      {favs.some((f) => f.type === "paper") && (
         <Card>
           <CardContent>
             <p className="mb-3 text-sm font-medium text-ink-soft">已收藏文献</p>
             <ul className="space-y-2">
-              {litHistory.map((l) => (
-                <li key={l.id} className="text-sm text-ink-soft">
-                  <span className="font-medium text-ink">{l.title}</span>
-                  <span className="ml-2 text-xs text-ink-faint">{l.journal}</span>
-                </li>
-              ))}
+              {favs
+                .filter((f) => f.type === "paper")
+                .map((l) => (
+                  <li
+                    key={l.id}
+                    className="flex items-start justify-between gap-2"
+                  >
+                    <div className="min-w-0">
+                      <span className="font-medium text-ink">{l.title}</span>
+                      {l.author && (
+                        <span className="ml-2 text-xs text-ink-faint">
+                          {l.author}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => removeFav(l.id)}
+                      aria-label="删除收藏"
+                      className="shrink-0 text-ink-faint transition duration-200 hover:text-red-500"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
             </ul>
           </CardContent>
         </Card>
