@@ -76,8 +76,9 @@ export interface ExperimentRecord {
 export interface GratitudeRecord {
   id?: number;
   date: string;
-  items: string[];
+  items?: string[]; // 旧版：多条独立输入；新版统一使用 content
   reflection?: string;
+  content?: string; // 新版：单文本框自由书写（含换行）
   createdAt: number;
 }
 

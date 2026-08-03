@@ -13,6 +13,8 @@ interface TimerProps {
   onComplete?: (elapsed: number) => void;
   onStop?: (elapsed: number) => void;
   size?: number;
+  /** 是否显示「重置」按钮，默认显示；阅读页正向计时仅保留启动/暂停/结束时设为 false */
+  showReset?: boolean;
   className?: string;
 }
 
@@ -30,6 +32,7 @@ export function Timer({
   onComplete,
   onStop,
   size = 220,
+  showReset = true,
   className,
 }: TimerProps) {
   const [elapsed, setElapsed] = useState(0);
@@ -115,7 +118,10 @@ export function Timer({
           )}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="tabular text-5xl font-semibold text-ink">
+          <span
+            className="tabular font-semibold text-ink"
+            style={{ fontSize: Math.round(size * 0.218) }}
+          >
             {fmt(display)}
           </span>
           {goalLabel && (
@@ -149,9 +155,11 @@ export function Timer({
             </>
           )}
         </Button>
-        <Button variant="ghost" size="icon" onClick={reset} aria-label="重置">
-          <RotateCcw className="h-5 w-5" />
-        </Button>
+        {showReset && (
+          <Button variant="ghost" size="icon" onClick={reset} aria-label="重置">
+            <RotateCcw className="h-5 w-5" />
+          </Button>
+        )}
         {onStop && (
           <Button variant="ghost" size="sm" onClick={stop}>
             结束并记录

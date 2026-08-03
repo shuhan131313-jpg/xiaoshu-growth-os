@@ -4,20 +4,15 @@ import { useEffect, useState } from "react";
 import { Heart, Check, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/common/page-header";
 import { repos } from "@/lib/db/repo";
 import type { GratitudeRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
 
-const SLOTS = 10;
-
 export default function GratitudePage() {
   const today = todayKey();
-  const [items, setItems] = useState<string[]>(Array(SLOTS).fill(""));
-  const [reflection, setReflection] = useState("");
+  const [content, setContent] = useState("");
   const [history, setHistory] = useState<GratitudeRecord[]>([]);
   const [saved, setSaved] = useState(false);
 
@@ -31,21 +26,15 @@ export default function GratitudePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function setItem(i: number, v: string) {
-    setItems((arr) => arr.map((x, idx) => (idx === i ? v : x)));
-  }
-
   async function save() {
-    const cleaned = items.map((s) => s.trim()).filter(Boolean);
-    if (cleaned.length === 0 && !reflection.trim()) return;
+    const text = content.trim();
+    if (!text) return;
     await repos.gratitude.add({
       date: today,
-      items: cleaned,
-      reflection: reflection.trim() || undefined,
+      content: text,
       createdAt: Date.now(),
     });
-    setItems(Array(SLOTS).fill(""));
-    setReflection("");
+    setContent("");
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     refresh();
@@ -64,25 +53,15 @@ export default function GratitudePage() {
       <Card>
         <CardContent className="space-y-3">
           <p className="text-sm font-medium text-ink-soft">
-            今天，我要感谢…（最多 10 条）
+            今天，我要感谢…（想到什么写什么，支持换行）
           </p>
-          {items.map((it, i) => (
-            <Input
-              key={i}
-              value={it}
-              onChange={(e) => setItem(i, e.target.value)}
-              placeholder={`第 ${i + 1} 件`}
-            />
-          ))}
-          <div>
-            <Label>今日一句话感悟（可选）</Label>
-            <Textarea
-              value={reflection}
-              onChange={(e) => setReflection(e.target.value)}
-              placeholder="今天最触动我的一句话 / 一个念头…"
-              rows={3}
-            />
-          </div>
+          <Textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder={"今天让我心里一暖的瞬间…\n一件小事、一个人、一种状态，都可以写下来。"}
+            rows={10}
+            className="min-h-[200px] resize-y"
+          />
           <Button variant="accent" className="w-full" onClick={save}>
             <Heart className="h-4 w-4" /> 保存今日感恩
           </Button>
@@ -119,18 +98,26 @@ export default function GratitudePage() {
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
-                  <ul className="space-y-1">
-                    {h.items.map((it, i) => (
-                      <li key={i} className="flex gap-2 text-sm text-ink-soft">
-                        <span className="text-accent">·</span>
-                        {it}
-                      </li>
-                    ))}
-                  </ul>
-                  {h.reflection && (
-                    <p className="mt-2 rounded-2xl bg-line/30 p-3 text-[13px] italic text-ink-soft">
-                      “{h.reflection}”
+                  {h.content ? (
+                    <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-ink-soft">
+                      {h.content}
                     </p>
+                  ) : (
+                    <>
+                      <ul className="space-y-1">
+                        {(h.items ?? []).map((it, i) => (
+                          <li key={i} className="flex gap-2 text-sm text-ink-soft">
+                            <span className="text-accent">·</span>
+                            {it}
+                          </li>
+                        ))}
+                      </ul>
+                      {h.reflection && (
+                        <p className="mt-2 rounded-2xl bg-line/30 p-3 text-[13px] italic text-ink-soft">
+                          “{h.reflection}”
+                        </p>
+                      )}
+                    </>
                   )}
                 </CardContent>
               </Card>

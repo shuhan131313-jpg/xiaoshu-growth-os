@@ -13,12 +13,9 @@ import type { ReadingRecord, SparkRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
 import { BOOK_POOL, pickDistinct, type BookExcerpt } from "@/lib/ai/content";
 
-const GOALS = [20, 30, 45, 60];
-
 export default function ReadingPage() {
   const today = todayKey();
   const [book, setBook] = useState<BookExcerpt>(BOOK_POOL[0]);
-  const [goal, setGoal] = useState(30);
   const [timerKey, setTimerKey] = useState(0);
   const [feeling, setFeeling] = useState("");
   const [history, setHistory] = useState<ReadingRecord[]>([]);
@@ -42,7 +39,8 @@ export default function ReadingPage() {
   }, []);
 
   async function saveSession(elapsedSec: number) {
-    const dur = Math.max(1, Math.round(elapsedSec / 60));
+    // 仅保存感想（未计时）时 elapsedSec=0，不记时长；计时结束时按实际时长取整
+    const dur = elapsedSec > 0 ? Math.max(1, Math.round(elapsedSec / 60)) : 0;
     await repos.reading.add({
       date: today,
       book: book.book,
@@ -53,12 +51,8 @@ export default function ReadingPage() {
     setFeeling("");
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+    setTimerKey((k) => k + 1); // 保存后重置计时器到 00:00
     refresh();
-  }
-
-  function pickGoal(g: number) {
-    setGoal(g);
-    setTimerKey((k) => k + 1);
   }
 
   async function saveSpark() {
@@ -109,33 +103,17 @@ export default function ReadingPage() {
         </CardContent>
       </Card>
 
-      {/* 计时器 */}
+      {/* 计时器（正向计时） */}
       <Card>
         <CardContent className="flex flex-col items-center gap-4 pt-2">
           <div className="flex items-center gap-2 text-sm text-ink-soft">
             <Clock className="h-4 w-4 text-accent" /> 阅读计时
           </div>
-          <div className="flex justify-center gap-2">
-            {GOALS.map((g) => (
-              <button
-                key={g}
-                onClick={() => pickGoal(g)}
-                className={`h-9 rounded-2xl px-3 text-[13px] font-medium transition duration-200 ${
-                  goal === g
-                    ? "bg-primary text-white shadow-soft"
-                    : "bg-line/40 text-ink-soft hover:bg-line/70"
-                }`}
-              >
-                {g} 分
-              </button>
-            ))}
-          </div>
           <Timer
             key={timerKey}
-            mode="countdown"
-            targetSeconds={goal * 60}
-            goalLabel={`目标 ${goal} 分钟`}
-            onComplete={saveSession}
+            mode="countup"
+            size={160}
+            showReset={false}
             onStop={saveSession}
           />
           {saved && (
@@ -159,7 +137,7 @@ export default function ReadingPage() {
           <Button
             variant="soft"
             className="mt-3 w-full"
-            onClick={() => saveSession(goal * 60)}
+            onClick={() => saveSession(0)}
             disabled={!feeling.trim()}
           >
             仅保存感想
@@ -237,9 +215,11 @@ export default function ReadingPage() {
                     <span className="tabular text-sm font-medium text-ink">
                       {r.date}
                     </span>
-                    <span className="tabular text-xs text-ink-faint">
-                      {r.duration} 分钟
-                    </span>
+                    {r.duration > 0 && (
+                      <span className="tabular text-xs text-ink-faint">
+                        {r.duration} 分钟
+                      </span>
+                    )}
                   </div>
                   {r.book && (
                     <p className="mt-1 text-sm text-ink-soft">📖 {r.book}</p>

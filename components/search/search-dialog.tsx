@@ -57,7 +57,9 @@ async function collectAll(): Promise<Hit[]> {
     hits.push({
       module: "gratitude",
       date: r.date,
-      text: `${r.items.join(" ")} ${r.reflection ?? ""}`,
+      text: r.content
+        ? r.content
+        : `${(r.items ?? []).join(" ")} ${r.reflection ?? ""}`,
     });
   for (const r of en)
     hits.push({ module: "english", date: r.date, text: `${r.title ?? ""} ${r.content ?? ""}` });

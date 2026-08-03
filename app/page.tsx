@@ -3,22 +3,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Check,
   RefreshCw,
   BookOpen,
   Languages,
   Sparkles,
   Flame,
+  Sprout,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { TODAY_MODULES } from "@/lib/constants";
+import { GROWTH_MODULES } from "@/lib/constants";
 import { todayKey, greeting, weekdayCN } from "@/lib/utils";
 import {
   getTodayTaskMap,
   setTodayTask,
-  getCompletionRate,
   getTodayDuration,
   getHeatmap,
 } from "@/lib/summary";
@@ -40,7 +38,6 @@ function heatColor(count: number, max: number): string {
 export default function TodayPage() {
   const date = useMemo(() => todayKey(), []);
   const [taskMap, setTaskMap] = useState<Record<string, boolean>>({});
-  const [rate, setRate] = useState(0);
   const [duration, setDuration] = useState(0);
   const [heat, setHeat] = useState<{ date: string; count: number }[]>([]);
   const [book, setBook] = useState<BookExcerpt>(BOOK_POOL[0]);
@@ -49,14 +46,12 @@ export default function TodayPage() {
   const [ready, setReady] = useState(false);
 
   async function load() {
-    const [map, r, dur, h] = await Promise.all([
+    const [map, dur, h] = await Promise.all([
       getTodayTaskMap(date),
-      getCompletionRate(date),
       getTodayDuration(date),
       getHeatmap(7),
     ]);
     setTaskMap(map);
-    setRate(r);
     setDuration(dur);
     setHeat(h);
     setReady(true);
@@ -73,11 +68,9 @@ export default function TodayPage() {
   async function toggle(key: string, done: boolean) {
     setTaskMap((m) => ({ ...m, [key]: !done }));
     await setTodayTask(date, key, !done);
-    setRate(await getCompletionRate(date));
   }
 
   const now = new Date();
-  const pct = Math.round(rate * 100);
 
   return (
     <div className="space-y-5">
@@ -94,59 +87,41 @@ export default function TodayPage() {
         </p>
       </header>
 
-      {/* 完成率 */}
+      {/* 今日成长：横向等分树苗条 */}
       <Card>
         <CardContent>
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-sm text-ink-soft">今日完成率</p>
-              <p className="tabular mt-1 text-4xl font-semibold text-primary">
-                {pct}
-                <span className="text-xl">%</span>
-              </p>
-            </div>
-            <span className="text-xs text-ink-faint">
-              {Object.values(taskMap).filter(Boolean).length}/{TODAY_MODULES.length} 项完成
-            </span>
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-medium text-ink-soft">今日成长</p>
+            <span className="text-[11px] text-ink-faint">点按格子，记录今日完成</span>
           </div>
-          <Progress value={pct} className="mt-3" />
-        </CardContent>
-      </Card>
-
-      {/* 今日待办 */}
-      <Card>
-        <CardContent>
-          <p className="mb-3 text-sm font-medium text-ink-soft">今日待办清单</p>
-          <ul className="space-y-1">
-            {TODAY_MODULES.map((m) => {
+          <div className="flex overflow-hidden rounded-2xl border border-line bg-line/20">
+            {GROWTH_MODULES.map((m, i) => {
               const done = !!taskMap[m.key];
               return (
-                <li key={m.key}>
-                  <button
-                    onClick={() => toggle(m.key, done)}
-                    className="flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left transition duration-200 hover:bg-line/40"
+                <button
+                  key={m.key}
+                  onClick={() => toggle(m.key, done)}
+                  aria-label={m.label}
+                  className={`flex h-[92px] flex-1 flex-col items-center justify-center gap-1.5 transition-colors duration-200 ${
+                    i > 0 ? "border-l border-line" : ""
+                  } ${done ? "bg-accent/15" : "bg-transparent hover:bg-line/40"}`}
+                >
+                  {done ? (
+                    <Sprout className="h-7 w-7 text-accent" strokeWidth={2} />
+                  ) : (
+                    <span className="h-7 w-7" />
+                  )}
+                  <span
+                    className={`whitespace-nowrap text-[10px] ${
+                      done ? "text-accent-dark" : "text-ink-faint"
+                    }`}
                   >
-                    <span
-                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition duration-200 ${
-                        done
-                          ? "border-accent bg-accent text-white"
-                          : "border-line text-transparent"
-                      }`}
-                    >
-                      <Check className="h-3.5 w-3.5" />
-                    </span>
-                    <span
-                      className={`text-[15px] ${
-                        done ? "text-ink-faint line-through" : "text-ink"
-                      }`}
-                    >
-                      {m.label}
-                    </span>
-                  </button>
-                </li>
+                    {m.label}
+                  </span>
+                </button>
               );
             })}
-          </ul>
+          </div>
         </CardContent>
       </Card>
 
@@ -225,7 +200,7 @@ export default function TodayPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.25 }}
                   className="h-10 w-full rounded-xl"
-                  style={{ backgroundColor: heatColor(h.count, TODAY_MODULES.length) }}
+                  style={{ backgroundColor: heatColor(h.count, GROWTH_MODULES.length) }}
                   title={`${h.date}：${h.count} 项`}
                 />
                 <span className="text-[10px] text-ink-faint">
