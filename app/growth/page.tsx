@@ -104,12 +104,12 @@ export default function GrowthPage() {
 
       <p className="text-center text-xs text-ink-faint">{bounds.label}</p>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         {rows.map((r) => (
           <Card key={r.label}>
             <CardContent>
               <p className="text-xs text-ink-faint">{r.label}</p>
-              <p className="tabular mt-1 text-lg font-semibold text-ink">
+              <p className="tabular mt-1 text-sm font-semibold whitespace-nowrap text-ink">
                 {r.value}
               </p>
             </CardContent>

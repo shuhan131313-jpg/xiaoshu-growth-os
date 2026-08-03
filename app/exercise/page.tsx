@@ -35,6 +35,12 @@ export default function ExercisePage() {
   const [bowelDoneToday, setBowelDoneToday] = useState(false);
   const [bowelLog, setBowelLog] = useState<BowelRecord[]>([]); // 最新在前
 
+  // 日历日期详情（只读）
+  const [detailDate, setDetailDate] = useState<string | null>(null);
+  const [detailExercise, setDetailExercise] = useState<ExerciseRecord[]>([]);
+  const [detailBowel, setDetailBowel] = useState(false);
+  const [detailWeight, setDetailWeight] = useState<number | null>(null);
+
   const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
 
   async function loadMonth() {
@@ -137,6 +143,18 @@ export default function ExercisePage() {
     setNote("");
   }
 
+  async function openDetail(date: string) {
+    const [ex, bw, w] = await Promise.all([
+      repos.exercise.whereDate(date),
+      repos.bowel.whereDate(date),
+      repos.weight.whereDate(date),
+    ]);
+    setDetailExercise(ex);
+    setDetailBowel(bw.length > 0);
+    setDetailWeight(w.length > 0 ? w[0].value : null);
+    setDetailDate(date);
+  }
+
   async function save() {
     if (!sheetDate || !project.trim() || !duration) return;
     await repos.exercise.add({
@@ -222,7 +240,7 @@ export default function ExercisePage() {
               return (
                 <button
                   key={date}
-                  onClick={() => openDay(date)}
+                  onClick={() => openDetail(date)}
                   className={`relative flex aspect-square items-center justify-center rounded-xl text-sm transition duration-200 ${
                     isToday
                       ? "bg-primary/15 font-semibold text-primary"
@@ -239,27 +257,6 @@ export default function ExercisePage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* 统计 */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card>
-          <CardContent>
-            <p className="text-xs text-ink-faint">本月次数</p>
-            <p className="tabular mt-1 text-3xl font-semibold text-ink">
-              {monthStat.count}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <p className="text-xs text-ink-faint">本月总时长</p>
-            <p className="tabular mt-1 text-3xl font-semibold text-ink">
-              {monthStat.minutes}
-              <span className="text-sm font-normal text-ink-faint"> 分</span>
-            </p>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* 记录当日入口 */}
       <Button
@@ -338,6 +335,57 @@ export default function ExercisePage() {
           >
             <Dumbbell className="h-4 w-4" /> 保存记录
           </Button>
+        </div>
+      </Sheet>
+
+      {/* 日历日期详情（只读） */}
+      <Sheet open={!!detailDate} onClose={() => setDetailDate(null)} title={detailDate || ""}>
+        <div className="space-y-5">
+          <div>
+            <p className="mb-2 text-xs font-medium text-ink-soft">运动记录</p>
+            {detailExercise.length > 0 ? (
+              <div className="space-y-2">
+                {detailExercise.map((r) => (
+                  <div key={r.id} className="rounded-2xl bg-line/30 p-3">
+                    <p className="text-sm font-medium text-ink">
+                      {r.project}
+                      <span className="ml-2 text-xs text-ink-faint">
+                        {r.duration} 分钟
+                      </span>
+                    </p>
+                    {r.note && (
+                      <p className="mt-0.5 text-xs text-ink-soft">{r.note}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-ink-faint">无运动记录</p>
+            )}
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-medium text-ink-soft">排便打卡</p>
+            {detailBowel ? (
+              <p className="flex items-center gap-2 text-sm text-ink">
+                <Check className="h-4 w-4 text-accent" /> 已打卡
+              </p>
+            ) : (
+              <p className="text-sm text-ink-faint">未打卡</p>
+            )}
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-medium text-ink-soft">体重数值</p>
+            {detailWeight != null ? (
+              <p className="text-sm text-ink">
+                <span className="tabular text-base font-semibold">{detailWeight}</span>
+                <span className="ml-1 text-xs text-ink-faint">kg</span>
+              </p>
+            ) : (
+              <p className="text-sm text-ink-faint">未记录</p>
+            )}
+          </div>
         </div>
       </Sheet>
 
@@ -473,6 +521,27 @@ export default function ExercisePage() {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 统计：本月次数 / 本月总时长 */}
+      <div className="grid grid-cols-2 gap-4">
+        <Card>
+          <CardContent>
+            <p className="text-xs text-ink-faint">本月次数</p>
+            <p className="tabular mt-1 text-3xl font-semibold text-ink">
+              {monthStat.count}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-xs text-ink-faint">本月总时长</p>
+            <p className="tabular mt-1 text-3xl font-semibold text-ink">
+              {monthStat.minutes}
+              <span className="text-sm font-normal text-ink-faint"> 分</span>
+            </p>
           </CardContent>
         </Card>
       </div>

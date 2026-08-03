@@ -6,7 +6,6 @@ import {
   RefreshCw,
   BookOpen,
   Languages,
-  Sparkles,
   Flame,
   Sprout,
 } from "lucide-react";
@@ -23,7 +22,6 @@ import {
 import {
   BOOK_POOL,
   ENGLISH_POOL,
-  ESSAY_POOL,
   pickDistinct,
   type BookExcerpt,
   type EnglishPassage,
@@ -42,7 +40,6 @@ export default function TodayPage() {
   const [heat, setHeat] = useState<{ date: string; count: number }[]>([]);
   const [book, setBook] = useState<BookExcerpt>(BOOK_POOL[0]);
   const [eng, setEng] = useState<EnglishPassage>(ENGLISH_POOL[0]);
-  const [essay, setEssay] = useState(ESSAY_POOL[0]);
   const [ready, setReady] = useState(false);
 
   async function load() {
@@ -61,7 +58,6 @@ export default function TodayPage() {
     load();
     setBook(pickDistinct(BOOK_POOL));
     setEng(pickDistinct(ENGLISH_POOL));
-    setEssay(pickDistinct(ESSAY_POOL));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -128,7 +124,7 @@ export default function TodayPage() {
       {/* AI 推荐三卡片 */}
       <div className="space-y-1">
         <p className="px-1 text-sm font-medium text-ink-soft">今日为你推荐</p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {/* 书摘 */}
           <AICard
             icon={<BookOpen className="h-4 w-4" />}
@@ -153,18 +149,6 @@ export default function TodayPage() {
               {eng.en}
             </p>
             <p className="mt-1 text-[11px] text-ink-faint">↓ 点开英文阅读看全文翻译</p>
-          </AICard>
-
-          {/* 短文 */}
-          <AICard
-            icon={<Sparkles className="h-4 w-4" />}
-            label="今日短文"
-            onRefresh={() => setEssay((e) => pickDistinct(ESSAY_POOL, e))}
-          >
-            <p className="font-medium text-ink">{essay.title}</p>
-            <p className="mt-2 line-clamp-6 text-[13px] leading-relaxed text-ink-soft">
-              {essay.text}
-            </p>
           </AICard>
         </div>
       </div>
