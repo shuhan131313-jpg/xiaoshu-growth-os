@@ -94,6 +94,12 @@ export default function ReadingPage() {
           </div>
           <p className="font-semibold text-ink">{book.book}</p>
           <p className="mt-0.5 text-xs text-ink-faint">{book.author}</p>
+          {book.region && (
+            <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
+              {book.region}
+              {book.tag ? ` · ${book.tag}` : ""}
+            </span>
+          )}
           <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
             {book.intro}
           </p>
