@@ -18,6 +18,8 @@ const TABLE_NAMES = [
   "experiment",
   "gratitude",
   "spark",
+  "weight",
+  "bowel",
   "growth",
   "settings",
 ] as const;

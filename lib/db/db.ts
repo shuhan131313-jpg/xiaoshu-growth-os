@@ -88,6 +88,21 @@ export interface SparkRecord {
   createdAt: number;
 }
 
+export interface WeightRecord {
+  id?: number;
+  date: string; // YYYY-MM-DD
+  value: number; // 体重 kg
+  note?: string;
+  createdAt: number;
+}
+
+export interface BowelRecord {
+  id?: number;
+  date: string; // YYYY-MM-DD
+  note?: string;
+  createdAt: number;
+}
+
 export interface GrowthReport {
   id?: number;
   period: string; // week-2026-31 | month-2026-08
@@ -113,6 +128,8 @@ export class XiaoShuDB extends Dexie {
   experiment!: Table<ExperimentRecord, number>;
   gratitude!: Table<GratitudeRecord, number>;
   spark!: Table<SparkRecord, number>;
+  weight!: Table<WeightRecord, number>;
+  bowel!: Table<BowelRecord, number>;
   growth!: Table<GrowthReport, number>;
   settings!: Table<AppSettings, number>;
 
@@ -144,6 +161,10 @@ export class XiaoShuDB extends Dexie {
       growth: "++id, period",
       settings: "++id, key",
       spark: "++id, date",
+    });
+    this.version(3).stores({
+      weight: "++id, date",
+      bowel: "++id, date",
     });
   }
 }

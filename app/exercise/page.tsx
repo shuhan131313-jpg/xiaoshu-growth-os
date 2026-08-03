@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Plus, Dumbbell } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Dumbbell, Scale, CheckCircle2, Check, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import { Sheet } from "@/components/common/sheet";
 import { PageHeader } from "@/components/common/page-header";
 import { repos } from "@/lib/db/repo";
 import { db } from "@/lib/db/db";
-import type { ExerciseRecord } from "@/lib/db/db";
+import type { ExerciseRecord, WeightRecord, BowelRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
 import { lastNDailyCount } from "@/lib/summary";
 
@@ -30,6 +30,14 @@ export default function ExercisePage() {
   const [note, setNote] = useState("");
   const [monthStat, setMonthStat] = useState({ count: 0, minutes: 0 });
   const [trend, setTrend] = useState<{ date: string; value: number }[]>([]);
+
+  // 体重 / 排便 简易记录
+  const [weightInput, setWeightInput] = useState("");
+  const [weightNote, setWeightNote] = useState("");
+  const [weights, setWeights] = useState<WeightRecord[]>([]); // 最新在前
+  const [bowelNote, setBowelNote] = useState("");
+  const [bowelDoneToday, setBowelDoneToday] = useState(false);
+  const [bowelLog, setBowelLog] = useState<BowelRecord[]>([]); // 最新在前
 
   const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
 
@@ -54,6 +62,81 @@ export default function ExercisePage() {
     loadMonth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year, month]);
+
+  async function loadHealth() {
+    const [wAll, bAll] = await Promise.all([
+      repos.weight.all(),
+      repos.bowel.all(),
+    ]);
+    const wSorted = wAll.sort((a, b) => b.date.localeCompare(a.date));
+    setWeights(wSorted);
+    const todayW = wSorted.find((w) => w.date === todayKey());
+    if (todayW) {
+      setWeightInput(String(todayW.value));
+      setWeightNote(todayW.note || "");
+    } else {
+      setWeightInput("");
+      setWeightNote("");
+    }
+    const bSorted = bAll.sort((a, b) => b.date.localeCompare(a.date));
+    setBowelLog(bSorted);
+    const todayB = bSorted.find((b) => b.date === todayKey());
+    setBowelDoneToday(!!todayB);
+    if (todayB) setBowelNote(todayB.note || "");
+    else setBowelNote("");
+  }
+
+  useEffect(() => {
+    loadHealth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function saveWeight() {
+    const v = Number(weightInput);
+    if (!weightInput.trim() || isNaN(v) || v <= 0) return;
+    const existing = await repos.weight.whereDate(todayKey());
+    if (existing.length > 0) {
+      await repos.weight.update(existing[0].id!, {
+        value: v,
+        note: weightNote.trim() || undefined,
+        createdAt: Date.now(),
+      });
+    } else {
+      await repos.weight.add({
+        date: todayKey(),
+        value: v,
+        note: weightNote.trim() || undefined,
+        createdAt: Date.now(),
+      });
+    }
+    await loadHealth();
+  }
+
+  async function deleteWeight(id?: number) {
+    if (id == null) return;
+    await repos.weight.delete(id);
+    await loadHealth();
+  }
+
+  async function toggleBowel() {
+    if (bowelDoneToday) {
+      const ex = await repos.bowel.whereDate(todayKey());
+      if (ex.length > 0) await repos.bowel.delete(ex[0].id!);
+    } else {
+      await repos.bowel.add({
+        date: todayKey(),
+        note: bowelNote.trim() || undefined,
+        createdAt: Date.now(),
+      });
+    }
+    await loadHealth();
+  }
+
+  async function deleteBowel(id?: number) {
+    if (id == null) return;
+    await repos.bowel.delete(id);
+    await loadHealth();
+  }
 
   async function openDay(date: string) {
     setSheetDate(date);
@@ -292,6 +375,150 @@ export default function ExercisePage() {
           </Button>
         </div>
       </Sheet>
+
+      {/* 身体指标：体重 / 排便 */}
+      <div className="space-y-5 pt-1">
+        {/* 体重 */}
+        <Card>
+          <CardContent>
+            <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-primary">
+              <Scale className="h-4 w-4" /> 体重
+            </div>
+            <p className="mb-3 text-[13px] text-ink-faint">
+              记录每日体重，自动留存历史
+            </p>
+            <Label>今日体重（kg）</Label>
+            <Input
+              type="number"
+              step="0.1"
+              inputMode="decimal"
+              value={weightInput}
+              onChange={(e) => setWeightInput(e.target.value)}
+              placeholder="如 65.5"
+            />
+            <div className="mt-3">
+              <Label>备注（可选）</Label>
+              <Input
+                value={weightNote}
+                onChange={(e) => setWeightNote(e.target.value)}
+                placeholder="体感、时段…"
+              />
+            </div>
+            <Button
+              variant="accent"
+              className="mt-3 w-full"
+              onClick={saveWeight}
+              disabled={!weightInput.trim()}
+            >
+              保存今日体重
+            </Button>
+
+            {weights.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <p className="text-xs font-medium text-ink-soft">
+                  近期记录（{weights.length}）
+                </p>
+                {weights.slice(0, 8).map((w) => (
+                  <div
+                    key={w.id}
+                    className="flex items-center justify-between rounded-2xl bg-line/30 px-3 py-2"
+                  >
+                    <div className="flex min-w-0 items-baseline gap-2">
+                      <span className="tabular text-sm font-medium text-ink">
+                        {w.value}
+                      </span>
+                      <span className="text-[11px] text-ink-faint">kg</span>
+                      <span className="tabular text-[11px] text-ink-faint">
+                        {w.date}
+                      </span>
+                    </div>
+                    <div className="flex min-w-0 items-center gap-2">
+                      {w.note && (
+                        <span className="max-w-[40%] truncate text-[11px] text-ink-soft">
+                          {w.note}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => deleteWeight(w.id)}
+                        aria-label="删除体重记录"
+                        className="shrink-0 text-ink-faint transition duration-200 hover:text-red-500"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 排便记录 */}
+        <Card>
+          <CardContent>
+            <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-primary">
+              <CheckCircle2 className="h-4 w-4" /> 排便记录
+            </div>
+            <p className="mb-3 text-[13px] text-ink-faint">
+              极简打卡，记录每日状态
+            </p>
+            {!bowelDoneToday && (
+              <div>
+                <Label>备注（可选）</Label>
+                <Input
+                  value={bowelNote}
+                  onChange={(e) => setBowelNote(e.target.value)}
+                  placeholder="状态、备注…"
+                />
+              </div>
+            )}
+            <Button
+              variant={bowelDoneToday ? "soft" : "accent"}
+              className="mt-3 w-full"
+              onClick={toggleBowel}
+            >
+              {bowelDoneToday ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4" /> 今日已打卡
+                </>
+              ) : (
+                "标记今日完成"
+              )}
+            </Button>
+
+            {bowelLog.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <p className="text-xs font-medium text-ink-soft">
+                  打卡日志（{bowelLog.length}）
+                </p>
+                {bowelLog.slice(0, 14).map((b) => (
+                  <div
+                    key={b.id}
+                    className="flex items-center justify-between rounded-2xl bg-line/30 px-3 py-2"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Check className="h-3.5 w-3.5 shrink-0 text-accent" />
+                      <span className="tabular text-sm text-ink">{b.date}</span>
+                      {b.note && (
+                        <span className="truncate text-[11px] text-ink-soft">
+                          {b.note}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => deleteBowel(b.id)}
+                      aria-label="删除打卡记录"
+                      className="shrink-0 text-ink-faint transition duration-200 hover:text-red-500"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
