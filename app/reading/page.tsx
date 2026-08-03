@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BookOpen, RefreshCw, Check, Clock, Sparkles, Trash2 } from "lucide-react";
+import { BookOpen, RefreshCw, Check, Sparkles, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Timer } from "@/components/common/timer";
 import { PageHeader } from "@/components/common/page-header";
 import { repos } from "@/lib/db/repo";
 import type { ReadingRecord, SparkRecord } from "@/lib/db/db";
@@ -16,10 +15,8 @@ import { BOOK_POOL, pickDistinct, type BookExcerpt } from "@/lib/ai/content";
 export default function ReadingPage() {
   const today = todayKey();
   const [book, setBook] = useState<BookExcerpt>(BOOK_POOL[0]);
-  const [timerKey, setTimerKey] = useState(0);
   const [feeling, setFeeling] = useState("");
   const [history, setHistory] = useState<ReadingRecord[]>([]);
-  const [saved, setSaved] = useState(false);
   const [sparkText, setSparkText] = useState("");
   const [sparks, setSparks] = useState<SparkRecord[]>([]);
 
@@ -49,9 +46,6 @@ export default function ReadingPage() {
       createdAt: Date.now(),
     });
     setFeeling("");
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-    setTimerKey((k) => k + 1); // 保存后重置计时器到 00:00
     refresh();
   }
 
@@ -71,79 +65,6 @@ export default function ReadingPage() {
   return (
     <div className="space-y-5">
       <PageHeader title="阅读" desc="每天留一段安静的时间，与自己对话" />
-
-      {/* 每日书摘 */}
-      <Card>
-        <CardContent>
-          <div className="mb-2 flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
-              <BookOpen className="h-4 w-4" /> 每日书摘
-            </span>
-            <button
-              onClick={() => setBook((b) => pickDistinct(BOOK_POOL, b))}
-              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-ink-faint hover:bg-line/50"
-            >
-              <RefreshCw className="h-3 w-3" /> 换一本
-            </button>
-          </div>
-          <p className="font-semibold text-ink">{book.book}</p>
-          <p className="mt-0.5 text-xs text-ink-faint">{book.author}</p>
-          {book.region && (
-            <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
-              {book.region}
-              {book.tag ? ` · ${book.tag}` : ""}
-            </span>
-          )}
-          <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
-            {book.intro}
-          </p>
-          <p className="mt-3 rounded-2xl bg-line/30 p-3 text-[14px] leading-relaxed text-ink">
-            {book.passage}
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* 计时器（正向计时） */}
-      <Card>
-        <CardContent className="flex flex-col items-center gap-4 pt-2">
-          <div className="flex items-center gap-2 text-sm text-ink-soft">
-            <Clock className="h-4 w-4 text-accent" /> 阅读计时
-          </div>
-          <Timer
-            key={timerKey}
-            mode="countup"
-            size={160}
-            showReset={false}
-            onStop={saveSession}
-          />
-          {saved && (
-            <p className="flex items-center gap-1 text-sm text-accent-dark">
-              <Check className="h-4 w-4" /> 已记录本次阅读（{book.book}）
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* 感想 */}
-      <Card>
-        <CardContent>
-          <Label>阅读感想（结束后随计时一起保存，也可单独记录）</Label>
-          <Textarea
-            value={feeling}
-            onChange={(e) => setFeeling(e.target.value)}
-            placeholder="这一段让我想到…"
-            rows={3}
-          />
-          <Button
-            variant="soft"
-            className="mt-3 w-full"
-            onClick={() => saveSession(0)}
-            disabled={!feeling.trim()}
-          >
-            仅保存感想
-          </Button>
-        </CardContent>
-      </Card>
 
       {/* 灵光一闪 */}
       <Card>
@@ -194,6 +115,58 @@ export default function ReadingPage() {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* 每日书摘 */}
+      <Card>
+        <CardContent>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
+              <BookOpen className="h-4 w-4" /> 每日书摘
+            </span>
+            <button
+              onClick={() => setBook((b) => pickDistinct(BOOK_POOL, b))}
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-ink-faint hover:bg-line/50"
+            >
+              <RefreshCw className="h-3 w-3" /> 换一本
+            </button>
+          </div>
+          <p className="font-semibold text-ink">{book.book}</p>
+          <p className="mt-0.5 text-xs text-ink-faint">{book.author}</p>
+          {book.region && (
+            <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
+              {book.region}
+              {book.tag ? ` · ${book.tag}` : ""}
+            </span>
+          )}
+          <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
+            {book.intro}
+          </p>
+          <p className="mt-3 rounded-2xl bg-line/30 p-3 text-[14px] leading-relaxed text-ink">
+            {book.passage}
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* 感想 */}
+      <Card>
+        <CardContent>
+          <Label>阅读感想（随手记录，随时保存）</Label>
+          <Textarea
+            value={feeling}
+            onChange={(e) => setFeeling(e.target.value)}
+            placeholder="这一段让我想到…"
+            rows={3}
+          />
+          <Button
+            variant="soft"
+            className="mt-3 w-full"
+            onClick={() => saveSession(0)}
+            disabled={!feeling.trim()}
+          >
+            仅保存感想
+          </Button>
         </CardContent>
       </Card>
 

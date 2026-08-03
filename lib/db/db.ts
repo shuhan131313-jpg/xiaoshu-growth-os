@@ -64,11 +64,12 @@ export interface LiteratureItem {
 export interface ExperimentRecord {
   id?: number;
   date: string;
-  name: string;
-  type: string;
+  name?: string; // 旧版：实验名称；新版可留空
+  type?: string; // 旧版：实验类型；新版可留空
   steps?: string;
   result?: string;
   improvement?: string;
+  note?: string; // 新版：单一自由文本框（名称/步骤/结果/思路均可写入）
   duration?: number;
   createdAt: number;
 }

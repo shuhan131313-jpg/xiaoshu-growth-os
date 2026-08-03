@@ -51,7 +51,7 @@ async function collectAll(): Promise<Hit[]> {
     hits.push({
       module: "experiment",
       date: r.date,
-      text: `${r.name} ${r.steps ?? ""} ${r.result ?? ""} ${r.improvement ?? ""}`,
+      text: `${r.name ?? ""} ${r.note ?? ""} ${r.steps ?? ""} ${r.result ?? ""} ${r.improvement ?? ""}`,
     });
   for (const r of gr)
     hits.push({

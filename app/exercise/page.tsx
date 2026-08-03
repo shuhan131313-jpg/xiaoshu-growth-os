@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Plus, Dumbbell, Scale, CheckCircle2, Check, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,6 @@ import { repos } from "@/lib/db/repo";
 import { db } from "@/lib/db/db";
 import type { ExerciseRecord, WeightRecord, BowelRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
-import { lastNDailyCount } from "@/lib/summary";
 
 const WEEK = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -29,11 +27,9 @@ export default function ExercisePage() {
   const [duration, setDuration] = useState("");
   const [note, setNote] = useState("");
   const [monthStat, setMonthStat] = useState({ count: 0, minutes: 0 });
-  const [trend, setTrend] = useState<{ date: string; value: number }[]>([]);
 
   // 体重 / 排便 简易记录
   const [weightInput, setWeightInput] = useState("");
-  const [weightNote, setWeightNote] = useState("");
   const [weights, setWeights] = useState<WeightRecord[]>([]); // 最新在前
   const [bowelNote, setBowelNote] = useState("");
   const [bowelDoneToday, setBowelDoneToday] = useState(false);
@@ -55,7 +51,6 @@ export default function ExercisePage() {
     }
     setMarked(m);
     setMonthStat({ count, minutes });
-    setTrend(await lastNDailyCount(db.exercise, 7));
   }
 
   useEffect(() => {
@@ -73,10 +68,8 @@ export default function ExercisePage() {
     const todayW = wSorted.find((w) => w.date === todayKey());
     if (todayW) {
       setWeightInput(String(todayW.value));
-      setWeightNote(todayW.note || "");
     } else {
       setWeightInput("");
-      setWeightNote("");
     }
     const bSorted = bAll.sort((a, b) => b.date.localeCompare(a.date));
     setBowelLog(bSorted);
@@ -98,14 +91,12 @@ export default function ExercisePage() {
     if (existing.length > 0) {
       await repos.weight.update(existing[0].id!, {
         value: v,
-        note: weightNote.trim() || undefined,
         createdAt: Date.now(),
       });
     } else {
       await repos.weight.add({
         date: todayKey(),
         value: v,
-        note: weightNote.trim() || undefined,
         createdAt: Date.now(),
       });
     }
@@ -191,8 +182,6 @@ export default function ExercisePage() {
     setYear(y);
   }
 
-  const maxTrend = Math.max(1, ...trend.map((t) => t.value));
-
   return (
     <div className="space-y-5">
       <PageHeader title="运动" desc="记录每一次流汗，看见坚持的形状" />
@@ -271,30 +260,6 @@ export default function ExercisePage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* 周趋势 */}
-      <Card>
-        <CardContent>
-          <p className="mb-3 text-sm font-medium text-ink-soft">近 7 天趋势</p>
-          <div className="flex h-24 items-end justify-between gap-2">
-            {trend.map((t, i) => (
-              <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                <div className="flex h-16 w-full items-end">
-                  <motion.div
-                    initial={{ height: 0 }}
-                    animate={{ height: `${(t.value / maxTrend) * 100}%` }}
-                    transition={{ duration: 0.3 }}
-                    className="w-full rounded-t-md bg-accent/70"
-                  />
-                </div>
-                <span className="text-[10px] text-ink-faint">
-                  {t.date.slice(5).replace("-", "/")}
-                </span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* 记录当日入口 */}
       <Button
@@ -396,14 +361,6 @@ export default function ExercisePage() {
               onChange={(e) => setWeightInput(e.target.value)}
               placeholder="如 65.5"
             />
-            <div className="mt-3">
-              <Label>备注（可选）</Label>
-              <Input
-                value={weightNote}
-                onChange={(e) => setWeightNote(e.target.value)}
-                placeholder="体感、时段…"
-              />
-            </div>
             <Button
               variant="accent"
               className="mt-3 w-full"
