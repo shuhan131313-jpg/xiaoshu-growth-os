@@ -56,6 +56,7 @@ export interface LiteratureItem {
   excerpt?: string;
   cnSummary?: string;
   findings?: string;
+  linkHint?: string;
   vocab?: { term: string; meaning: string }[];
   createdAt: number;
 }

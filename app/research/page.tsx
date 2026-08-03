@@ -114,9 +114,14 @@ export default function ResearchPage() {
 
       {/* 文献推荐 */}
       <div className="flex items-center justify-between px-1">
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
-          <FlaskConical className="h-4 w-4" /> 今日文献推荐
-        </span>
+        <div className="flex flex-col">
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
+            <FlaskConical className="h-4 w-4" /> 今日科研文献推荐
+          </span>
+          <span className="mt-0.5 text-[10px] text-ink-faint">
+            生物 / 食品营养方向 · 肠-骨轴 · 肠道微生物 · 体外消化 · 功能食品
+          </span>
+        </div>
         <button
           onClick={() => setLit((x) => pickDistinct(LITERATURE_POOL, x))}
           className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-ink-faint hover:bg-line/50"
@@ -139,8 +144,12 @@ export default function ResearchPage() {
             <p className="mt-1 text-[14px] leading-7 text-ink">{lit.cnSummary}</p>
           </div>
           <div>
-            <p className="text-sm font-medium text-ink-soft">核心发现</p>
+            <p className="text-sm font-medium text-ink-soft">核心研究结论</p>
             <p className="mt-1 text-[14px] leading-7 text-ink">{lit.findings}</p>
+          </div>
+          <div className="rounded-2xl bg-primary/5 p-3">
+            <p className="mb-1 text-sm font-medium text-primary">关联提示</p>
+            <p className="text-[13px] leading-7 text-ink-soft">{lit.linkHint}</p>
           </div>
           <div>
             <p className="mb-2 text-sm font-medium text-ink-soft">专业生词</p>

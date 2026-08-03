@@ -25,6 +25,7 @@ export interface LiteratureItem {
   excerpt: string;
   cnSummary: string;
   findings: string;
+  linkHint: string; // 与肠-骨轴 / 体外消化 / 菌群研究的关联提示
   vocab: { term: string; meaning: string }[];
 }
 
@@ -518,96 +519,260 @@ export const ENGLISH_POOL: EnglishPassage[] = [
   },
 ];
 
-// ---------- 模拟文献池（首期本地生成，规避爬虫/跨域） ----------
+// ---------- 科研文献推荐池（生物学/食品营养方向；贴合肠-骨轴、肠道微生物、体外消化、功能食品、营养与骨代谢） ----------
+// 取向：高质量 Review / 机制基础研究；优先 Frontiers、Foods、Bone Research、Journal of Functional Foods 等。
+// 说明：首期为本地生成的代表性推荐（模拟文献），真实引用请以 PubMed 原文核实。
 export const LITERATURE_POOL: LiteratureItem[] = [
   {
-    title: "Brief Nature Exposure Boosts Cognitive Recovery",
-    journal: "Journal of Environmental Psychology",
+    title:
+      "Gut Microbiota-Derived Short-Chain Fatty Acids Regulate Bone Homeostasis",
+    journal: "Frontiers in Microbiology",
     excerpt:
-      "Participants who viewed natural scenes for 40 seconds after a demanding task showed significantly lower error rates on a subsequent attention test compared with those who viewed urban scenes.",
+      "Butyrate and propionate produced by gut commensals act on osteoblast and osteoclast precursors via GPR43/GPR109A, shifting the balance toward bone formation.",
     cnSummary:
-      "一项对照实验发现，在高强度认知任务后观看 40 秒自然景色的人，在随后的注意力测试中错误率明显低于观看城市景观的对照组。说明即便极短暂的「自然暴露」也有助于认知功能的恢复。",
+      "一项机制综述指出，肠道菌群发酵膳食纤维产生的短链脂肪酸（SCFA，尤以丁酸、丙酸为代表）可经 GPR43/GPR109A 受体作用于成骨与破骨前体细胞，抑制破骨分化、促进骨形成，构成「菌群—代谢物—骨」调控闭环。",
     findings:
-      "自然注视可作为低成本的注意力恢复微干预；对需要长时间专注的学习/科研场景有应用价值。",
+      "丁酸/丙酸是肠-骨轴的关键介质；补充可发酵膳食纤维或可成为非药物性的骨量维持策略。",
+    linkHint:
+      "肠-骨轴核心机制：菌群代谢物 SCFA 直接进入骨代谢信号，是连接「肠道微生物 ↔ 骨骼代谢」最直接的证据链。",
     vocab: [
-      { term: "cognitive recovery", meaning: "认知恢复" },
-      { term: "attention test", meaning: "注意力测试" },
-      { term: "urban scenes", meaning: "城市景观" },
+      { term: "short-chain fatty acids", meaning: "短链脂肪酸（SCFA）" },
+      { term: "osteoblast", meaning: "成骨细胞" },
+      { term: "osteoclast", meaning: "破骨细胞" },
     ],
   },
   {
-    title: "Sleep Spindles Predict Next-Day Memory Consolidation",
-    journal: "Nature Neuroscience",
+    title:
+      "The Gut-Bone Axis: Probiotic Supplementation Attenuates Postmenopausal Bone Loss",
+    journal: "Journal of Functional Foods",
     excerpt:
-      "Higher density of sleep spindles during non-REM stage 2 correlated with better overnight retention of procedural skills, independent of total sleep duration.",
+      "Randomized trials of Lactobacillus/Bifidobacterium blends reported modest but significant improvements in bone turnover markers and BMD in postmenopausal women.",
     cnSummary:
-      "研究发现，非快速眼动睡眠第二期出现的「睡眠纺锤波」密度越高，程序性技能的隔夜保持越好，且该效应与总睡眠时长无关。提示睡眠的「质量结构」比单纯时长更关键。",
+      "多篇随机干预研究汇总显示，含有乳酸杆菌/双歧杆菌的益生菌配方，可改善绝经后女性的骨转换标志物并小幅提升骨密度，作用可能经由钙吸收改善与系统性炎症下调实现。",
     findings:
-      "优化睡眠结构（而非仅延长时长）可能更有效提升记忆巩固；为学习节律设计提供依据。",
+      "益生菌作为功能食品手段，对绝经后骨质疏松具有辅助预防潜力，但效应量中等，需长期验证。",
+    linkHint:
+      "肠-骨轴干预窗口：益生菌→调节菌群→提升矿物质吸收/抗炎→减缓骨丢失，直接对接你的功能食品与骨代谢研究。",
     vocab: [
-      { term: "sleep spindles", meaning: "睡眠纺锤波" },
-      { term: "non-REM", meaning: "非快速眼动睡眠" },
-      { term: "procedural skills", meaning: "程序性技能" },
+      { term: "probiotic", meaning: "益生菌" },
+      { term: "bone turnover markers", meaning: "骨转换标志物" },
+      { term: "BMD", meaning: "骨密度（Bone Mineral Density）" },
     ],
   },
   {
-    title: "Micro-habits Outperform Motivation in Long-term Adherence",
-    journal: "Health Psychology Review",
+    title:
+      "Polyphenols and Bone Health: The Pivotal Role of Gut Microbiota Metabolism",
+    journal: "Foods",
     excerpt:
-      "A 12-week randomized trial found that participants assigned to 'two-minute' starter habits maintained higher adherence at week 12 than those pursuing outcome-based goals.",
+      "Dietary polyphenols are largely transformed by colonic bacteria into bioactive metabolites that modulate osteoblast activity and inflammatory pathways.",
     cnSummary:
-      "一项为期 12 周的随机试验显示，被分配「两分钟启动习惯」的参与者在第 12 周的坚持率，高于以结果目标为导向的组别。说明极小的启动行为比依靠动力更能维持长期依从。",
+      "综述强调，膳食多酚（如黄酮、酚酸）大多需经结肠菌群代谢为活性小分子后才能发挥作用，这些代谢物可激活成骨信号、抑制 NF-κB 等炎症通路，从而利好骨健康。",
     findings:
-      "行为改变设计应优先降低启动门槛；对习惯养成类产品/个人成长工具有直接指导意义。",
+      "多酚的「骨效益」高度依赖个体菌群组成；功能食品配方应考虑多酚-菌群的协同。",
+    linkHint:
+      "菌群研究视角：多酚必须经菌群转化才生效，是把「体外消化/菌群代谢」与「骨健康」串联的关键节点。",
     vocab: [
-      { term: "adherence", meaning: "依从；坚持" },
-      { term: "randomized trial", meaning: "随机试验" },
-      { term: "starter habits", meaning: "启动型习惯" },
+      { term: "polyphenols", meaning: "多酚" },
+      { term: "colonic bacteria", meaning: "结肠菌群" },
+      { term: "NF-κB", meaning: "核因子κB（炎症信号通路）" },
     ],
   },
   {
-    title: "Spaced Retrieval Beats Massed Study for retention",
-    journal: "Psychological Science",
+    title:
+      "INFOGEST In Vitro Digestion Model for Predicting Mineral Bioaccessibility in Fortified Foods",
+    journal: "Foods",
     excerpt:
-      "Learners who distributed retrieval practice across multiple days recalled 45% more after one month than learners who crammed the same total time in a single session.",
+      "The standardized INFOGEST protocol enables reproducible simulation of oral-gastric-intestinal digestion to quantify Ca, Mg and Fe release from matrices.",
     cnSummary:
-      "研究发现，把提取练习分散到多天的学习者，一个月后的记忆保持率比把相同总时长集中在一节课「填鸭」的学习者高出 45%。间隔提取显著优于集中学习。",
+      "标准化的 INFOGEST 体外消化协议，可在口腔—胃—肠三段连续模拟中重复测定钙、镁、铁等矿物质从食物基质中的释放与生物可及性，成为功能食品配方筛选的核心方法。",
     findings:
-      "复习计划应嵌入间隔与提取练习；对考试/语言学习类场景价值高。",
+      "体外消化模型可在不依赖活体实验的前提下，快速预测矿物质生物可利用度，是骨营养功能食品研发的必备工具。",
+    linkHint:
+      "体外消化模型直接应用：用 INFOGEST 评估钙/镁等骨相关矿物质的释放曲线，指导功能食品效力设计。",
     vocab: [
-      { term: "spaced retrieval", meaning: "间隔提取" },
-      { term: "massed study", meaning: "集中学习（填鸭）" },
-      { term: "retention", meaning: "保持率；记忆留存" },
+      { term: "INFOGEST", meaning: "国际标准化体外消化协议" },
+      { term: "bioaccessibility", meaning: "生物可及性" },
+      { term: "fortified foods", meaning: "强化食品" },
     ],
   },
   {
-    title: "Gratitude Journaling Lowers Inflammatory Markers",
-    journal: "Clinical Psychological Science",
+    title:
+      "Fermentation Enhances Calcium Bioavailability: Evidence from In Vitro Digestion",
+    journal: "Journal of Functional Foods",
     excerpt:
-      "Adults completing a nightly gratitude list for eight weeks showed reduced salivary IL-6 levels, a marker linked to chronic inflammation and stress.",
+      "Lactic acid fermentation lowered pH and solubilized calcium complexes, increasing dialyzable calcium fraction by up to 30% in fortified plant beverages.",
     cnSummary:
-      "一项研究中，连续 8 周每晚写感恩清单的成年人，其唾液中的 IL-6（与慢性炎症和压力相关的标志物）水平下降。说明感恩书写可能有客观的生理益处。",
+      "体外消化研究表明，乳酸发酵降低体系 pH、解离钙络合物，使强化植物饮品中的可透析钙比例提升最高约 30%，提示发酵是提升骨相关矿物质生物利用度的有效工艺。",
     findings:
-      "感恩练习或可纳入压力管理的低成本辅助手段；为「身心关联」提供实证支持。",
+      "发酵工艺可作为提升钙生物利用度的低成本的食品策略，对植物基骨健康产品尤具价值。",
+    linkHint:
+      "体外消化 + 功能食品交叉：发酵改变矿物溶出，体外消化定量验证，直接服务「营养与骨骼代谢」目标。",
     vocab: [
-      { term: "inflammatory markers", meaning: "炎症标志物" },
-      { term: "salivary IL-6", meaning: "唾液白细胞介素-6" },
-      { term: "chronic inflammation", meaning: "慢性炎症" },
+      { term: "lactic acid fermentation", meaning: "乳酸发酵" },
+      { term: "dialyzable calcium", meaning: "可透析钙" },
+      { term: "plant beverages", meaning: "植物基饮品" },
     ],
   },
   {
-    title: "Walking Meetings Increase Creative Output",
-    journal: "Applied Psychology",
+    title:
+      "Vitamin K2 (MK-7) Activates Osteocalcin and Supports Bone Mineralization",
+    journal: "Bone Research",
     excerpt:
-      "Groups that held brainstorming walks generated 23% more novel ideas than seated counterparts, with effects persisting after returning indoors.",
+      "Menquinone-7 promotes γ-carboxylation of osteocalcin, improving its affinity for hydroxyapatite and reducing fracture risk in cohort studies.",
     cnSummary:
-      "研究发现，进行「散步式头脑风暴」的小组比坐着的小组多产生 23% 的新颖想法，且效果在回到室内后仍持续。身体活动可能促进发散性思维。",
+      "综述指出，维生素 K2（尤以 MK-7 形式）促进骨钙素的 γ-羧化，使其更好地结合羟基磷灰石，队列研究关联其摄入与骨折风险下降。",
     findings:
-      "把部分会议/构思环节移到行走中，或可提升创造力；对个人复盘/规划也有启发。",
+      "K2 与维生素 D 协同（D 促钙吸收、K2 引钙入骨）是营养性骨健康干预的经典组合。",
+    linkHint:
+      "营养与骨骼代谢核心：K2 调控骨钙素活化，是「营养→骨矿化」通路的代表性机制，与功能食品配方高度相关。",
     vocab: [
-      { term: "brainstorming", meaning: "头脑风暴" },
-      { term: "novel ideas", meaning: "新颖想法" },
-      { term: "divergent thinking", meaning: "发散性思维" },
+      { term: "MK-7", meaning: "甲基萘醌-7（维生素K2长链形式）" },
+      { term: "osteocalcin", meaning: "骨钙素" },
+      { term: "hydroxyapatite", meaning: "羟基磷灰石" },
+    ],
+  },
+  {
+    title:
+      "Soy Isoflavones and Bone Mineral Density in Perimenopausal Women: A Meta-Review",
+    journal: "Journal of Functional Foods",
+    excerpt:
+      "Pooled analyses suggest soy isoflavones exert modest positive effects on lumbar BMD, partially mediated by gut microbiota conversion to equol.",
+    cnSummary:
+      "荟萃综述显示，大豆异黄酮对围绝经期女性腰椎骨密度有轻微正向作用，部分效应由菌群将之转化为「雌马酚（equol）」所介导，提示个体 equol 产出型影响获益程度。",
+    findings:
+      "大豆异黄酮是植物雌激素类骨保护成分；其效果受制于菌群代谢表型，为精准营养提供依据。",
+    linkHint:
+      "菌群研究 × 营养骨代谢：异黄酮必须经菌群转化为 equol 才高效，再次印证「菌群决定营养素效力」。",
+    vocab: [
+      { term: "isoflavones", meaning: "异黄酮" },
+      { term: "equol", meaning: "雌马酚（异黄酮活性代谢物）" },
+      { term: "perimenopausal", meaning: "围绝经期" },
+    ],
+  },
+  {
+    title:
+      "Prebiotics Modulate Gut Microbiota and Improve Bone Turnover Markers",
+    journal: "Frontiers in Nutrition",
+    excerpt:
+      "Inulin and fructo-oligosaccharides selectively enriched Bifidobacteria and raised SCFA levels, correlating with favorable shifts in bone formation markers.",
+    cnSummary:
+      "干预性综述指出，菊粉、低聚果糖等益生元可选择性增殖双歧杆菌、提升 SCFA 水平，并伴随骨形成标志物的有利变化，勾勒出「益生元—菌群—骨」路径。",
+    findings:
+      "益生元通过喂养有益菌间接利好骨代谢，是功能食品与肠-骨轴交叉的高潜力方向。",
+    linkHint:
+      "肠-骨轴上游调控：益生元→增殖产SCFA菌→骨形成改善，与你的肠道菌群研究方向直接契合。",
+    vocab: [
+      { term: "prebiotics", meaning: "益生元" },
+      { term: "inulin", meaning: "菊粉" },
+      { term: "fructo-oligosaccharides", meaning: "低聚果糖（FOS）" },
+    ],
+  },
+  {
+    title:
+      "Magnesium Release Kinetics Assessed by In Vitro Digestion of Fortified Matrices",
+    journal: "Foods",
+    excerpt:
+      "Sequential in vitro digestion revealed that organic magnesium salts achieved higher intestinal solubility than inorganic oxides in cereal bars.",
+    cnSummary:
+      "体外分段消化实验显示，在谷物棒基质中，有机镁盐的肠道段溶解度显著高于无机氧化镁，提示镁源形态是功能食品骨营养效力的关键变量。",
+    findings:
+      "镁作为骨基质与维生素 D 活化的必需元素，其盐型选择应基于体外消化溶出数据优化。",
+    linkHint:
+      "体外消化模型应用：量化不同镁盐的肠道释放，直接用于骨相关功能食品的配方筛选。",
+    vocab: [
+      { term: "magnesium kinetics", meaning: "镁释放动力学" },
+      { term: "intestinal solubility", meaning: "肠道溶解度" },
+      { term: "cereal bars", meaning: "谷物棒" },
+    ],
+  },
+  {
+    title:
+      "Collagen Peptides Bioavailability Evaluated by INFOGEST and Caco-2 Models",
+    journal: "Journal of Functional Foods",
+    excerpt:
+      "Hydrolyzed collagen resisted gastric cleavage and delivered dipeptides across Caco-2 monolayers, supporting joint and bone connective-tissue claims.",
+    cnSummary:
+      "研究结合 INFOGEST 体外消化与 Caco-2 细胞模型，证实水解胶原蛋白在胃段稳定、并能以二肽形式穿越肠上皮，为「骨与结缔组织健康」功能声称提供吸收层面的证据。",
+    findings:
+      "胶原肽的骨/关节获益需以可吸收的小肽形式存在；体外消化+Caco-2 是验证吸收效力的标准组合。",
+    linkHint:
+      "体外消化 + Caco-2 吸收验证：评估蛋白类骨健康功能成分的生物可利用度，是功能食品功效评价范式。",
+    vocab: [
+      { term: "collagen peptides", meaning: "胶原肽" },
+      { term: "Caco-2", meaning: "人结肠腺癌上皮细胞（吸收模型）" },
+      { term: "dipeptides", meaning: "二肽" },
+    ],
+  },
+  {
+    title:
+      "Gut Dysbiosis and Osteoporosis: A Mechanistic Review of the Microbiota-Bone Axis",
+    journal: "Bone Research",
+    excerpt:
+      "Dysbiosis increases intestinal permeability and systemic inflammation (TNF-α, IL-6), accelerating osteoclastogenesis and trabecular bone loss.",
+    cnSummary:
+      "机制综述系统梳理：菌群失调→肠漏→内毒素与炎症因子（TNF-α、IL-6）入血→破骨细胞生成加速→松质骨丢失，确立了「菌群—炎症—骨」的病理轴。",
+    findings:
+      "维持菌群稳态是骨质疏松防御的上游环节；抗炎与菌群修复可能比单纯补钙更具根本意义。",
+    linkHint:
+      "肠-骨轴病理机制：从菌群失调到骨丢失的完整因果链，是你的核心研究方向之一。",
+    vocab: [
+      { term: "dysbiosis", meaning: "菌群失调" },
+      { term: "intestinal permeability", meaning: "肠通透性（肠漏）" },
+      { term: "osteoclastogenesis", meaning: "破骨细胞生成" },
+    ],
+  },
+  {
+    title:
+      "Mediterranean Diet, Gut Microbiota, and Bone Density: A Narrative Review",
+    journal: "Frontiers in Nutrition",
+    excerpt:
+      "Adherence to a Mediterranean pattern was associated with higher BMD and a more diverse microbiota enriched in SCFA producers.",
+    cnSummary:
+      "综述汇总：高依从地中海膳食模式的人群骨密度更高，且菌群多样性更优、SCFA 产生菌富集，提示膳食结构通过重塑菌群影响骨量。",
+    findings:
+      "整体膳食模式（而非单一营养素）对骨与菌群的协同获益更显著，适合作为功能营养干预框架。",
+    linkHint:
+      "营养与菌群 × 骨代谢：膳食模式经菌群重构影响骨密度，呼应你「营养—骨骼代谢」与「肠道微生物」双主线。",
+    vocab: [
+      { term: "Mediterranean diet", meaning: "地中海膳食" },
+      { term: "BMD", meaning: "骨密度" },
+      { term: "SCFA producers", meaning: "短链脂肪酸产生菌" },
+    ],
+  },
+  {
+    title:
+      "Propionate Promotes Osteoblast Differentiation via AMPK Signaling",
+    journal: "Microbiome",
+    excerpt:
+      "Gnotobiotic and cell models showed microbial propionate activates AMPK, enhancing Runx2 expression and mineralized nodule formation.",
+    cnSummary:
+      "借助悉生动物与细胞模型，研究发现菌群来源的丙酸可激活 AMPK 通路、上调 Runx2 表达并促进矿化结节形成，从分子层面坐实丙酸的成骨效应。",
+    findings:
+      "丙酸是继丁酸之后又一明确的「菌群→成骨」信号分子，为靶向菌群的骨健康策略添证据。",
+    linkHint:
+      "肠-骨轴分子机制：丙酸经 AMPK/Runx2 促骨形成，是「肠道微生物 ↔ 骨骼代谢」的精准通路示例。",
+    vocab: [
+      { term: "propionate", meaning: "丙酸" },
+      { term: "AMPK", meaning: "腺苷酸活化蛋白激酶" },
+      { term: "Runx2", meaning: "成骨关键转录因子" },
+    ],
+  },
+  {
+    title:
+      "Dairy-Derived Bioactive Peptides and Bone Metabolism: In Vitro Evidence",
+    journal: "Foods",
+    excerpt:
+      "Casein- and whey-derived peptides inhibited osteoclast activity and showed ACE-inhibitory effects under simulated digestion.",
+    cnSummary:
+      "体外研究表明，酪蛋白与乳清来源的活性肽在模拟消化条件下可抑制破骨细胞活性，并兼具 ACE 抑制（舒张血管）效应，提示乳源肽的多重骨健康潜力。",
+    findings:
+      "乳源生物活性肽是天然骨保护功能成分，其稳定性与活性需在体外消化体系中验证后用于配方。",
+    linkHint:
+      "体外消化 + 功能食品：以乳源肽为对象，在模拟消化下验证其抗破骨活性，贴合你的功能食品评价方法。",
+    vocab: [
+      { term: "bioactive peptides", meaning: "生物活性肽" },
+      { term: "casein", meaning: "酪蛋白" },
+      { term: "ACE-inhibitory", meaning: "血管紧张素转化酶抑制" },
     ],
   },
 ];
