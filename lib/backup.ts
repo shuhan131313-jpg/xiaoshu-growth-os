@@ -17,6 +17,7 @@ const TABLE_NAMES = [
   "literature",
   "experiment",
   "gratitude",
+  "spark",
   "growth",
   "settings",
 ] as const;

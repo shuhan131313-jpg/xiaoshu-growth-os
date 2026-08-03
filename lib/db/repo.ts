@@ -26,6 +26,7 @@ export const repos = {
   literature: repo(db.literature),
   experiment: repo(db.experiment),
   gratitude: repo(db.gratitude),
+  spark: repo(db.spark),
   growth: repo(db.growth),
   settings: repo(db.settings),
 };

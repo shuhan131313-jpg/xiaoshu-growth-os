@@ -21,10 +21,11 @@ const MODULE_LABEL: Record<string, string> = {
   experiment: "实验",
   gratitude: "感恩",
   english: "英文",
+  spark: "灵光",
 };
 
 async function collectAll(): Promise<Hit[]> {
-  const [ex, rd, md, rs, lit, exp, gr, en] = await Promise.all([
+  const [ex, rd, md, rs, lit, exp, gr, en, sp] = await Promise.all([
     db.exercise.toArray(),
     db.reading.toArray(),
     db.meditation.toArray(),
@@ -33,6 +34,7 @@ async function collectAll(): Promise<Hit[]> {
     db.experiment.toArray(),
     db.gratitude.toArray(),
     db.english.toArray(),
+    db.spark.toArray(),
   ]);
   const hits: Hit[] = [];
   for (const r of ex)
@@ -59,6 +61,8 @@ async function collectAll(): Promise<Hit[]> {
     });
   for (const r of en)
     hits.push({ module: "english", date: r.date, text: `${r.title ?? ""} ${r.content ?? ""}` });
+  for (const r of sp)
+    hits.push({ module: "spark", date: r.date, text: r.text });
   return hits;
 }
 

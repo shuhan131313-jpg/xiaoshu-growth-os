@@ -80,6 +80,13 @@ export interface GratitudeRecord {
   createdAt: number;
 }
 
+export interface SparkRecord {
+  id?: number;
+  date: string; // YYYY-MM-DD
+  text: string;
+  createdAt: number;
+}
+
 export interface GrowthReport {
   id?: number;
   period: string; // week-2026-31 | month-2026-08
@@ -104,6 +111,7 @@ export class XiaoShuDB extends Dexie {
   literature!: Table<LiteratureItem, number>;
   experiment!: Table<ExperimentRecord, number>;
   gratitude!: Table<GratitudeRecord, number>;
+  spark!: Table<SparkRecord, number>;
   growth!: Table<GrowthReport, number>;
   settings!: Table<AppSettings, number>;
 
@@ -121,6 +129,20 @@ export class XiaoShuDB extends Dexie {
       gratitude: "++id, date",
       growth: "++id, period",
       settings: "++id, key",
+    });
+    this.version(2).stores({
+      dailyTasks: "++id, date, key",
+      exercise: "++id, date",
+      reading: "++id, date",
+      english: "++id, date",
+      meditation: "++id, date",
+      research: "++id, date",
+      literature: "++id, date",
+      experiment: "++id, date",
+      gratitude: "++id, date",
+      growth: "++id, period",
+      settings: "++id, key",
+      spark: "++id, date",
     });
   }
 }

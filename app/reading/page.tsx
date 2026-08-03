@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BookOpen, RefreshCw, Check, Clock } from "lucide-react";
+import { BookOpen, RefreshCw, Check, Clock, Sparkles, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Timer } from "@/components/common/timer";
 import { PageHeader } from "@/components/common/page-header";
 import { repos } from "@/lib/db/repo";
-import type { ReadingRecord } from "@/lib/db/db";
+import type { ReadingRecord, SparkRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
 import { BOOK_POOL, pickDistinct, type BookExcerpt } from "@/lib/ai/content";
 
@@ -23,10 +23,16 @@ export default function ReadingPage() {
   const [feeling, setFeeling] = useState("");
   const [history, setHistory] = useState<ReadingRecord[]>([]);
   const [saved, setSaved] = useState(false);
+  const [sparkText, setSparkText] = useState("");
+  const [sparks, setSparks] = useState<SparkRecord[]>([]);
 
   async function refresh() {
-    const all = await repos.reading.all();
+    const [all, sp] = await Promise.all([
+      repos.reading.all(),
+      repos.spark.all(),
+    ]);
     setHistory(all.sort((a, b) => b.createdAt - a.createdAt));
+    setSparks(sp.sort((a, b) => b.createdAt - a.createdAt));
   }
 
   useEffect(() => {
@@ -53,6 +59,19 @@ export default function ReadingPage() {
   function pickGoal(g: number) {
     setGoal(g);
     setTimerKey((k) => k + 1);
+  }
+
+  async function saveSpark() {
+    const t = sparkText.trim();
+    if (!t) return;
+    await repos.spark.add({ date: today, text: t, createdAt: Date.now() });
+    setSparkText("");
+    refresh();
+  }
+
+  async function deleteSpark(id: number) {
+    await repos.spark.delete(id);
+    refresh();
   }
 
   return (
@@ -139,6 +158,58 @@ export default function ReadingPage() {
           >
             仅保存感想
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* 灵光一闪 */}
+      <Card>
+        <CardContent>
+          <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-primary">
+            <Sparkles className="h-4 w-4" /> 灵光一闪
+          </div>
+          <p className="mb-2 text-[13px] text-ink-faint">
+            随时记下脑子里蹦出的小灵感
+          </p>
+          <Textarea
+            value={sparkText}
+            onChange={(e) => setSparkText(e.target.value)}
+            placeholder="比如：一个突然想到的研究角度…"
+            rows={3}
+          />
+          <Button
+            variant="soft"
+            className="mt-3 w-full"
+            onClick={saveSpark}
+            disabled={!sparkText.trim()}
+          >
+            记下来
+          </Button>
+
+          {sparks.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <p className="text-xs font-medium text-ink-soft">
+                我的灵感（{sparks.length}）
+              </p>
+              {sparks.map((s) => (
+                <div
+                  key={s.id}
+                  className="flex items-start justify-between gap-2 rounded-2xl bg-line/30 p-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-[13px] leading-relaxed text-ink">{s.text}</p>
+                    <p className="mt-1 tabular text-[11px] text-ink-faint">{s.date}</p>
+                  </div>
+                  <button
+                    onClick={() => deleteSpark(s.id!)}
+                    aria-label="删除灵感"
+                    className="shrink-0 text-ink-faint transition duration-200 hover:text-red-500"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
