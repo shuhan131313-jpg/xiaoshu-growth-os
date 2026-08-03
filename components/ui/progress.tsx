@@ -11,7 +11,7 @@ export function Progress({
   return (
     <div className={cn("h-2.5 w-full overflow-hidden rounded-full bg-line", className)}>
       <div
-        className="h-full rounded-full bg-gradient-to-r from-primary to-primary-light transition-[width] duration-300"
+        className="h-full rounded-full bg-gradient-to-r from-accent to-accent-light transition-[width] duration-300"
         style={{ width: `${pct}%` }}
       />
     </div>

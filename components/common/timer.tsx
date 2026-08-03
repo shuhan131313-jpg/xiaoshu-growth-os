@@ -105,7 +105,7 @@ export function Timer({
               cy={size / 2}
               r={r}
               fill="none"
-              stroke="#98AF94"
+              stroke="#6FAE7E"
               strokeWidth={stroke}
               strokeLinecap="round"
               strokeDasharray={c}

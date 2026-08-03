@@ -105,7 +105,7 @@ export function AIFab() {
         transition={{ duration: 0.2 }}
         onClick={() => setOpen(true)}
         aria-label="小树AI助手"
-        className="fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-soft md:bottom-6 md:right-6"
+        className="fixed bottom-6 right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-soft md:bottom-8 md:right-8"
       >
         <Leaf className="h-6 w-6" />
       </motion.button>
@@ -120,7 +120,7 @@ export function AIFab() {
                 disabled={busy}
                 className={`rounded-2xl px-3 py-2 text-[13px] font-medium transition duration-200 ${
                   active === a.key
-                    ? "bg-primary text-white shadow-soft"
+                    ? "bg-accent text-white shadow-soft"
                     : "bg-line/40 text-ink-soft hover:bg-line/70"
                 }`}
               >
@@ -132,7 +132,7 @@ export function AIFab() {
           <div className="min-h-[140px] rounded-2xl bg-line/30 p-4">
             {busy ? (
               <p className="flex items-center gap-2 text-sm text-ink-faint">
-                <Sparkles className="h-4 w-4 animate-pulse text-primary" /> 小树正在思考…
+                <Sparkles className="h-4 w-4 animate-pulse text-accent" /> 小树正在思考…
               </p>
             ) : output ? (
               <p className="whitespace-pre-line text-[14px] leading-7 text-ink">
