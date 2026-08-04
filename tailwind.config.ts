@@ -11,25 +11,25 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#F7F4EF",
-        surface: "#FFFFFF",
-        card: "#FFFFFF",
+        background: "#F8F1E5",
+        surface: "#ECE1CE",
+        card: "#ECE1CE",
         primary: {
-          DEFAULT: "#A8927C",
-          light: "#BCA98F",
-          dark: "#8A7560",
+          DEFAULT: "#AD8A63",
+          light: "#C6A47E",
+          dark: "#8A6A47",
         },
         accent: {
-          DEFAULT: "#6FAE7E",
-          light: "#8FC39B",
-          dark: "#4F8C63",
+          DEFAULT: "#58A874",
+          light: "#84C597",
+          dark: "#3C8759",
         },
         ink: {
-          DEFAULT: "#4A423A",
+          DEFAULT: "#463E35",
           soft: "#6B6258",
           faint: "#9A9188",
         },
-        line: "#ECE6DD",
+        line: "#DDD0BB",
       },
       fontFamily: {
         sans: [
@@ -52,8 +52,8 @@ const config: Config = {
         "3xl": "24px",
       },
       boxShadow: {
-        soft: "0 6px 20px rgba(168,146,124,0.18)",
-        card: "0 2px 12px rgba(74,66,58,0.06)",
+        soft: "0 6px 20px rgba(173,138,99,0.20)",
+        card: "0 2px 12px rgba(70,62,53,0.06)",
       },
       transitionDuration: {
         DEFAULT: "250ms",

@@ -25,9 +25,9 @@ import { repos } from "@/lib/db/repo";
 import type { FavoriteRecord } from "@/lib/db/db";
 
 function heatColor(count: number, max: number): string {
-  if (count <= 0) return "#ECE6DD";
+  if (count <= 0) return "#DDD0BB";
   const a = 0.25 + 0.75 * (count / max);
-  return `rgba(152,175,148,${a.toFixed(2)})`;
+  return `rgba(88,168,116,${a.toFixed(2)})`;
 }
 
 export default function TodayPage() {

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { FoldList } from "@/components/common/fold-list";
 import { PageHeader } from "@/components/common/page-header";
 import { repos } from "@/lib/db/repo";
 import type { ExperimentRecord } from "@/lib/db/db";
@@ -18,6 +19,12 @@ export default function ExperimentPage() {
   const [history, setHistory] = useState<ExperimentRecord[]>([]);
   const [query, setQuery] = useState("");
   const [saved, setSaved] = useState(false);
+
+  const curMonth = useMemo(() => today.slice(0, 7), [today]);
+  const monthHistory = useMemo(
+    () => history.filter((h) => h.date.startsWith(curMonth)),
+    [history, curMonth]
+  );
 
   async function refresh() {
     const all = await repos.experiment.all();
@@ -31,13 +38,13 @@ export default function ExperimentPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return history;
-    return history.filter((h) =>
+    if (!q) return monthHistory;
+    return monthHistory.filter((h) =>
       [h.name, h.type, h.steps, h.result, h.improvement, h.note]
         .filter(Boolean)
         .some((f) => String(f).toLowerCase().includes(q))
     );
-  }, [history, query]);
+  }, [monthHistory, query]);
 
   async function save() {
     if (!note.trim()) return;
@@ -88,78 +95,80 @@ export default function ExperimentPage() {
         </CardContent>
       </Card>
 
-      {/* 检索 + 历史 */}
-      <div>
-        <div className="mb-3 flex items-center justify-between px-1">
-          <span className="text-sm font-medium text-ink-soft">历史记录</span>
-          <div className="relative w-40">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="搜索内容…"
-              className="h-9 pl-9 text-[13px]"
-            />
+      {/* 检索 + 历史（统一折叠） */}
+      <FoldList
+        items={filtered}
+        title={
+          <div className="mb-3 flex items-center justify-between px-1">
+            <span className="text-sm font-medium text-ink-soft">
+              历史记录（{filtered.length}）
+            </span>
+            <div className="relative w-40">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="搜索内容…"
+                className="h-9 pl-9 text-[13px]"
+              />
+            </div>
           </div>
-        </div>
-        {filtered.length === 0 ? (
+        }
+        empty={
           <Card>
             <CardContent className="py-10 text-center text-sm text-ink-faint">
-              {history.length === 0 ? "还没有实验记录" : "没有匹配的结果"}
+              {monthHistory.length === 0 ? "还没有实验记录" : "没有匹配的结果"}
             </CardContent>
           </Card>
-        ) : (
-          <div className="space-y-3">
-            {filtered.map((h) => (
-              <Card key={h.id}>
-                <CardContent>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-ink">
-                        {h.name || "实验记录"}
-                      </p>
-                      <p className="mt-0.5 text-xs text-ink-faint">
-                        {h.date}
-                        {h.type ? ` · ${h.type}` : ""}
-                        {h.duration ? ` · ${h.duration} 分钟` : ""}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => remove(h.id)}
-                      className="text-xs text-ink-faint hover:text-primary"
-                    >
-                      删除
-                    </button>
-                  </div>
-                  {h.note && (
-                    <p className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-ink-soft">
-                      {h.note}
-                    </p>
-                  )}
-                  {h.steps && (
-                    <p className="mt-2 text-[13px] text-ink-soft">
-                      <span className="font-medium text-ink-soft">步骤：</span>
-                      {h.steps}
-                    </p>
-                  )}
-                  {h.result && (
-                    <p className="mt-1 text-[13px] text-ink-soft">
-                      <span className="font-medium text-ink-soft">结果：</span>
-                      {h.result}
-                    </p>
-                  )}
-                  {h.improvement && (
-                    <p className="mt-1 text-[13px] text-ink-soft">
-                      <span className="font-medium text-ink-soft">改进：</span>
-                      {h.improvement}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+        }
+        renderItem={(h) => (
+          <Card key={h.id}>
+            <CardContent>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-ink">
+                    {h.name || "实验记录"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-ink-faint">
+                    {h.date}
+                    {h.type ? ` · ${h.type}` : ""}
+                    {h.duration ? ` · ${h.duration} 分钟` : ""}
+                  </p>
+                </div>
+                <button
+                  onClick={() => remove(h.id)}
+                  className="text-xs text-ink-faint hover:text-primary"
+                >
+                  删除
+                </button>
+              </div>
+              {h.note && (
+                <p className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-ink-soft">
+                  {h.note}
+                </p>
+              )}
+              {h.steps && (
+                <p className="mt-2 text-[13px] text-ink-soft">
+                  <span className="font-medium text-ink-soft">步骤：</span>
+                  {h.steps}
+                </p>
+              )}
+              {h.result && (
+                <p className="mt-1 text-[13px] text-ink-soft">
+                  <span className="font-medium text-ink-soft">结果：</span>
+                  {h.result}
+                </p>
+              )}
+              {h.improvement && (
+                <p className="mt-1 text-[13px] text-ink-soft">
+                  <span className="font-medium text-ink-soft">改进：</span>
+                  {h.improvement}
+                </p>
+              )}
+            </CardContent>
+          </Card>
         )}
-      </div>
+      />
     </div>
   );
 }

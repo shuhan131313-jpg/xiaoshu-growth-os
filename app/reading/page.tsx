@@ -1,36 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BookOpen, RefreshCw, Sparkles, Trash2, Bookmark } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { FoldList } from "@/components/common/fold-list";
 import { PageHeader } from "@/components/common/page-header";
 import { repos } from "@/lib/db/repo";
-import type { ReadingRecord, SparkRecord, FavoriteRecord } from "@/lib/db/db";
+import type { SparkRecord, FavoriteRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
 import { BOOK_POOL, pickDistinct, type BookExcerpt } from "@/lib/ai/content";
 
 export default function ReadingPage() {
   const today = todayKey();
   const [book, setBook] = useState<BookExcerpt>(BOOK_POOL[0]);
-  const [feeling, setFeeling] = useState("");
-  const [history, setHistory] = useState<ReadingRecord[]>([]);
   const [sparkText, setSparkText] = useState("");
   const [sparks, setSparks] = useState<SparkRecord[]>([]);
   const [favs, setFavs] = useState<FavoriteRecord[]>([]);
+
+  const curMonth = useMemo(() => today.slice(0, 7), [today]);
+  const monthSparks = useMemo(
+    () => sparks.filter((s) => s.date.startsWith(curMonth)),
+    [sparks, curMonth]
+  );
 
   const bookKey = `book:${book.book}`;
   const bookFav = favs.some((f) => f.type === "book" && f.key === bookKey);
 
   async function refresh() {
-    const [all, sp, fv] = await Promise.all([
-      repos.reading.all(),
-      repos.spark.all(),
-      repos.favorite.all(),
-    ]);
-    setHistory(all.sort((a, b) => b.createdAt - a.createdAt));
+    const [sp, fv] = await Promise.all([repos.spark.all(), repos.favorite.all()]);
     setSparks(sp.sort((a, b) => b.createdAt - a.createdAt));
     setFavs(fv);
   }
@@ -40,19 +39,6 @@ export default function ReadingPage() {
     setBook(pickDistinct(BOOK_POOL));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  async function saveFeeling() {
-    if (!feeling.trim()) return;
-    await repos.reading.add({
-      date: today,
-      book: book.book,
-      duration: 0,
-      feeling: feeling.trim(),
-      createdAt: Date.now(),
-    });
-    setFeeling("");
-    refresh();
-  }
 
   async function saveSpark() {
     const t = sparkText.trim();
@@ -64,11 +50,6 @@ export default function ReadingPage() {
 
   async function deleteSpark(id: number) {
     await repos.spark.delete(id);
-    refresh();
-  }
-
-  async function deleteHistory(id: number) {
-    await repos.reading.delete(id);
     refresh();
   }
 
@@ -94,7 +75,7 @@ export default function ReadingPage() {
     <div className="space-y-5">
       <PageHeader title="阅读" desc="每天留一段安静的时间，与自己对话" />
 
-      {/* 灵光一闪 */}
+      {/* 灵光一闪（置顶） */}
       <Card>
         <CardContent>
           <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-primary">
@@ -118,12 +99,16 @@ export default function ReadingPage() {
             记下来
           </Button>
 
-          {sparks.length > 0 && (
-            <div className="mt-4 space-y-2">
-              <p className="text-xs font-medium text-ink-soft">
-                我的灵感（{sparks.length}）
-              </p>
-              {sparks.map((s) => (
+          {monthSparks.length > 0 && (
+            <FoldList
+              className="mt-4"
+              items={monthSparks}
+              title={
+                <p className="text-xs font-medium text-ink-soft">
+                  我的灵感（{monthSparks.length}）
+                </p>
+              }
+              renderItem={(s) => (
                 <div
                   key={s.id}
                   className="flex items-start justify-between gap-2 rounded-2xl bg-line/30 p-3"
@@ -140,8 +125,8 @@ export default function ReadingPage() {
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-              ))}
-            </div>
+              )}
+            />
           )}
         </CardContent>
       </Card>
@@ -189,75 +174,6 @@ export default function ReadingPage() {
           </p>
         </CardContent>
       </Card>
-
-      {/* 阅读感想（独立区块） */}
-      <Card>
-        <CardContent>
-          <Label>阅读感想（随手记录，随时保存）</Label>
-          <Textarea
-            value={feeling}
-            onChange={(e) => setFeeling(e.target.value)}
-            placeholder="这一段让我想到…"
-            rows={3}
-          />
-          <Button
-            variant="soft"
-            className="mt-3 w-full"
-            onClick={saveFeeling}
-            disabled={!feeling.trim()}
-          >
-            保存感想
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* 历史 */}
-      <div>
-        <p className="mb-3 px-1 text-sm font-medium text-ink-soft">阅读历史</p>
-        {history.length === 0 ? (
-          <Card>
-            <CardContent className="py-10 text-center text-sm text-ink-faint">
-              还没有阅读记录
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {history.map((r) => (
-              <Card key={r.id}>
-                <CardContent>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="tabular text-sm font-medium text-ink">
-                          {r.date}
-                        </span>
-                        {r.duration > 0 && (
-                          <span className="tabular text-xs text-ink-faint">
-                            {r.duration} 分钟
-                          </span>
-                        )}
-                      </div>
-                      {r.book && (
-                        <p className="mt-1 text-sm text-ink-soft">📖 {r.book}</p>
-                      )}
-                      {r.feeling && (
-                        <p className="mt-1 text-[13px] text-ink-soft">{r.feeling}</p>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => deleteHistory(r.id!)}
-                      aria-label="删除记录"
-                      className="shrink-0 text-ink-faint transition duration-200 hover:text-red-500"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

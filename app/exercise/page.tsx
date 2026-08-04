@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Dumbbell, Scale, CheckCircle2, Check, Trash2, Pencil } from "lucide-react";
+import { ChevronLeft, ChevronRight, Dumbbell, Scale, CheckCircle2, Check, Trash2, Pencil } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Sheet } from "@/components/common/sheet";
+import { FoldList } from "@/components/common/fold-list";
 import { PageHeader } from "@/components/common/page-header";
 import { repos } from "@/lib/db/repo";
 import { db } from "@/lib/db/db";
@@ -20,14 +21,13 @@ export default function ExercisePage() {
   const today = useMemo(() => new Date(), []);
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth()); // 0-11
-  const [marked, setMarked] = useState<Record<string, number>>({}); // date -> count
+  const [exerciseDates, setExerciseDates] = useState<Record<string, boolean>>({});
+  const [bowelDates, setBowelDates] = useState<Record<string, boolean>>({});
   const [sheetDate, setSheetDate] = useState<string | null>(null);
-  const [dayRecords, setDayRecords] = useState<ExerciseRecord[]>([]);
   const [editing, setEditing] = useState<ExerciseRecord | null>(null);
   const [project, setProject] = useState("");
   const [duration, setDuration] = useState("");
   const [note, setNote] = useState("");
-  const [monthStat, setMonthStat] = useState({ count: 0, minutes: 0 });
 
   // 全部运动历史（可编辑 / 删除）
   const [history, setHistory] = useState<ExerciseRecord[]>([]);
@@ -39,28 +39,44 @@ export default function ExercisePage() {
   const [bowelDoneToday, setBowelDoneToday] = useState(false);
   const [bowelLog, setBowelLog] = useState<BowelRecord[]>([]); // 最新在前
 
-  // 日历日期详情（页内内联展开，只读极简文字）
+  // 日历日期详情（页内内联展开，只读极简文字，不弹窗）
   const [detailDate, setDetailDate] = useState<string | null>(null);
   const [detailExercise, setDetailExercise] = useState<ExerciseRecord[]>([]);
   const [detailBowel, setDetailBowel] = useState(false);
   const [detailWeight, setDetailWeight] = useState<number | null>(null);
 
-  const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+  const calPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+  // 「本月」= 真实当前月份，用于历史记录折叠展示
+  const curMonth = useMemo(() => todayKey().slice(0, 7), [today]);
+
+  const monthHistory = useMemo(
+    () => history.filter((r) => r.date.startsWith(curMonth)),
+    [history, curMonth]
+  );
+  const monthWeights = useMemo(
+    () => weights.filter((w) => w.date.startsWith(curMonth)),
+    [weights, curMonth]
+  );
+  const monthBowel = useMemo(
+    () => bowelLog.filter((b) => b.date.startsWith(curMonth)),
+    [bowelLog, curMonth]
+  );
 
   async function loadMonth() {
-    const all = await db.exercise.toArray();
-    const m: Record<string, number> = {};
-    let count = 0;
-    let minutes = 0;
-    for (const r of all) {
-      if (r.date.startsWith(monthPrefix)) {
-        m[r.date] = (m[r.date] || 0) + 1;
-        count++;
-        minutes += r.duration || 0;
-      }
+    const [exAll, bwAll] = await Promise.all([
+      db.exercise.toArray(),
+      repos.bowel.all(),
+    ]);
+    const ex: Record<string, boolean> = {};
+    const bw: Record<string, boolean> = {};
+    for (const r of exAll) {
+      if (r.date.startsWith(calPrefix)) ex[r.date] = true;
     }
-    setMarked(m);
-    setMonthStat({ count, minutes });
+    for (const b of bwAll) {
+      if (b.date.startsWith(calPrefix)) bw[b.date] = true;
+    }
+    setExerciseDates(ex);
+    setBowelDates(bw);
   }
 
   async function loadAll() {
@@ -150,15 +166,6 @@ export default function ExercisePage() {
     await loadHealth();
   }
 
-  function openDay(date: string) {
-    setSheetDate(date);
-    setEditing(null);
-    setProject("");
-    setDuration("");
-    setNote("");
-    repos.exercise.whereDate(date).then(setDayRecords);
-  }
-
   async function openDetail(date: string) {
     const [ex, bw, w] = await Promise.all([
       repos.exercise.whereDate(date),
@@ -181,44 +188,42 @@ export default function ExercisePage() {
 
   function cancelEdit() {
     setEditing(null);
+    setSheetDate(null);
     setProject("");
     setDuration("");
     setNote("");
   }
 
-  async function save() {
-    if (!sheetDate || !project.trim() || !duration) return;
-    if (editing?.id != null) {
-      await repos.exercise.update(editing.id, {
-        project: project.trim(),
-        duration: Number(duration) || 0,
-        note: note.trim() || undefined,
-      });
-    } else {
-      await repos.exercise.add({
-        date: sheetDate,
-        project: project.trim(),
-        duration: Number(duration) || 0,
-        note: note.trim() || undefined,
-        createdAt: Date.now(),
-      });
-    }
+  async function saveExercise() {
+    if (!project.trim() || !duration) return;
+    await repos.exercise.add({
+      date: todayKey(),
+      project: project.trim(),
+      duration: Number(duration) || 0,
+      createdAt: Date.now(),
+    });
+    setProject("");
+    setDuration("");
+    loadMonth();
+    loadAll();
+  }
+
+  async function saveEdit() {
+    if (!editing?.id || !project.trim() || !duration) return;
+    await repos.exercise.update(editing.id, {
+      project: project.trim(),
+      duration: Number(duration) || 0,
+      note: note.trim() || undefined,
+    });
     cancelEdit();
-    setDayRecords(await repos.exercise.whereDate(sheetDate));
     loadMonth();
     loadAll();
   }
 
   async function remove(id?: number) {
     if (id == null) return;
-    if (editing?.id === id) {
-      setEditing(null);
-      setProject("");
-      setDuration("");
-      setNote("");
-    }
+    if (editing?.id === id) cancelEdit();
     await repos.exercise.delete(id);
-    if (sheetDate) setDayRecords(await repos.exercise.whereDate(sheetDate));
     loadMonth();
     loadAll();
   }
@@ -260,7 +265,7 @@ export default function ExercisePage() {
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
-            <p className="text-sm font-medium text-ink">{monthPrefix}</p>
+            <p className="text-sm font-medium text-ink">{calPrefix}</p>
             <button
               onClick={() => shiftMonth(1)}
               className="flex h-8 w-8 items-center justify-center rounded-full text-ink-soft hover:bg-line/50"
@@ -279,15 +284,16 @@ export default function ExercisePage() {
           <div className="mt-1 grid grid-cols-7 gap-1">
             {cells.map((d, i) => {
               if (d == null) return <div key={`e${i}`} />;
-              const date = `${monthPrefix}-${String(d).padStart(2, "0")}`;
-              const cnt = marked[date] || 0;
+              const date = `${calPrefix}-${String(d).padStart(2, "0")}`;
+              const exDone = !!exerciseDates[date];
+              const bwDone = !!bowelDates[date];
               const isToday = date === todayKey();
               const isActive = date === detailDate;
               return (
                 <button
                   key={date}
                   onClick={() => openDetail(date)}
-                  className={`relative flex aspect-square items-center justify-center rounded-xl text-sm transition duration-200 ${
+                  className={`relative flex aspect-square flex-col items-center justify-center rounded-xl text-sm transition duration-200 ${
                     isActive
                       ? "bg-accent/20 font-semibold text-accent-dark"
                       : isToday
@@ -295,10 +301,15 @@ export default function ExercisePage() {
                       : "text-ink hover:bg-line/40"
                   }`}
                 >
-                  {d}
-                  {cnt > 0 && (
-                    <span className="absolute bottom-1 h-1.5 w-1.5 rounded-full bg-accent" />
-                  )}
+                  <span>{d}</span>
+                  <span className="mt-0.5 flex h-3 items-center justify-center gap-0.5">
+                    {exDone && (
+                      <Dumbbell className="h-3 w-3 text-accent" strokeWidth={2.25} />
+                    )}
+                    {bwDone && (
+                      <span className="text-[10px] leading-none">💩</span>
+                    )}
+                  </span>
                 </button>
               );
             })}
@@ -306,16 +317,7 @@ export default function ExercisePage() {
         </CardContent>
       </Card>
 
-      {/* 记录当日入口 */}
-      <Button
-        variant="accent"
-        className="w-full"
-        onClick={() => openDay(todayKey())}
-      >
-        <Plus className="h-4 w-4" /> 记录今天的运动
-      </Button>
-
-      {/* 日历日期详情（页内内联展开，极简文字） */}
+      {/* 日历日期详情（页内内联展开，极简文字，不弹窗） */}
       {detailDate && (
         <Card>
           <CardContent>
@@ -344,7 +346,41 @@ export default function ExercisePage() {
         </Card>
       )}
 
-      {/* 记录 / 编辑弹层 */}
+      {/* 运动打卡（与体重模块一致的小框样式） */}
+      <Card>
+        <CardContent>
+          <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-primary">
+            <Dumbbell className="h-4 w-4" /> 运动打卡
+          </div>
+          <p className="mb-3 text-[13px] text-ink-faint">
+            记录今天的项目与时长，自动留存历史
+          </p>
+          <Label>运动项目</Label>
+          <Input
+            value={project}
+            onChange={(e) => setProject(e.target.value)}
+            placeholder="如：慢跑 / 瑜伽 / 力量训练"
+          />
+          <Label className="mt-3 block">时长（分钟）</Label>
+          <Input
+            type="number"
+            inputMode="numeric"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+            placeholder="30"
+          />
+          <Button
+            variant="accent"
+            className="mt-3 w-full"
+            onClick={saveExercise}
+            disabled={!project.trim() || !duration}
+          >
+            <Dumbbell className="h-4 w-4" /> 保存今日运动
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* 编辑弹层（仅用于编辑已有记录） */}
       <Sheet
         open={!!sheetDate}
         onClose={() => {
@@ -354,38 +390,7 @@ export default function ExercisePage() {
         title={sheetDate || ""}
       >
         <div className="space-y-4">
-          {editing ? (
-            <p className="text-xs font-medium text-primary">编辑运动记录</p>
-          ) : dayRecords.length > 0 ? (
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-ink-soft">当日记录</p>
-              {dayRecords.map((r) => (
-                <div
-                  key={r.id}
-                  className="flex items-start justify-between rounded-2xl bg-line/30 p-3"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-ink">
-                      {r.project}
-                      <span className="ml-2 text-xs text-ink-faint">
-                        {r.duration} 分钟
-                      </span>
-                    </p>
-                    {r.note && (
-                      <p className="mt-0.5 text-xs text-ink-soft">{r.note}</p>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => remove(r.id)}
-                    className="text-xs text-ink-faint hover:text-primary"
-                  >
-                    删除
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
+          <p className="text-xs font-medium text-primary">编辑运动记录</p>
           <div>
             <Label>运动项目</Label>
             <Input
@@ -416,74 +421,72 @@ export default function ExercisePage() {
           <Button
             variant="accent"
             className="w-full"
-            onClick={save}
+            onClick={saveEdit}
             disabled={!project.trim() || !duration}
           >
             <Dumbbell className="h-4 w-4" />
-            {editing ? "更新记录" : "保存记录"}
+            更新记录
           </Button>
-          {editing && (
-            <Button variant="ghost" className="w-full" onClick={cancelEdit}>
-              取消编辑
-            </Button>
-          )}
+          <Button variant="ghost" className="w-full" onClick={cancelEdit}>
+            取消编辑
+          </Button>
         </div>
       </Sheet>
 
-      {/* 运动历史（可编辑 / 删除） */}
-      <div>
-        <p className="mb-3 px-1 text-sm font-medium text-ink-soft">
-          运动历史（{history.length}）
-        </p>
-        {history.length === 0 ? (
+      {/* 运动历史（可编辑 / 删除，统一折叠） */}
+      <FoldList
+        items={monthHistory}
+        title={
+          <p className="mb-3 px-1 text-sm font-medium text-ink-soft">
+            运动历史（{monthHistory.length}）
+          </p>
+        }
+        empty={
           <Card>
             <CardContent className="py-10 text-center text-sm text-ink-faint">
-              还没有运动记录
+              本月还没有运动记录
             </CardContent>
           </Card>
-        ) : (
-          <div className="space-y-3">
-            {history.map((r) => (
-              <Card key={r.id}>
-                <CardContent>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-ink">
-                        {r.project}
-                        <span className="ml-2 text-xs text-ink-faint">
-                          {r.duration} 分钟
-                        </span>
-                      </p>
-                      <p className="mt-0.5 tabular text-[11px] text-ink-faint">
-                        {r.date}
-                      </p>
-                      {r.note && (
-                        <p className="mt-1 text-[13px] text-ink-soft">{r.note}</p>
-                      )}
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <button
-                        onClick={() => startEdit(r)}
-                        aria-label="编辑"
-                        className="flex h-8 w-8 items-center justify-center rounded-full text-ink-faint transition duration-200 hover:bg-line/50 hover:text-primary"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => remove(r.id)}
-                        aria-label="删除"
-                        className="flex h-8 w-8 items-center justify-center rounded-full text-ink-faint transition duration-200 hover:bg-line/50 hover:text-red-500"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+        }
+        renderItem={(r) => (
+          <Card key={r.id}>
+            <CardContent>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-ink">
+                    {r.project}
+                    <span className="ml-2 text-xs text-ink-faint">
+                      {r.duration} 分钟
+                    </span>
+                  </p>
+                  <p className="mt-0.5 tabular text-[11px] text-ink-faint">
+                    {r.date}
+                  </p>
+                  {r.note && (
+                    <p className="mt-1 text-[13px] text-ink-soft">{r.note}</p>
+                  )}
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    onClick={() => startEdit(r)}
+                    aria-label="编辑"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-ink-faint transition duration-200 hover:bg-line/50 hover:text-primary"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => remove(r.id)}
+                    aria-label="删除"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-ink-faint transition duration-200 hover:bg-line/50 hover:text-red-500"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
-      </div>
+      />
 
       {/* 身体指标：体重 / 排便 */}
       <div className="space-y-5 pt-1">
@@ -515,40 +518,45 @@ export default function ExercisePage() {
             </Button>
 
             {weights.length > 0 && (
-              <div className="mt-4 space-y-2">
-                <p className="text-xs font-medium text-ink-soft">
-                  近期记录（{weights.length}）
-                </p>
-                {weights.slice(0, 8).map((w) => (
-                  <div
-                    key={w.id}
-                    className="flex items-center justify-between rounded-2xl bg-line/30 px-3 py-2"
-                  >
-                    <div className="flex min-w-0 items-baseline gap-2">
-                      <span className="tabular text-sm font-medium text-ink">
-                        {w.value}
-                      </span>
-                      <span className="text-[11px] text-ink-faint">kg</span>
-                      <span className="tabular text-[11px] text-ink-faint">
-                        {w.date}
-                      </span>
-                    </div>
-                    <div className="flex min-w-0 items-center gap-2">
-                      {w.note && (
-                        <span className="max-w-[40%] truncate text-[11px] text-ink-soft">
-                          {w.note}
+              <div className="mt-4">
+                <FoldList
+                  items={monthWeights}
+                  title={
+                    <p className="text-xs font-medium text-ink-soft">
+                      近期记录（{monthWeights.length}）
+                    </p>
+                  }
+                  renderItem={(w) => (
+                    <div
+                      key={w.id}
+                      className="flex items-center justify-between rounded-2xl bg-line/30 px-3 py-2"
+                    >
+                      <div className="flex min-w-0 items-baseline gap-2">
+                        <span className="tabular text-sm font-medium text-ink">
+                          {w.value}
                         </span>
-                      )}
-                      <button
-                        onClick={() => deleteWeight(w.id)}
-                        aria-label="删除体重记录"
-                        className="shrink-0 text-ink-faint transition duration-200 hover:text-red-500"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                        <span className="text-[11px] text-ink-faint">kg</span>
+                        <span className="tabular text-[11px] text-ink-faint">
+                          {w.date}
+                        </span>
+                      </div>
+                      <div className="flex min-w-0 items-center gap-2">
+                        {w.note && (
+                          <span className="max-w-[40%] truncate text-[11px] text-ink-soft">
+                            {w.note}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => deleteWeight(w.id)}
+                          aria-label="删除体重记录"
+                          className="shrink-0 text-ink-faint transition duration-200 hover:text-red-500"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )}
+                />
               </div>
             )}
           </CardContent>
@@ -588,56 +596,40 @@ export default function ExercisePage() {
             </Button>
 
             {bowelLog.length > 0 && (
-              <div className="mt-4 space-y-2">
-                <p className="text-xs font-medium text-ink-soft">
-                  打卡日志（{bowelLog.length}）
-                </p>
-                {bowelLog.slice(0, 14).map((b) => (
-                  <div
-                    key={b.id}
-                    className="flex items-center justify-between rounded-2xl bg-line/30 px-3 py-2"
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <Check className="h-3.5 w-3.5 shrink-0 text-accent" />
-                      <span className="tabular text-sm text-ink">{b.date}</span>
-                      {b.note && (
-                        <span className="truncate text-[11px] text-ink-soft">
-                          {b.note}
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => deleteBowel(b.id)}
-                      aria-label="删除打卡记录"
-                      className="shrink-0 text-ink-faint transition duration-200 hover:text-red-500"
+              <div className="mt-4">
+                <FoldList
+                  items={monthBowel}
+                  title={
+                    <p className="text-xs font-medium text-ink-soft">
+                      打卡日志（{monthBowel.length}）
+                    </p>
+                  }
+                  renderItem={(b) => (
+                    <div
+                      key={b.id}
+                      className="flex items-center justify-between rounded-2xl bg-line/30 px-3 py-2"
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Check className="h-3.5 w-3.5 shrink-0 text-accent" />
+                        <span className="tabular text-sm text-ink">{b.date}</span>
+                        {b.note && (
+                          <span className="truncate text-[11px] text-ink-soft">
+                            {b.note}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => deleteBowel(b.id)}
+                        aria-label="删除打卡记录"
+                        className="shrink-0 text-ink-faint transition duration-200 hover:text-red-500"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                />
               </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* 统计：本月次数 / 本月总时长 */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card>
-          <CardContent>
-            <p className="text-xs text-ink-faint">本月次数</p>
-            <p className="tabular mt-1 text-3xl font-semibold text-ink">
-              {monthStat.count}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <p className="text-xs text-ink-faint">本月总时长</p>
-            <p className="tabular mt-1 text-3xl font-semibold text-ink">
-              {monthStat.minutes}
-              <span className="text-sm font-normal text-ink-faint"> 分</span>
-            </p>
           </CardContent>
         </Card>
       </div>

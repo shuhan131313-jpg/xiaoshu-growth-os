@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FlaskConical, RefreshCw, Check, Bookmark, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Timer } from "@/components/common/timer";
+import { FoldList } from "@/components/common/fold-list";
 import { PageHeader } from "@/components/common/page-header";
 import { repos } from "@/lib/db/repo";
 import type { ResearchRecord, FavoriteRecord } from "@/lib/db/db";
@@ -28,6 +29,12 @@ export default function ResearchPage() {
 
   const [lit, setLit] = useState<LiteratureItem>(LITERATURE_POOL[0]);
   const [favs, setFavs] = useState<FavoriteRecord[]>([]);
+
+  const curMonth = useMemo(() => today.slice(0, 7), [today]);
+  const monthHistory = useMemo(
+    () => history.filter((r) => r.date.startsWith(curMonth)),
+    [history, curMonth]
+  );
 
   const paperKey = `paper:${lit.title}`;
   const paperFav = favs.some((f) => f.type === "paper" && f.key === paperKey);
@@ -196,14 +203,22 @@ export default function ResearchPage() {
         </CardContent>
       </Card>
 
-      {/* 写作历史 */}
-      {history.length > 0 && (
+      {/* 写作记录（统一折叠） */}
+      {monthHistory.length > 0 && (
         <Card>
           <CardContent>
-            <p className="mb-3 text-sm font-medium text-ink-soft">写作记录</p>
-            <ul className="space-y-3">
-              {history.map((r) => (
-                <li key={r.id} className="border-b border-line pb-3 last:border-0">
+            <FoldList
+              items={monthHistory}
+              title={
+                <p className="mb-3 text-sm font-medium text-ink-soft">
+                  写作记录（{monthHistory.length}）
+                </p>
+              }
+              renderItem={(r) => (
+                <div
+                  key={r.id}
+                  className="border-b border-line pb-3 last:border-0"
+                >
                   <div className="flex items-center justify-between">
                     <span className="tabular text-sm font-medium text-ink">
                       {r.date}
@@ -215,9 +230,9 @@ export default function ResearchPage() {
                   {r.summary && (
                     <p className="mt-1 text-[13px] text-ink-soft">{r.summary}</p>
                   )}
-                </li>
-              ))}
-            </ul>
+                </div>
+              )}
+            />
           </CardContent>
         </Card>
       )}

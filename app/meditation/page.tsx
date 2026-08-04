@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Brain, Flame, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Timer } from "@/components/common/timer";
+import { FoldList } from "@/components/common/fold-list";
 import { PageHeader } from "@/components/common/page-header";
 import { repos } from "@/lib/db/repo";
 import type { MeditationRecord } from "@/lib/db/db";
@@ -24,12 +25,18 @@ export default function MeditationPage() {
   const [recent, setRecent] = useState<MeditationRecord[]>([]);
   const [savedTip, setSavedTip] = useState(false);
 
+  const curMonth = useMemo(() => today.slice(0, 7), [today]);
+  const monthRecent = useMemo(
+    () => recent.filter((r) => r.date.startsWith(curMonth)),
+    [recent, curMonth]
+  );
+
   async function refresh() {
     setStreak(await computeStreak(await datesByTable(repos.meditation)));
     const tr = await repos.meditation.whereDate(today);
     setTodayRecords(tr);
     const all = await repos.meditation.all();
-    setRecent(all.sort((a, b) => b.createdAt - a.createdAt).slice(0, 5));
+    setRecent(all.sort((a, b) => b.createdAt - a.createdAt));
   }
 
   useEffect(() => {
@@ -131,21 +138,26 @@ export default function MeditationPage() {
         </Card>
       )}
 
-      {recent.length > 0 && (
+      {monthRecent.length > 0 && (
         <Card>
           <CardContent>
-            <p className="mb-3 text-sm font-medium text-ink-soft">最近记录</p>
-            <ul className="space-y-2">
-              {recent.map((r) => (
-                <li
+            <FoldList
+              items={monthRecent}
+              title={
+                <p className="mb-3 text-sm font-medium text-ink-soft">
+                  最近记录（{monthRecent.length}）
+                </p>
+              }
+              renderItem={(r) => (
+                <div
                   key={r.id}
                   className="flex items-center justify-between text-sm"
                 >
                   <span className="text-ink-soft">{r.date}</span>
                   <span className="tabular text-ink">{r.duration} 分钟</span>
-                </li>
-              ))}
-            </ul>
+                </div>
+              )}
+            />
           </CardContent>
         </Card>
       )}
