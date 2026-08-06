@@ -59,7 +59,7 @@ export default function GratitudePage() {
 
       <Card>
         <CardContent className="space-y-3">
-          <p className="text-sm font-medium text-ink-soft">
+          <p className="text-sm font-medium text-primary">
             今天，我要感谢…（想到什么写什么，支持换行）
           </p>
           <Textarea
@@ -84,7 +84,7 @@ export default function GratitudePage() {
         <FoldList
           items={monthHistory}
           title={
-            <p className="mb-3 px-1 text-sm font-medium text-ink-soft">
+            <p className="mb-3 px-1 text-sm font-medium text-primary">
               历史日记（{monthHistory.length}）
             </p>
           }

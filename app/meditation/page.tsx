@@ -130,7 +130,7 @@ export default function MeditationPage() {
       {todayRecords.length > 0 && (
         <Card>
           <CardContent>
-            <p className="mb-2 text-sm font-medium text-ink-soft">今日已冥想</p>
+            <p className="mb-2 text-sm font-medium text-primary">今日已冥想</p>
             <p className="tabular text-2xl font-semibold text-ink">
               {todayMin} <span className="text-sm font-normal text-ink-faint">分钟</span>
             </p>
@@ -144,7 +144,7 @@ export default function MeditationPage() {
             <FoldList
               items={monthRecent}
               title={
-                <p className="mb-3 text-sm font-medium text-ink-soft">
+                <p className="mb-3 text-sm font-medium text-primary">
                   最近记录（{monthRecent.length}）
                 </p>
               }

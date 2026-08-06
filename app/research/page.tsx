@@ -165,11 +165,11 @@ export default function ResearchPage() {
             {lit.excerpt}
           </p>
           <div>
-            <p className="text-sm font-medium text-ink-soft">AI 中文总结</p>
+            <p className="text-sm font-medium text-primary">AI 中文总结</p>
             <p className="mt-1 text-[14px] leading-7 text-ink">{lit.cnSummary}</p>
           </div>
           <div>
-            <p className="text-sm font-medium text-ink-soft">核心研究结论</p>
+            <p className="text-sm font-medium text-primary">核心研究结论</p>
             <p className="mt-1 text-[14px] leading-7 text-ink">{lit.findings}</p>
           </div>
           <div className="rounded-2xl bg-primary/5 p-3">
@@ -177,7 +177,7 @@ export default function ResearchPage() {
             <p className="text-[13px] leading-7 text-ink-soft">{lit.linkHint}</p>
           </div>
           <div>
-            <p className="mb-2 text-sm font-medium text-ink-soft">专业生词</p>
+            <p className="mb-2 text-sm font-medium text-primary">专业生词</p>
             <div className="flex flex-wrap gap-2">
               {lit.vocab.map((v) => (
                 <span
@@ -210,7 +210,7 @@ export default function ResearchPage() {
             <FoldList
               items={monthHistory}
               title={
-                <p className="mb-3 text-sm font-medium text-ink-soft">
+                <p className="mb-3 text-sm font-medium text-primary">
                   写作记录（{monthHistory.length}）
                 </p>
               }
@@ -241,7 +241,7 @@ export default function ResearchPage() {
       {favs.some((f) => f.type === "paper") && (
         <Card>
           <CardContent>
-            <p className="mb-3 text-sm font-medium text-ink-soft">已收藏文献</p>
+            <p className="mb-3 text-sm font-medium text-primary">已收藏文献</p>
             <ul className="space-y-2">
               {favs
                 .filter((f) => f.type === "paper")

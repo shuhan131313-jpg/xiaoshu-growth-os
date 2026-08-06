@@ -25,9 +25,9 @@ import { repos } from "@/lib/db/repo";
 import type { FavoriteRecord } from "@/lib/db/db";
 
 function heatColor(count: number, max: number): string {
-  if (count <= 0) return "#DDD0BB";
+  if (count <= 0) return "#EFC9D7";
   const a = 0.25 + 0.75 * (count / max);
-  return `rgba(88,168,116,${a.toFixed(2)})`;
+  return `rgba(1,132,127,${a.toFixed(2)})`;
 }
 
 export default function TodayPage() {
@@ -93,7 +93,7 @@ export default function TodayPage() {
       <Card>
         <CardContent>
           <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm font-medium text-ink-soft">今日成长</p>
+            <p className="text-sm font-medium text-primary">今日成长</p>
             <span className="text-[11px] text-ink-faint">点按格子，记录今日完成</span>
           </div>
           <div className="flex overflow-hidden rounded-2xl border border-line bg-line/20">
@@ -135,7 +135,7 @@ export default function TodayPage() {
             className="flex w-full items-center justify-between"
             aria-expanded={favOpen}
           >
-            <span className="flex items-center gap-1.5 text-sm font-medium text-ink-soft">
+            <span className="flex items-center gap-1.5 text-sm font-medium text-primary">
               <Bookmark className="h-4 w-4 text-accent" /> 收藏夹
               <span className="text-[11px] text-ink-faint">
                 {favs.length}
@@ -209,7 +209,7 @@ export default function TodayPage() {
       {/* 热力图 */}
       <Card>
         <CardContent>
-          <p className="mb-3 text-sm font-medium text-ink-soft">近 7 天习惯</p>
+          <p className="mb-3 text-sm font-medium text-primary">近 7 天习惯</p>
           <div className="flex justify-between gap-2">
             {heat.map((h) => (
               <div key={h.date} className="flex flex-1 flex-col items-center gap-1.5">

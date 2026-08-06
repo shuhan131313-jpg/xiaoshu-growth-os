@@ -120,7 +120,7 @@ export default function GrowthPage() {
       <Card>
         <CardContent>
           <div className="mb-2 flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft">
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
               <Sparkles className="h-4 w-4 text-primary" /> AI 复盘建议
             </span>
             <Button variant="soft" size="sm" onClick={genReview}>

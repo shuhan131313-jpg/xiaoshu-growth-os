@@ -104,7 +104,7 @@ export default function ReadingPage() {
               className="mt-4"
               items={monthSparks}
               title={
-                <p className="text-xs font-medium text-ink-soft">
+                <p className="text-xs font-medium text-primary">
                   我的灵感（{monthSparks.length}）
                 </p>
               }

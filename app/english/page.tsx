@@ -79,7 +79,7 @@ export default function EnglishPage() {
       {/* 原文 */}
       <Card>
         <CardContent>
-          <p className="mb-2 text-sm font-medium text-ink-soft">英文原文</p>
+          <p className="mb-2 text-sm font-medium text-primary">英文原文</p>
           <p className="text-[15px] leading-8 text-ink">{p.en}</p>
         </CardContent>
       </Card>
@@ -87,7 +87,7 @@ export default function EnglishPage() {
       {/* 翻译 */}
       <Card>
         <CardContent>
-          <p className="mb-2 text-sm font-medium text-ink-soft">中文翻译</p>
+          <p className="mb-2 text-sm font-medium text-primary">中文翻译</p>
           <p className="text-[14px] leading-7 text-ink-soft">{p.zh}</p>
         </CardContent>
       </Card>
@@ -95,7 +95,7 @@ export default function EnglishPage() {
       {/* 重点词汇 */}
       <Card>
         <CardContent>
-          <p className="mb-3 text-sm font-medium text-ink-soft">重点词汇</p>
+          <p className="mb-3 text-sm font-medium text-primary">重点词汇</p>
           <div className="flex flex-wrap gap-2">
             {p.vocab.map((v) => (
               <div
@@ -113,7 +113,7 @@ export default function EnglishPage() {
       {/* 长难句 */}
       <Card>
         <CardContent>
-          <p className="mb-2 text-sm font-medium text-ink-soft">长难句解析</p>
+          <p className="mb-2 text-sm font-medium text-primary">长难句解析</p>
           <p className="text-[14px] leading-7 text-ink">{p.longSentence.en}</p>
           <p className="mt-2 rounded-2xl bg-accent/10 p-3 text-[13px] leading-7 text-ink-soft">
             {p.longSentence.zh}
@@ -124,7 +124,7 @@ export default function EnglishPage() {
       {/* 短语 */}
       <Card>
         <CardContent>
-          <p className="mb-3 text-sm font-medium text-ink-soft">实用短语</p>
+          <p className="mb-3 text-sm font-medium text-primary">实用短语</p>
           <div className="space-y-2">
             {p.phrases.map((ph) => (
               <div key={ph.phrase} className="flex items-baseline gap-3">

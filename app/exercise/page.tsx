@@ -322,7 +322,7 @@ export default function ExercisePage() {
         <Card>
           <CardContent>
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-sm font-medium text-ink-soft">{detailDate} 记录</p>
+              <p className="text-sm font-medium text-primary">{detailDate} 记录</p>
               <button
                 onClick={() => setDetailDate(null)}
                 className="text-xs text-ink-faint transition duration-200 hover:text-primary"
@@ -437,7 +437,7 @@ export default function ExercisePage() {
       <FoldList
         items={monthHistory}
         title={
-          <p className="mb-3 px-1 text-sm font-medium text-ink-soft">
+          <p className="mb-3 px-1 text-sm font-medium text-primary">
             运动历史（{monthHistory.length}）
           </p>
         }
@@ -522,7 +522,7 @@ export default function ExercisePage() {
                 <FoldList
                   items={monthWeights}
                   title={
-                    <p className="text-xs font-medium text-ink-soft">
+                    <p className="text-xs font-medium text-primary">
                       近期记录（{monthWeights.length}）
                     </p>
                   }
@@ -600,7 +600,7 @@ export default function ExercisePage() {
                 <FoldList
                   items={monthBowel}
                   title={
-                    <p className="text-xs font-medium text-ink-soft">
+                    <p className="text-xs font-medium text-primary">
                       打卡日志（{monthBowel.length}）
                     </p>
                   }

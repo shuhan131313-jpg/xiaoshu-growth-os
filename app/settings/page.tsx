@@ -81,7 +81,7 @@ export default function SettingsPage() {
       {/* 数据备份 */}
       <Card>
         <CardContent className="space-y-3">
-          <p className="text-sm font-medium text-ink-soft">数据备份</p>
+          <p className="text-sm font-medium text-primary">数据备份</p>
           <p className="text-[13px] leading-6 text-ink-soft">
             所有记录保存在浏览器 IndexedDB，断网也能用。建议定期导出一份 JSON
             备份，换设备或清缓存前务必先导出。
@@ -110,7 +110,7 @@ export default function SettingsPage() {
       {/* AI 设置（预留） */}
       <Card>
         <CardContent className="space-y-3">
-          <p className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft">
+          <p className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
             <KeyRound className="h-4 w-4 text-primary" /> AI 设置（可选 · 二期启用）
           </p>
           <p className="text-[13px] leading-6 text-ink-soft">

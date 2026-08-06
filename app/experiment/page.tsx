@@ -100,7 +100,7 @@ export default function ExperimentPage() {
         items={filtered}
         title={
           <div className="mb-3 flex items-center justify-between px-1">
-            <span className="text-sm font-medium text-ink-soft">
+            <span className="text-sm font-medium text-primary">
               历史记录（{filtered.length}）
             </span>
             <div className="relative w-40">
@@ -149,19 +149,19 @@ export default function ExperimentPage() {
               )}
               {h.steps && (
                 <p className="mt-2 text-[13px] text-ink-soft">
-                  <span className="font-medium text-ink-soft">步骤：</span>
+                  <span className="font-medium text-primary">步骤：</span>
                   {h.steps}
                 </p>
               )}
               {h.result && (
                 <p className="mt-1 text-[13px] text-ink-soft">
-                  <span className="font-medium text-ink-soft">结果：</span>
+                  <span className="font-medium text-primary">结果：</span>
                   {h.result}
                 </p>
               )}
               {h.improvement && (
                 <p className="mt-1 text-[13px] text-ink-soft">
-                  <span className="font-medium text-ink-soft">改进：</span>
+                  <span className="font-medium text-primary">改进：</span>
                   {h.improvement}
                 </p>
               )}
