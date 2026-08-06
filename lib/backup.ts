@@ -12,7 +12,6 @@ const TABLE_NAMES = [
   "exercise",
   "reading",
   "english",
-  "meditation",
   "research",
   "literature",
   "experiment",

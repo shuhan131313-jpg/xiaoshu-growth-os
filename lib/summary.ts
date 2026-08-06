@@ -3,7 +3,6 @@ import { repos } from "./db/repo";
 import type {
   ExerciseRecord,
   ReadingRecord,
-  MeditationRecord,
   ResearchRecord,
   EnglishRecord,
   ExperimentRecord,
@@ -42,16 +41,15 @@ export async function getCompletionRate(date: string): Promise<number> {
   return TODAY_MODULES.length ? done / TODAY_MODULES.length : 0;
 }
 
-/** 今日各项时长合计（运动/阅读/冥想/论文，单位分钟） */
+/** 今日各项时长合计（运动/阅读/论文，单位分钟） */
 export async function getTodayDuration(date: string): Promise<number> {
-  const [ex, rd, md, rs] = await Promise.all([
+  const [ex, rd, rs] = await Promise.all([
     repos.exercise.whereDate(date),
     repos.reading.whereDate(date),
-    repos.meditation.whereDate(date),
     repos.research.whereDate(date),
   ]);
   const sum = (arr: { duration: number }[]) => arr.reduce((a, b) => a + (b.duration || 0), 0);
-  return sum(ex) + sum(rd) + sum(md) + sum(rs);
+  return sum(ex) + sum(rd) + sum(rs);
 }
 
 /** 连续打卡天数：从今天往前数有记录的天数（今天没记录则从昨天起算，避免当天未打卡就归零） */
@@ -99,8 +97,6 @@ export interface PeriodStat {
   exerciseMinutes: number;
   readingCount: number;
   readingMinutes: number;
-  meditationCount: number;
-  meditationMinutes: number;
   researchCount: number;
   researchMinutes: number;
   englishCount: number;
@@ -113,10 +109,9 @@ export interface PeriodStat {
 
 /** 周期（周/月）汇总统计 */
 export async function getPeriodStat(start: string, end: string): Promise<PeriodStat> {
-  const [ex, rd, md, rs, en, exp, gr, lit, tasks] = await Promise.all([
+  const [ex, rd, rs, en, exp, gr, lit, tasks] = await Promise.all([
     inRange<ExerciseRecord>(db.exercise, start, end),
     inRange<ReadingRecord>(db.reading, start, end),
-    inRange<MeditationRecord>(db.meditation, start, end),
     inRange<ResearchRecord>(db.research, start, end),
     inRange<EnglishRecord>(db.english, start, end),
     inRange<ExperimentRecord>(db.experiment, start, end),
@@ -140,8 +135,6 @@ export async function getPeriodStat(start: string, end: string): Promise<PeriodS
     exerciseMinutes: sumMin(ex),
     readingCount: rd.length,
     readingMinutes: sumMin(rd),
-    meditationCount: md.length,
-    meditationMinutes: sumMin(md),
     researchCount: rs.length,
     researchMinutes: sumMin(rs),
     englishCount: en.length,

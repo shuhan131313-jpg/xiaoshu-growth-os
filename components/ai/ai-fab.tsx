@@ -35,18 +35,16 @@ export function AIFab() {
       return pickDistinct(ENCOURAGE_POOL);
     }
     if (action === "analyze") {
-      const [ex, rd, md, rs, gr, exp, en] = await Promise.all([
+      const [ex, rd, rs, gr, exp, en] = await Promise.all([
         datesByTable(repos.exercise),
         datesByTable(repos.reading),
-        datesByTable(repos.meditation),
         datesByTable(repos.research),
         datesByTable(repos.gratitude),
         datesByTable(repos.experiment),
         datesByTable(repos.english),
       ]);
-      const [sEx, sMd, sGr] = await Promise.all([
+      const [sEx, sGr] = await Promise.all([
         computeStreak(ex),
-        computeStreak(md),
         computeStreak(gr),
       ]);
       const heat = await getHeatmap(7);
@@ -57,7 +55,6 @@ export function AIFab() {
       const parts = [
         `近 7 天平均每日完成率约 ${avg}%。`,
         sEx > 0 ? `运动已连续 ${sEx} 天。` : "运动还没形成连续习惯，先从每周 2 次开始吧。",
-        sMd > 0 ? `冥想已连续 ${sMd} 天，很稳。` : "冥想可以尝试每天 5 分钟，门槛越低越好坚持。",
         sGr > 0 ? `感恩日记连续 ${sGr} 天，你正在训练看见光。` : "今天写 3 件感恩小事，心情会更好。",
         `阅读累计 ${rd.length} 次、论文 ${rs.length} 次、实验 ${exp.length} 次、英文 ${en.length} 篇。`,
       ];

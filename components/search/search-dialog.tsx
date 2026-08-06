@@ -15,7 +15,6 @@ interface Hit {
 const MODULE_LABEL: Record<string, string> = {
   exercise: "运动",
   reading: "阅读",
-  meditation: "冥想",
   research: "论文",
   literature: "文献",
   experiment: "实验",
@@ -25,10 +24,9 @@ const MODULE_LABEL: Record<string, string> = {
 };
 
 async function collectAll(): Promise<Hit[]> {
-  const [ex, rd, md, rs, lit, exp, gr, en, sp] = await Promise.all([
+  const [ex, rd, rs, lit, exp, gr, en, sp] = await Promise.all([
     db.exercise.toArray(),
     db.reading.toArray(),
-    db.meditation.toArray(),
     db.research.toArray(),
     db.literature.toArray(),
     db.experiment.toArray(),
@@ -41,8 +39,6 @@ async function collectAll(): Promise<Hit[]> {
     hits.push({ module: "exercise", date: r.date, text: `${r.project} ${r.note ?? ""}` });
   for (const r of rd)
     hits.push({ module: "reading", date: r.date, text: `${r.book ?? ""} ${r.feeling ?? ""}` });
-  for (const r of md)
-    hits.push({ module: "meditation", date: r.date, text: `冥想 ${r.duration} 分钟` });
   for (const r of rs)
     hits.push({ module: "research", date: r.date, text: r.summary ?? "论文写作" });
   for (const r of lit)
@@ -134,7 +130,7 @@ export function GlobalSearch() {
               <div className="flex-1 overflow-y-auto px-4 py-3">
                 {!q.trim() ? (
                   <p className="py-10 text-center text-sm text-ink-faint">
-                    输入关键词，检索运动、阅读、冥想、论文、实验、感恩、英文等全部记录
+                    输入关键词，检索运动、阅读、论文、实验、感恩、英文等全部记录
                   </p>
                 ) : results.length === 0 ? (
                   <p className="py-10 text-center text-sm text-ink-faint">没有匹配的记录</p>

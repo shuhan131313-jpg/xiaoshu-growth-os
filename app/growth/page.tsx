@@ -31,7 +31,6 @@ function buildReview(s: PeriodStat): string {
   const opener = REVIEW_OPENERS[Math.floor(Math.random() * REVIEW_OPENERS.length)];
   const focus: string[] = [];
   if (s.exerciseMinutes > 0) focus.push(`运动 ${s.exerciseMinutes} 分钟`);
-  if (s.meditationMinutes > 0) focus.push(`冥想 ${s.meditationMinutes} 分钟`);
   if (s.readingCount > 0) focus.push(`阅读 ${s.readingCount} 次`);
   if (s.researchMinutes > 0) focus.push(`论文 ${s.researchMinutes} 分钟`);
   if (s.experimentCount > 0) focus.push(`实验 ${s.experimentCount} 次`);
@@ -42,7 +41,7 @@ function buildReview(s: PeriodStat): string {
     pct >= 70
       ? "保持得很好，把这种节奏固化成默认状态。"
       : pct >= 40
-      ? "已有不错的基础，试着把最低频的习惯（如冥想/感恩）提上日程。"
+      ? "已有不错的基础，试着把最低频的习惯（如感恩）提上日程。"
       : "起步阶段不必焦虑，先从每天一件事开始，让「不中断」成为习惯。";
   return `${opener}：${focus.join("、") || "暂无明显积累"}。\n本周期打卡 ${s.checkinDays} 天，平均完成率 ${pct}%。\n💡 ${advice}`;
 }
@@ -73,7 +72,6 @@ export default function GrowthPage() {
         { label: "平均完成率", value: `${Math.round(stat.avgCompletion * 100)}%` },
         { label: "运动", value: `${stat.exerciseCount} 次 / ${stat.exerciseMinutes} 分` },
         { label: "阅读", value: `${stat.readingCount} 次 / ${stat.readingMinutes} 分` },
-        { label: "冥想", value: `${stat.meditationCount} 次 / ${stat.meditationMinutes} 分` },
         { label: "论文", value: `${stat.researchCount} 次 / ${stat.researchMinutes} 分` },
         { label: "英文", value: `${stat.englishCount} 篇` },
         { label: "实验", value: `${stat.experimentCount} 次` },

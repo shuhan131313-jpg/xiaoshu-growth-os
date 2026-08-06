@@ -33,13 +33,6 @@ export interface EnglishRecord {
   createdAt: number;
 }
 
-export interface MeditationRecord {
-  id?: number;
-  date: string;
-  duration: number;
-  createdAt: number;
-}
-
 export interface ResearchRecord {
   id?: number;
   date: string;
@@ -136,7 +129,6 @@ export class XiaoShuDB extends Dexie {
   exercise!: Table<ExerciseRecord, number>;
   reading!: Table<ReadingRecord, number>;
   english!: Table<EnglishRecord, number>;
-  meditation!: Table<MeditationRecord, number>;
   research!: Table<ResearchRecord, number>;
   literature!: Table<LiteratureItem, number>;
   experiment!: Table<ExperimentRecord, number>;
@@ -155,7 +147,6 @@ export class XiaoShuDB extends Dexie {
       exercise: "++id, date",
       reading: "++id, date",
       english: "++id, date",
-      meditation: "++id, date",
       research: "++id, date",
       literature: "++id, date",
       experiment: "++id, date",
@@ -168,7 +159,6 @@ export class XiaoShuDB extends Dexie {
       exercise: "++id, date",
       reading: "++id, date",
       english: "++id, date",
-      meditation: "++id, date",
       research: "++id, date",
       literature: "++id, date",
       experiment: "++id, date",
@@ -182,6 +172,9 @@ export class XiaoShuDB extends Dexie {
       bowel: "++id, date",
     });
     this.version(4).stores({
+      favorite: "++id, type, key",
+    });
+    this.version(5).stores({
       favorite: "++id, type, key",
     });
   }

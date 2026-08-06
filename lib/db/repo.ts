@@ -21,7 +21,6 @@ export const repos = {
   exercise: repo(db.exercise),
   reading: repo(db.reading),
   english: repo(db.english),
-  meditation: repo(db.meditation),
   research: repo(db.research),
   literature: repo(db.literature),
   experiment: repo(db.experiment),
