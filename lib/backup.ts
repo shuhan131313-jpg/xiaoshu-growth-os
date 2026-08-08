@@ -22,6 +22,7 @@ const TABLE_NAMES = [
   "favorite",
   "growth",
   "settings",
+  "account",
 ] as const;
 
 type AnyTable = {

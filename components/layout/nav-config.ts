@@ -1,6 +1,7 @@
 import {
   Home,
   Dumbbell,
+  Wallet,
   BookOpen,
   Type,
   PenLine,
@@ -22,6 +23,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "今日", en: "Today", icon: Home },
   { href: "/exercise", label: "运动", en: "Exercise", icon: Dumbbell },
+  { href: "/account", label: "记账", en: "Account", icon: Wallet },
   { href: "/reading", label: "阅读", en: "Reading", icon: BookOpen },
   { href: "/english", label: "英文阅读", en: "English", icon: Type },
   { href: "/research", label: "论文", en: "Research", icon: PenLine },

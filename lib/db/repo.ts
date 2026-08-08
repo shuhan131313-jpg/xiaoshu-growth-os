@@ -31,6 +31,7 @@ export const repos = {
   favorite: repo(db.favorite),
   growth: repo(db.growth),
   settings: repo(db.settings),
+  account: repo(db.account),
 };
 
 export type Repo = ReturnType<typeof repo>;

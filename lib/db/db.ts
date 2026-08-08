@@ -124,6 +124,15 @@ export interface AppSettings {
   value: unknown;
 }
 
+export interface AccountRecord {
+  id?: number;
+  date: string; // YYYY-MM-DD 发生日期
+  type: "expense" | "income"; // 支出 / 收入
+  amount: number; // 本次金额（正数）
+  note?: string; // 原始输入文本（如「午餐5 晚餐10」）
+  createdAt: number;
+}
+
 export class XiaoShuDB extends Dexie {
   dailyTasks!: Table<DailyTask, number>;
   exercise!: Table<ExerciseRecord, number>;
@@ -139,6 +148,7 @@ export class XiaoShuDB extends Dexie {
   growth!: Table<GrowthReport, number>;
   settings!: Table<AppSettings, number>;
   favorite!: Table<FavoriteRecord, number>;
+  account!: Table<AccountRecord, number>;
 
   constructor() {
     super("xiaoshu-growth-os");
@@ -176,6 +186,9 @@ export class XiaoShuDB extends Dexie {
     });
     this.version(5).stores({
       favorite: "++id, type, key",
+    });
+    this.version(6).stores({
+      account: "++id, date, type",
     });
   }
 }

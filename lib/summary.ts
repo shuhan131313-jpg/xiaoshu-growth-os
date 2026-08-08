@@ -8,6 +8,7 @@ import type {
   ExperimentRecord,
   GratitudeRecord,
   LiteratureItem,
+  AccountRecord,
 } from "./db/db";
 import { TODAY_MODULES, type TodayModuleKey } from "./constants";
 import { todayKey } from "./utils";
@@ -171,4 +172,77 @@ export async function lastNDailyCount(
     out.push({ date: k, value: byDate.get(k) || 0 });
   }
   return out;
+}
+
+/* ===================== 记账 ===================== */
+
+/** 从自由文本中提取全部数字并求和（如「午餐5 晚餐10」→ 15）。无数字返回 0。 */
+export function extractAmount(text: string): number {
+  const matches = text.match(/-?\d+(\.\d+)?/g);
+  if (!matches) return 0;
+  const sum = matches.reduce((s, m) => s + parseFloat(m), 0);
+  return Math.round(sum * 100) / 100;
+}
+
+export interface AccountTotals {
+  income: number; // 总收入
+  expense: number; // 总支出
+  balance: number; // 结余 = 收入 - 支出
+}
+
+/** 全部记账汇总（总收入 / 总支出 / 结余） */
+export async function getAccountTotals(): Promise<AccountTotals> {
+  const all = (await repos.account.all()) as AccountRecord[];
+  return sumAccount(all);
+}
+
+function sumAccount(rows: AccountRecord[]): AccountTotals {
+  let income = 0;
+  let expense = 0;
+  for (const r of rows) {
+    if (r.type === "income") income += r.amount;
+    else expense += r.amount;
+  }
+  income = Math.round(income * 100) / 100;
+  expense = Math.round(expense * 100) / 100;
+  return { income, expense, balance: Math.round((income - expense) * 100) / 100 };
+}
+
+/** 指定年月（YYYY-MM）的记账汇总 */
+export async function getAccountMonthTotals(
+  monthPrefix: string
+): Promise<AccountTotals> {
+  const all = (await repos.account.all()) as AccountRecord[];
+  return sumAccount(all.filter((r) => r.date.startsWith(monthPrefix)));
+}
+
+export interface AccountDaySum {
+  date: string;
+  income: number; // 当日收入合计
+  expense: number; // 当日支出合计
+}
+
+/** 指定年月内，每日收支合计（仅含该月有记录的日子） */
+export async function getAccountDailyMap(
+  monthPrefix: string
+): Promise<Record<string, AccountDaySum>> {
+  const all = (await repos.account.all()) as AccountRecord[];
+  const map: Record<string, AccountDaySum> = {};
+  for (const r of all) {
+    if (!r.date.startsWith(monthPrefix)) continue;
+    const d = (map[r.date] ??= { date: r.date, income: 0, expense: 0 });
+    if (r.type === "income") d.income += r.amount;
+    else d.expense += r.amount;
+  }
+  for (const k of Object.keys(map)) {
+    map[k].income = Math.round(map[k].income * 100) / 100;
+    map[k].expense = Math.round(map[k].expense * 100) / 100;
+  }
+  return map;
+}
+
+/** 某一天的全部记账记录（用于日历点击弹窗） */
+export async function getAccountByDate(date: string): Promise<AccountRecord[]> {
+  const rows = (await repos.account.whereDate(date)) as AccountRecord[];
+  return rows.sort((a, b) => b.createdAt - a.createdAt);
 }
