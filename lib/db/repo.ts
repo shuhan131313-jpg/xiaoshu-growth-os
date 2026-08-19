@@ -32,6 +32,9 @@ export const repos = {
   growth: repo(db.growth),
   settings: repo(db.settings),
   account: repo(db.account),
+  timeThread: repo(db.timeThread),
+  timeCell: repo(db.timeCell),
+  timeMerge: repo(db.timeMerge),
 };
 
 export type Repo = ReturnType<typeof repo>;

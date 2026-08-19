@@ -133,6 +133,34 @@ export interface AccountRecord {
   createdAt: number;
 }
 
+export interface TimeThread {
+  id?: number;
+  name: string;
+  order: number;
+  createdAt: number;
+}
+
+export interface TimeCell {
+  id?: number;
+  threadId: number;
+  date: string; // YYYY-MM-DD
+  hour: number; // 8..22 整点
+  half: 0 | 1; // 0 上半 / 1 下半
+  content: string;
+  createdAt: number;
+}
+
+export interface TimeMerge {
+  id?: number;
+  threadId: number;
+  date: string;
+  startHour: number; // 合并起始整点
+  endHour: number; // 合并结束整点（含）
+  top: string; // 合并后上半内容
+  bottom: string; // 合并后下半内容
+  createdAt: number;
+}
+
 export class XiaoShuDB extends Dexie {
   dailyTasks!: Table<DailyTask, number>;
   exercise!: Table<ExerciseRecord, number>;
@@ -149,6 +177,9 @@ export class XiaoShuDB extends Dexie {
   settings!: Table<AppSettings, number>;
   favorite!: Table<FavoriteRecord, number>;
   account!: Table<AccountRecord, number>;
+  timeThread!: Table<TimeThread, number>;
+  timeCell!: Table<TimeCell, number>;
+  timeMerge!: Table<TimeMerge, number>;
 
   constructor() {
     super("xiaoshu-growth-os");
@@ -189,6 +220,11 @@ export class XiaoShuDB extends Dexie {
     });
     this.version(6).stores({
       account: "++id, date, type",
+    });
+    this.version(7).stores({
+      timeThread: "++id, threadId, date, order",
+      timeCell: "++id, threadId, date, hour",
+      timeMerge: "++id, threadId, date",
     });
   }
 }

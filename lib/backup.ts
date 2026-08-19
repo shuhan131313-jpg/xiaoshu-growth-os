@@ -23,6 +23,9 @@ const TABLE_NAMES = [
   "growth",
   "settings",
   "account",
+  "timeThread",
+  "timeCell",
+  "timeMerge",
 ] as const;
 
 type AnyTable = {
