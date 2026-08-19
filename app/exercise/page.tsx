@@ -516,8 +516,9 @@ export default function ExercisePage() {
       {/* 运动历史（可编辑 / 删除，统一折叠） */}
       <FoldList
         items={monthHistory}
+        startCollapsed
         title={
-          <p className="mb-3 px-1 text-sm font-medium text-primary">
+          <p className="text-sm font-medium text-primary">
             运动历史（{monthHistory.length}）
           </p>
         }
@@ -601,6 +602,7 @@ export default function ExercisePage() {
               <div className="mt-4">
                 <FoldList
                   items={monthWeights}
+                  startCollapsed
                   title={
                     <p className="text-xs font-medium text-primary">
                       近期记录（{monthWeights.length}）
@@ -685,6 +687,7 @@ export default function ExercisePage() {
               <div className="mt-4">
                 <FoldList
                   items={monthBowel}
+                  startCollapsed
                   title={
                     <p className="text-xs font-medium text-primary">
                       打卡日志（{monthBowel.length}）
