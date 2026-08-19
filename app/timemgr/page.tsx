@@ -82,7 +82,7 @@ function SingleCell({
         <Input
           value={topValue}
           onChange={(e) => onEdit(0, e.target.value)}
-          placeholder="上半段做什么"
+          placeholder="这个小时做了什么"
           className="h-8 border-0 bg-transparent px-1 text-[13px] focus:bg-line/30"
         />
       </div>
@@ -91,7 +91,7 @@ function SingleCell({
         <Input
           value={bottomValue}
           onChange={(e) => onEdit(1, e.target.value)}
-          placeholder="下半段做什么"
+          placeholder="同时进行的另一件事"
           className="h-8 border-0 bg-transparent px-1 text-[13px] focus:bg-line/30"
         />
       </div>
@@ -101,9 +101,9 @@ function SingleCell({
           onClick={onMerge}
           onPointerDown={(e) => e.stopPropagation()}
           title="合并到下一小时"
-          className="absolute bottom-1 right-1 flex items-center gap-0.5 rounded-md bg-line/40 px-1.5 py-0.5 text-[10px] text-ink-soft transition duration-200 hover:bg-primary/15 hover:text-primary"
+          className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-md bg-line/40 text-ink-soft transition duration-200 hover:bg-primary/15 hover:text-primary"
         >
-          <ChevronsDown className="h-3 w-3" /> 合并
+          <ChevronsDown className="h-3 w-3" />
         </button>
       )}
     </div>
@@ -144,7 +144,7 @@ function MergedCell({
         <textarea
           value={topValue}
           onChange={(e) => onEdit(0, e.target.value)}
-          placeholder="上半段"
+          placeholder="做了什么"
           rows={2}
           className="w-full resize-none rounded-lg border-0 bg-transparent text-[13px] text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-primary/20"
         />
@@ -154,7 +154,7 @@ function MergedCell({
         <textarea
           value={bottomValue}
           onChange={(e) => onEdit(1, e.target.value)}
-          placeholder="下半段"
+          placeholder="同时做了什么"
           rows={2}
           className="w-full resize-none rounded-lg border-0 bg-transparent text-[13px] text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-primary/20"
         />
@@ -390,7 +390,7 @@ export default function TimeMgrPage() {
             key: `${tid}-${h}-mt`,
             threadId: tid,
             thread: th?.name,
-            label: `${fmt(h)}–${fmt(m.endHour)} 上半`,
+            label: `${fmt(h)}–${fmt(m.endHour)}`,
             content: m.top,
             kind: "merge",
             mergeId: m.id,
@@ -401,7 +401,7 @@ export default function TimeMgrPage() {
             key: `${tid}-${h}-mb`,
             threadId: tid,
             thread: th?.name,
-            label: `${fmt(h)}–${fmt(m.endHour)} 下半`,
+            label: `${fmt(h)}–${fmt(m.endHour)}`,
             content: m.bottom,
             kind: "merge",
             mergeId: m.id,
@@ -415,7 +415,7 @@ export default function TimeMgrPage() {
             key: `${tid}-${h}-0`,
             threadId: tid,
             thread: th?.name,
-            label: `${fmt(h)} 上半`,
+            label: `${fmt(h)}`,
             content: c0.content,
             kind: "cell",
             cellId: c0.id,
@@ -426,7 +426,7 @@ export default function TimeMgrPage() {
             key: `${tid}-${h}-1`,
             threadId: tid,
             thread: th?.name,
-            label: `${fmt(h)} 下半`,
+            label: `${fmt(h)}`,
             content: c1.content,
             kind: "cell",
             cellId: c1.id,
@@ -524,7 +524,7 @@ export default function TimeMgrPage() {
             >
               {/* 左上角 */}
               <div
-                className="flex items-center justify-center text-[11px] font-medium text-ink-faint"
+                className="sticky left-0 z-20 flex items-center justify-center bg-surface text-[11px] font-medium text-ink-faint"
                 style={{ gridColumn: 1, gridRow: 1 }}
               >
                 时间
@@ -544,11 +544,11 @@ export default function TimeMgrPage() {
                   </div>
                 );
               })}
-              {/* 时间轴 */}
+              {/* 时间轴（左侧固定列，所有线程共用同一套刻度） */}
               {HOURS.map((h) => (
                 <div
                   key={`t${h}`}
-                  className="flex items-center justify-end pr-2 text-xs tabular text-ink-faint"
+                  className="sticky left-0 z-10 flex items-center justify-end bg-surface pr-2 text-xs tabular text-ink-faint"
                   style={{ gridColumn: 1, gridRow: h - 6 }}
                 >
                   {fmt(h)}
