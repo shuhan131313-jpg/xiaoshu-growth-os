@@ -152,7 +152,7 @@ export default function ReadingPage() {
               >
                 <Bookmark
                   className={`h-4 w-4 ${
-                    bookFav ? "fill-accent text-accent" : "text-ink-faint"
+                    bookFav ? "fill-gold text-gold" : "text-ink-faint"
                   }`}
                 />
               </button>

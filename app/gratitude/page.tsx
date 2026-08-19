@@ -119,7 +119,7 @@ export default function GratitudePage() {
                     <ul className="space-y-1">
                       {(h.items ?? []).map((it, i) => (
                         <li key={i} className="flex gap-2 text-sm text-ink-soft">
-                          <span className="text-accent">·</span>
+                          <span className="text-gold">·</span>
                           {it}
                         </li>
                       ))}

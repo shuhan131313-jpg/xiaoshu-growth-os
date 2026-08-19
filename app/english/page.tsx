@@ -69,7 +69,7 @@ export default function EnglishPage() {
           >
             <Bookmark
               className={`h-4 w-4 ${
-                engFav ? "fill-accent text-accent" : "text-ink-faint"
+                engFav ? "fill-gold text-gold" : "text-ink-faint"
               }`}
             />
           </button>
@@ -128,7 +128,7 @@ export default function EnglishPage() {
           <div className="space-y-2">
             {p.phrases.map((ph) => (
               <div key={ph.phrase} className="flex items-baseline gap-3">
-                <Badge className="shrink-0 bg-accent/15 text-accent-dark">
+                <Badge className="shrink-0 bg-gold/15 text-gold-dark">
                   {ph.phrase}
                 </Badge>
                 <span className="text-[13px] text-ink-soft">{ph.meaning}</span>
@@ -144,7 +144,7 @@ export default function EnglishPage() {
         onClick={toggleFav}
       >
         <Bookmark
-          className={engFav ? "h-4 w-4 fill-accent text-accent" : "h-4 w-4"}
+          className={engFav ? "h-4 w-4 fill-gold text-gold" : "h-4 w-4"}
         />
         {engFav ? "已收藏" : "收藏此篇"}
       </Button>

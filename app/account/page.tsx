@@ -33,8 +33,8 @@ const BASELINE = 30000; // 基准额度参考值
  * 顶部「土地 + 可左右移动树苗」可视化：
  * - 土地为一条细线轨道；树苗绘制在土地上方，左右移动。
  * - 位置由结余占基准值的比例决定（夹在 0~100%）。
- * - 结余 > 0：茁壮绿色小树，数值越大枝叶越茂盛；
- *   结余 < 0：枯萎灰黄色树苗，负数绝对值越大越枯萎。
+ * - 结余 > 0：茁壮暖黄小树，数值越大枝叶越茂盛；
+ *   结余 < 0：枯萎灰树苗，负数绝对值越大越枯萎。
  */
 function TreeTrack({ balance }: { balance: number }) {
   const ratio = Math.max(0, Math.min(1, balance / BASELINE)); // 0~1
@@ -43,7 +43,7 @@ function TreeTrack({ balance }: { balance: number }) {
 
   // 茂盛度：0~1，绝对值越大越茂盛 / 越枯萎
   const intensity = Math.min(1, Math.abs(balance) / BASELINE);
-  const treeColor = positive ? "#548C70" : "#B7A24E"; // 松绿 / 灰黄
+  const treeColor = positive ? "#E6C260" : "#B0B0B0"; // 暖黄 / 灰
   const leafScale = 0.7 + intensity * 0.6; // 枝叶缩放
 
   return (
@@ -54,10 +54,10 @@ function TreeTrack({ balance }: { balance: number }) {
         <span>结余 = 收入 − 支出 · 基准 {BASELINE}</span>
         <span>+{BASELINE}</span>
       </div>
-      {/* 土地轨道（细线） */}
-      <div className="absolute bottom-6 left-0 right-0 h-px bg-line" />
+      {/* 土地轨道（细线，属进度元素，用主强调蓝） */}
+      <div className="absolute bottom-6 left-0 right-0 h-px bg-primary/30" />
       {/* 基准中点标记 */}
-      <div className="absolute bottom-6 left-1/2 h-2 w-px -translate-x-1/2 bg-line" />
+      <div className="absolute bottom-6 left-1/2 h-2 w-px -translate-x-1/2 bg-primary/40" />
       {/* 树苗（绘制在土地上方，可左右移动） */}
       <div
         className="absolute bottom-6 transition-all duration-500 ease-out"
@@ -415,12 +415,12 @@ export default function AccountPage() {
                   <span>{d}</span>
                   <span className="mt-0.5 flex flex-col items-center leading-none">
                     {day?.income ? (
-                      <span className="text-[10px] tabular text-red-500">
+                      <span className="text-[10px] tabular text-[#C2554F]">
                         +{day.income}
                       </span>
                     ) : null}
                     {day?.expense ? (
-                      <span className="text-[10px] tabular text-accent">
+                      <span className="text-[10px] tabular text-[#5E8C6A]">
                         -{day.expense}
                       </span>
                     ) : null}
@@ -438,10 +438,10 @@ export default function AccountPage() {
           <p className="text-sm font-medium text-primary">本月汇总</p>
           <p className="mt-2 tabular text-sm text-ink">
             本月收入：
-            <span className="text-red-500">+{monthTotals.income}</span>
+            <span className="text-[#C2554F]">+{monthTotals.income}</span>
             <span className="mx-1 text-ink-faint">｜</span>
             本月支出：
-            <span className="text-accent">-{monthTotals.expense}</span>
+            <span className="text-[#5E8C6A]">-{monthTotals.expense}</span>
             <span className="mx-1 text-ink-faint">｜</span>
             本月结余：
             <span className={monthTotals.balance >= 0 ? "text-accent-dark" : "text-ink"}>
@@ -482,7 +482,7 @@ export default function AccountPage() {
                     >
                       <div className="min-w-0">
                         <p className="text-sm text-ink">
-                          <span className={r.type === "income" ? "text-red-500" : "text-accent"}>
+                          <span className={r.type === "income" ? "text-[#C2554F]" : "text-[#5E8C6A]"}>
                             {r.type === "income" ? "收入" : "支出"} {r.amount} 元
                           </span>
                         </p>

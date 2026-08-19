@@ -25,9 +25,9 @@ import { repos } from "@/lib/db/repo";
 import type { FavoriteRecord } from "@/lib/db/db";
 
 function heatColor(count: number, max: number): string {
-  if (count <= 0) return "#B8A38C";
+  if (count <= 0) return "#E2E5EC";
   const a = 0.25 + 0.75 * (count / max);
-  return `rgba(84,140,112,${a.toFixed(2)})`;
+  return `rgba(26,63,144,${a.toFixed(2)})`;
 }
 
 export default function TodayPage() {
@@ -36,7 +36,7 @@ export default function TodayPage() {
   const [duration, setDuration] = useState(0);
   const [heat, setHeat] = useState<{ date: string; count: number }[]>([]);
   const [favs, setFavs] = useState<FavoriteRecord[]>([]);
-  const [favOpen, setFavOpen] = useState(true);
+  const [favOpen, setFavOpen] = useState(false);
   const [ready, setReady] = useState(false);
 
   async function load() {
@@ -109,13 +109,13 @@ export default function TodayPage() {
                   } ${done ? "bg-accent/15" : "bg-transparent hover:bg-line/40"}`}
                 >
                   {done ? (
-                    <Sprout className="h-7 w-7 text-accent" strokeWidth={2} />
+                    <Sprout className="h-7 w-7 text-gold" strokeWidth={2} />
                   ) : (
                     <span className="h-7 w-7" />
                   )}
                   <span
                     className={`whitespace-nowrap text-[10px] ${
-                      done ? "text-accent-dark" : "text-ink-faint"
+                      done ? "text-primary" : "text-ink-faint"
                     }`}
                   >
                     {m.label}
@@ -136,7 +136,7 @@ export default function TodayPage() {
             aria-expanded={favOpen}
           >
             <span className="flex items-center gap-1.5 text-sm font-medium text-primary">
-              <Bookmark className="h-4 w-4 text-accent" /> 收藏夹
+              <Bookmark className="h-4 w-4 text-gold" /> 收藏夹
               <span className="text-[11px] text-ink-faint">
                 {favs.length}
               </span>
@@ -191,7 +191,7 @@ export default function TodayPage() {
       <Card>
         <CardContent className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-accent">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gold/15 text-gold">
               <Flame className="h-5 w-5" />
             </span>
             <div>

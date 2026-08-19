@@ -17,6 +17,86 @@ import { todayKey } from "@/lib/utils";
 
 const WEEK = ["日", "一", "二", "三", "四", "五", "六"];
 
+/**
+ * 极简体重折线图：仅 XY 细轴，无网格、无大量刻度。
+ * - X 轴：只展示「有体重记录」的日期（按记录索引等距排布）。
+ * - Y 轴：按数据自动范围（min/max + 15% 留白），仅标注极值。
+ * - 柔和蓝折线 + 描点，显示当日体重。
+ */
+function WeightChart({ data }: { data: WeightRecord[] }) {
+  if (data.length === 0) return null;
+  const pts = [...data].sort((a, b) => a.date.localeCompare(b.date));
+  const W = 340;
+  const H = 168;
+  const padL = 30;
+  const padR = 12;
+  const padT = 14;
+  const padB = 24;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  const xs = (i: number) =>
+    pts.length === 1 ? padL + plotW / 2 : padL + (plotW * i) / (pts.length - 1);
+  const vals = pts.map((p) => p.value);
+  const dataMin = Math.min(...vals);
+  const dataMax = Math.max(...vals);
+  let lo = dataMin;
+  let hi = dataMax;
+  if (lo === hi) {
+    lo -= 1;
+    hi += 1;
+  } else {
+    const p = (hi - lo) * 0.15;
+    lo -= p;
+    hi += p;
+  }
+  const ys = (v: number) => padT + plotH * (1 - (v - lo) / (hi - lo));
+  const d = pts
+    .map((p, i) => `${i === 0 ? "M" : "L"}${xs(i).toFixed(1)} ${ys(p.value).toFixed(1)}`)
+    .join(" ");
+  const axis = "#C9CED6";
+  const label = "#666666";
+  const blue = "#1A3F90";
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="w-full"
+      style={{ height: 168 }}
+      role="img"
+      aria-label="体重趋势折线图"
+    >
+      {/* 坐标轴（仅细线） */}
+      <line x1={padL} y1={padT} x2={padL} y2={padT + plotH} stroke={axis} strokeWidth={1} />
+      <line x1={padL} y1={padT + plotH} x2={W - padR} y2={padT + plotH} stroke={axis} strokeWidth={1} />
+      {/* Y 轴极值标签（不堆砌刻度） */}
+      <text x={padL - 5} y={ys(dataMax) + 3} textAnchor="end" fontSize={9} fill={label}>
+        {Math.round(dataMax * 10) / 10}
+      </text>
+      <text x={padL - 5} y={ys(dataMin) + 3} textAnchor="end" fontSize={9} fill={label}>
+        {Math.round(dataMin * 10) / 10}
+      </text>
+      {/* 折线 */}
+      <path d={d} fill="none" stroke={blue} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      {/* 描点：当日体重 */}
+      {pts.map((p, i) => (
+        <circle key={p.id ?? i} cx={xs(i)} cy={ys(p.value)} r={3} fill={blue} />
+      ))}
+      {/* X 轴：仅展示有记录的日期 */}
+      {pts.map((p, i) => (
+        <text
+          key={`x${p.id ?? i}`}
+          x={xs(i)}
+          y={H - 6}
+          textAnchor="middle"
+          fontSize={8.5}
+          fill={label}
+        >
+          {p.date.slice(5)}
+        </text>
+      ))}
+    </svg>
+  );
+}
+
 export default function ExercisePage() {
   const today = useMemo(() => new Date(), []);
   const [year, setYear] = useState(today.getFullYear());
@@ -557,6 +637,12 @@ export default function ExercisePage() {
                     </div>
                   )}
                 />
+              </div>
+            )}
+            {weights.length > 0 && (
+              <div className="mt-4">
+                <p className="mb-2 text-xs font-medium text-primary">体重趋势</p>
+                <WeightChart data={weights} />
               </div>
             )}
           </CardContent>

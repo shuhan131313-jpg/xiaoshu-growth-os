@@ -99,7 +99,7 @@ export function Timer({
             cy={size / 2}
             r={r}
             fill="none"
-            stroke="#B8A38C"
+            stroke="#E2E5EC"
             strokeWidth={stroke}
           />
           {isCountdown && (
@@ -108,7 +108,7 @@ export function Timer({
               cy={size / 2}
               r={r}
               fill="none"
-              stroke="#548C70"
+              stroke="#1A3F90"
               strokeWidth={stroke}
               strokeLinecap="round"
               strokeDasharray={c}

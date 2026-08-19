@@ -196,7 +196,7 @@ export default function ResearchPage() {
             onClick={togglePaperFav}
           >
             <Bookmark
-              className={paperFav ? "h-4 w-4 fill-accent text-accent" : "h-4 w-4"}
+              className={paperFav ? "h-4 w-4 fill-gold text-gold" : "h-4 w-4"}
             />
             {paperFav ? "已收藏此文献" : "收藏此文献"}
           </Button>
