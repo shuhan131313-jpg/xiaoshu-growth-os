@@ -26,6 +26,7 @@ const TABLE_NAMES = [
   "timeThread",
   "timeCell",
   "timeMerge",
+  "todo",
 ] as const;
 
 type AnyTable = {

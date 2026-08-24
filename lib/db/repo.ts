@@ -35,6 +35,7 @@ export const repos = {
   timeThread: repo(db.timeThread),
   timeCell: repo(db.timeCell),
   timeMerge: repo(db.timeMerge),
+  todo: repo(db.todo),
 };
 
 export type Repo = ReturnType<typeof repo>;

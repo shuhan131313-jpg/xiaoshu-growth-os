@@ -133,6 +133,15 @@ export interface AccountRecord {
   createdAt: number;
 }
 
+export interface TodoRecord {
+  id?: number;
+  date: string; // YYYY-MM-DD 所属日期
+  text: string; // 待办内容
+  done: boolean; // 是否完成
+  order: number; // 显示排序序号
+  createdAt: number;
+}
+
 export interface TimeThread {
   id?: number;
   name: string;
@@ -180,6 +189,7 @@ export class XiaoShuDB extends Dexie {
   timeThread!: Table<TimeThread, number>;
   timeCell!: Table<TimeCell, number>;
   timeMerge!: Table<TimeMerge, number>;
+  todo!: Table<TodoRecord, number>;
 
   constructor() {
     super("xiaoshu-growth-os");
@@ -225,6 +235,9 @@ export class XiaoShuDB extends Dexie {
       timeThread: "++id, threadId, date, order",
       timeCell: "++id, threadId, date, hour",
       timeMerge: "++id, threadId, date",
+    });
+    this.version(8).stores({
+      todo: "++id, date, done",
     });
   }
 }
