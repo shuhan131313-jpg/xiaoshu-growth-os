@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ClipboardEvent } from "react";
 import { RotateCcw } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 
@@ -76,6 +76,26 @@ export default function BoxPlotPage() {
     setData(GROUP_NAMES.map(() => Array.from({ length: SLOTS }, () => "")));
   };
 
+  // 粘贴一整列竖排数字：自动依次填入该列 6 个框（从第一个框开始）
+  const handlePaste = (g: number, e: ClipboardEvent<HTMLInputElement>) => {
+    const text = e.clipboardData.getData("text");
+    const nums = text
+      .split(/[\s,;，；\t\r\n]+/)
+      .map((s) => s.trim())
+      .filter((s) => s !== "")
+      .map(Number)
+      .filter((v) => !Number.isNaN(v));
+    if (nums.length === 0) return;
+    e.preventDefault();
+    setData((prev) => {
+      const next = prev.map((row) => row.slice());
+      nums.slice(0, SLOTS).forEach((v, idx) => {
+        next[g][idx] = String(v);
+      });
+      return next;
+    });
+  };
+
   // 解析每组数字（空值不参与）
   const parsed = useMemo(
     () =>
@@ -133,12 +153,15 @@ export default function BoxPlotPage() {
         </div>
       </PageHeader>
 
-      {/* 输入区：10 组，响应式换行 */}
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      {/* 输入区：10 组，每组占一竖列，横向排布，宽度不足自动换行 */}
+      <div className="mt-4 flex flex-wrap gap-3">
         {GROUP_NAMES.map((name, g) => (
-          <div key={name} className="rounded-xl border border-line bg-card p-3 shadow-card">
+          <div
+            key={name}
+            className="flex w-28 flex-col rounded-xl border border-line bg-card p-3 shadow-card"
+          >
             <p className="mb-2 text-center text-xs font-medium text-primary">{name}</p>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="flex flex-col gap-1.5">
               {Array.from({ length: SLOTS }, (_, i) => (
                 <input
                   key={i}
@@ -146,6 +169,7 @@ export default function BoxPlotPage() {
                   inputMode="decimal"
                   value={data[g][i]}
                   onChange={(e) => setCell(g, i, e.target.value)}
+                  onPaste={(e) => handlePaste(g, e)}
                   placeholder={`#${i + 1}`}
                   className="h-8 w-full rounded-md border border-line bg-surface px-2 text-center text-[13px] tabular text-ink outline-none transition duration-200 focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
                 />
