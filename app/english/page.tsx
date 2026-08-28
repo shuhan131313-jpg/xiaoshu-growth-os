@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Languages, RefreshCw, Bookmark } from "lucide-react";
+import { Languages, RefreshCw, Bookmark, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,20 +14,46 @@ import {
   pickDistinct,
   type EnglishPassage,
 } from "@/lib/ai/content";
+import { getDailyPick, setDailyPick, bumpGrowthStep } from "@/lib/growth";
+import { getTodayTaskMap, setTodayTask } from "@/lib/summary";
 
 export default function EnglishPage() {
   const today = todayKey();
   const [p, setP] = useState<EnglishPassage>(ENGLISH_POOL[0]);
   const [favs, setFavs] = useState<FavoriteRecord[]>([]);
+  const [engDone, setEngDone] = useState(false);
 
   const engKey = `english:${p.title}`;
   const engFav = favs.some((f) => f.type === "english" && f.key === engKey);
 
   useEffect(() => {
-    setP(pickDistinct(ENGLISH_POOL));
+    (async () => {
+      const saved = await getDailyPick<EnglishPassage>(
+        "english",
+        ENGLISH_POOL,
+        (item, v) => item.title === v,
+        ENGLISH_POOL[0]
+      );
+      setP(saved);
+      const map = await getTodayTaskMap(today);
+      setEngDone(!!map.english);
+    })();
     repos.favorite.all().then(setFavs);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function changePassage() {
+    const next = pickDistinct(ENGLISH_POOL, p);
+    setP(next);
+    await setDailyPick("english", next.title);
+  }
+
+  async function checkIn() {
+    if (engDone) return;
+    await setTodayTask(today, "english", true);
+    setEngDone(true);
+    await bumpGrowthStep();
+  }
 
   async function toggleFav() {
     if (engFav) {
@@ -43,6 +69,7 @@ export default function EnglishPage() {
         date: today,
         createdAt: Date.now(),
       });
+      await bumpGrowthStep();
     }
     setFavs(await repos.favorite.all());
   }
@@ -57,7 +84,7 @@ export default function EnglishPage() {
         </span>
         <div className="flex items-center gap-1">
           <button
-            onClick={() => setP((x) => pickDistinct(ENGLISH_POOL, x))}
+            onClick={changePassage}
             className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-ink-faint hover:bg-line/50"
           >
             <RefreshCw className="h-3 w-3" /> 换一篇
@@ -137,6 +164,16 @@ export default function EnglishPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Button
+        variant={engDone ? "soft" : "accent"}
+        className="w-full"
+        onClick={checkIn}
+        disabled={engDone}
+      >
+        <Check className={engDone ? "h-4 w-4" : "h-4 w-4"} />
+        {engDone ? "今日已打卡 ✓" : "完成打卡"}
+      </Button>
 
       <Button
         variant={engFav ? "soft" : "accent"}

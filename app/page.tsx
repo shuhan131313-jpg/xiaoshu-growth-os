@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { GROWTH_MODULES } from "@/lib/constants";
+import { GrowthTrack } from "@/components/common/growth-track";
 import { todayKey, greeting, weekdayCN } from "@/lib/utils";
 import {
   getTodayTaskMap,
@@ -21,8 +22,12 @@ import {
   getTodayDuration,
   getHeatmap,
 } from "@/lib/summary";
+import { getGrowthStep } from "@/lib/growth";
 import { repos } from "@/lib/db/repo";
 import type { FavoriteRecord } from "@/lib/db/db";
+
+/** 自动打卡模块：完成对应操作后由数据驱动点亮，无需首页手动点选（阅读除外） */
+const AUTO_KEYS = new Set(["exercise", "english", "research", "experiment"]);
 
 function heatColor(count: number, max: number): string {
   if (count <= 0) return "#E2E5EC";
@@ -37,19 +42,31 @@ export default function TodayPage() {
   const [heat, setHeat] = useState<{ date: string; count: number }[]>([]);
   const [favs, setFavs] = useState<FavoriteRecord[]>([]);
   const [favOpen, setFavOpen] = useState(false);
+  const [step, setStep] = useState(0);
+  const [exCount, setExCount] = useState(0);
+  const [rsCount, setRsCount] = useState(0);
+  const [expCount, setExpCount] = useState(0);
   const [ready, setReady] = useState(false);
 
   async function load() {
-    const [map, dur, h, fv] = await Promise.all([
+    const [map, dur, h, fv, gstep, ex, rs, exp] = await Promise.all([
       getTodayTaskMap(date),
       getTodayDuration(date),
       getHeatmap(7),
       repos.favorite.all(),
+      getGrowthStep(),
+      repos.exercise.whereDate(date),
+      repos.research.whereDate(date),
+      repos.experiment.whereDate(date),
     ]);
     setTaskMap(map);
     setDuration(dur);
     setHeat(h);
     setFavs(fv);
+    setStep(gstep);
+    setExCount(ex.length);
+    setRsCount(rs.length);
+    setExpCount(exp.length);
     setReady(true);
   }
 
@@ -89,23 +106,39 @@ export default function TodayPage() {
         </p>
       </header>
 
-      {/* 今日成长：横向等分树苗条 */}
+      {/* 今日成长：成长进度条 + 横向等分树苗条 */}
       <Card>
         <CardContent>
           <div className="mb-3 flex items-center justify-between">
             <p className="text-sm font-medium text-primary">今日成长</p>
-            <span className="text-[11px] text-ink-faint">点按格子，记录今日完成</span>
+            <span className="text-[11px] text-ink-faint">
+              运动·英文·论文·实验 自动打卡 · 阅读手动
+            </span>
           </div>
+          <GrowthTrack step={step} />
           <div className="flex overflow-hidden rounded-2xl border border-line bg-line/20">
             {GROWTH_MODULES.map((m, i) => {
-              const done = !!taskMap[m.key];
+              const done =
+                m.key === "exercise"
+                  ? exCount > 0
+                  : m.key === "english"
+                  ? !!taskMap.english
+                  : m.key === "research"
+                  ? rsCount > 0
+                  : m.key === "experiment"
+                  ? expCount > 0
+                  : !!taskMap[m.key];
+              const auto = AUTO_KEYS.has(m.key);
               return (
                 <button
                   key={m.key}
-                  onClick={() => toggle(m.key, done)}
+                  type="button"
+                  onClick={auto ? undefined : () => toggle(m.key, done)}
                   aria-label={m.label}
                   className={`flex h-[92px] flex-1 flex-col items-center justify-center gap-1.5 transition-colors duration-200 ${
                     i > 0 ? "border-l border-line" : ""
+                  } ${
+                    auto ? "cursor-default" : "cursor-pointer"
                   } ${done ? "bg-accent/15" : "bg-transparent hover:bg-line/40"}`}
                 >
                   {done ? (

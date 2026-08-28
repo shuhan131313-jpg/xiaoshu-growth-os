@@ -11,6 +11,7 @@ import { repos } from "@/lib/db/repo";
 import type { SparkRecord, FavoriteRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
 import { BOOK_POOL, pickDistinct, type BookExcerpt } from "@/lib/ai/content";
+import { getDailyPick, setDailyPick, bumpGrowthStep } from "@/lib/growth";
 
 export default function ReadingPage() {
   const today = todayKey();
@@ -36,15 +37,30 @@ export default function ReadingPage() {
 
   useEffect(() => {
     refresh();
-    setBook(pickDistinct(BOOK_POOL));
+    (async () => {
+      const saved = await getDailyPick<BookExcerpt>(
+        "book",
+        BOOK_POOL,
+        (item, v) => item.book === v,
+        BOOK_POOL[0]
+      );
+      setBook(saved);
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function changeBook() {
+    const next = pickDistinct(BOOK_POOL, book);
+    setBook(next);
+    await setDailyPick("book", next.book);
+  }
 
   async function saveSpark() {
     const t = sparkText.trim();
     if (!t) return;
     await repos.spark.add({ date: today, text: t, createdAt: Date.now() });
     setSparkText("");
+    await bumpGrowthStep();
     refresh();
   }
 
@@ -140,7 +156,7 @@ export default function ReadingPage() {
             </span>
             <div className="flex items-center gap-1">
               <button
-                onClick={() => setBook((b) => pickDistinct(BOOK_POOL, b))}
+                onClick={changeBook}
                 className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-ink-faint hover:bg-line/50"
               >
                 <RefreshCw className="h-3 w-3" /> 换一本

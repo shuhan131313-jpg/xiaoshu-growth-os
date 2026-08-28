@@ -14,6 +14,8 @@ import { repos } from "@/lib/db/repo";
 import { db } from "@/lib/db/db";
 import type { ExerciseRecord, WeightRecord, BowelRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
+import { bumpGrowthStep } from "@/lib/growth";
+import { setTodayTask } from "@/lib/summary";
 
 const WEEK = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -282,6 +284,8 @@ export default function ExercisePage() {
       duration: Number(duration) || 0,
       createdAt: Date.now(),
     });
+    await setTodayTask(todayKey(), "exercise", true);
+    await bumpGrowthStep();
     setProject("");
     setDuration("");
     loadMonth();

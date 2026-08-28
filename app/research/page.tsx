@@ -13,6 +13,8 @@ import { PageHeader } from "@/components/common/page-header";
 import { repos } from "@/lib/db/repo";
 import type { ResearchRecord, FavoriteRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
+import { bumpGrowthStep } from "@/lib/growth";
+import { setTodayTask } from "@/lib/summary";
 import {
   LITERATURE_POOL,
   pickDistinct,
@@ -59,6 +61,8 @@ export default function ResearchPage() {
       summary: summary.trim() || undefined,
       createdAt: Date.now(),
     });
+    await setTodayTask(today, "research", true);
+    await bumpGrowthStep();
     setSummary("");
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);

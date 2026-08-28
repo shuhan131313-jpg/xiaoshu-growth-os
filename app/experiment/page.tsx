@@ -12,6 +12,8 @@ import { PageHeader } from "@/components/common/page-header";
 import { repos } from "@/lib/db/repo";
 import type { ExperimentRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
+import { bumpGrowthStep } from "@/lib/growth";
+import { setTodayTask } from "@/lib/summary";
 
 export default function ExperimentPage() {
   const today = todayKey();
@@ -53,6 +55,8 @@ export default function ExperimentPage() {
       note: note.trim(),
       createdAt: Date.now(),
     });
+    await setTodayTask(today, "experiment", true);
+    await bumpGrowthStep();
     setNote("");
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
