@@ -65,6 +65,7 @@ export default function BoxPlotPage() {
   );
 
   const [copiedCol, setCopiedCol] = useState<number | null>(null);
+  const [copiedText, setCopiedText] = useState(false);
 
   // 复制某一列已填写的数字（竖向换行），空框跳过；粘贴逻辑保持原样不动
   const copyColumn = async (g: number) => {
@@ -140,6 +141,19 @@ export default function BoxPlotPage() {
 
   const stats = useMemo(() => parsed.map((v) => (v.length ? computeStats(v) : null)), [parsed]);
 
+  // 各组 均值 ± 标准差（样本标准差 n-1；n=1 视为样本不足无 SD）
+  type MeanStd = { mean: number; sd: number | null; n: number };
+  const meanStd = useMemo<(MeanStd | null)[]>(() => {
+    return parsed.map((vals) => {
+      if (vals.length === 0) return null;
+      const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+      if (vals.length === 1) return { mean, sd: null, n: 1 };
+      const variance =
+        vals.reduce((a, b) => a + (b - mean) ** 2, 0) / (vals.length - 1);
+      return { mean, sd: Math.sqrt(variance), n: vals.length };
+    });
+  }, [parsed]);
+
   // Y 轴范围（含离群点）
   const domain = useMemo(() => {
     const all = parsed.flat();
@@ -149,6 +163,72 @@ export default function BoxPlotPage() {
     const pad = (max - min) * 0.08 || Math.abs(max) * 0.1 || 1;
     return { min: min - pad, max: max + pad };
   }, [parsed]);
+
+  // 均值±标准差 可复制文本
+  const meanStdText = useMemo(() => {
+    return GROUP_NAMES.map((name, g) => {
+      const m = meanStd[g];
+      if (!m) return `${name}\t—`;
+      if (m.sd === null) return `${name}\t样本不足(n=1)`;
+      return `${name}\t${m.mean.toFixed(2)} ± ${m.sd.toFixed(2)}`;
+    }).join("\n");
+  }, [meanStd]);
+
+  const copyMeanStd = async () => {
+    if (!meanStd.some((m) => m && m.sd !== null)) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(meanStdText);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = meanStdText;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      setCopiedText(true);
+      setTimeout(() => setCopiedText(false), 1500);
+    } catch {
+      /* 剪贴板不可用时静默忽略 */
+    }
+  };
+
+  // 柱形图（均值+标准差误差棒）的 Y 轴范围
+  const barDomain = useMemo(() => {
+    const valid = meanStd.filter((m): m is MeanStd => m !== null);
+    const ext: number[] = [];
+    valid.forEach((m) => {
+      if (m.sd === null) {
+        ext.push(m.mean, m.mean);
+      } else {
+        ext.push(m.mean - m.sd, m.mean + m.sd);
+      }
+    });
+    if (ext.length === 0) return { min: 0, max: 1 };
+    let min = Math.min(...ext);
+    let max = Math.max(...ext);
+    const pad = (max - min) * 0.1 || Math.abs(max) * 0.1 || 1;
+    return { min: min - pad, max: max + pad };
+  }, [meanStd]);
+
+  // 柱形图几何
+  const BW = 760;
+  const BH = 400;
+  const BM = { left: 52, right: 18, top: 18, bottom: 56 };
+  const bPlotW = BW - BM.left - BM.right;
+  const bPlotH = BH - BM.top - BM.bottom;
+  const bSlot = bPlotW / GROUP_NAMES.length;
+  const barW = Math.min(bSlot * 0.5, 38);
+  const bYOf = (v: number) =>
+    BM.top + (1 - (v - barDomain.min) / (barDomain.max - barDomain.min)) * bPlotH;
+  const bYTicks = Array.from(
+    { length: 5 },
+    (_, i) => barDomain.min + ((barDomain.max - barDomain.min) * i) / 4
+  );
+  const barHasAny = meanStd.some((m) => m !== null);
 
   // 图表几何
   const W = 760;
@@ -374,6 +454,131 @@ export default function BoxPlotPage() {
             {!hasAny && (
               <text x={W / 2} y={H / 2} textAnchor="middle" fontSize={13} fill="#9AA1A8">
                 在上方输入数字，图表将实时生成
+              </text>
+            )}
+          </svg>
+        </div>
+      </div>
+
+      {/* 各组 均值 ± 标准差 文本区（可一键复制） */}
+      <div className="mt-6 rounded-2xl border border-line bg-card p-4 shadow-card">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-sm font-medium text-primary">各组 均值 ± 标准差</p>
+          <button
+            type="button"
+            onClick={copyMeanStd}
+            disabled={!meanStd.some((m) => m && m.sd !== null)}
+            className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs text-ink-soft transition duration-200 hover:border-primary/40 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line disabled:hover:text-ink-soft"
+          >
+            <Copy className="h-3.5 w-3.5" />
+            {copiedText ? "已复制 ✓" : "复制全部"}
+          </button>
+        </div>
+        <pre className="overflow-x-auto whitespace-pre rounded-lg bg-surface p-3 text-[12px] leading-relaxed text-ink tabular">
+{meanStdText}
+        </pre>
+        <p className="mt-1.5 text-[11px] text-ink-faint">
+          共 {GROUP_NAMES.length} 组：n≥2 输出「均值 ± 标准差」(保留 2 位小数)，n=1 提示「样本不足」，空组标记 — 。点击「复制全部」可粘贴到 GraphPad / 文档。
+        </p>
+      </div>
+
+      {/* 均值 ± 标准差 柱形误差棒图（独立图表） */}
+      <div className="mt-6 rounded-2xl border border-line bg-card p-4 shadow-card">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-sm font-medium text-primary">均值 ± 标准差 · 柱形误差棒图</p>
+          <div className="flex items-center gap-4 text-[11px] text-ink-soft">
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-block h-3 w-3 rounded-sm bg-primary/70" /> 均值
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-block h-0.5 w-4 bg-gold" /> 标准差
+            </span>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <svg viewBox={`0 0 ${BW} ${BH}`} className="w-full min-w-[640px]" role="img" aria-label="均值标准差柱形图">
+            {/* Y 轴网格刻度 */}
+            {bYTicks.map((t, i) => {
+              const y = bYOf(t);
+              return (
+                <g key={`byt${i}`}>
+                  <line x1={BM.left} y1={y} x2={BW - BM.right} y2={y} stroke="#E2E5EC" strokeWidth={1} />
+                  <text x={BM.left - 8} y={y + 3} textAnchor="end" fontSize={10} fill="#9AA1A8">
+                    {Number.isInteger(t) ? t : t.toFixed(2)}
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* 坐标轴 */}
+            <line x1={BM.left} y1={BM.top} x2={BM.left} y2={BM.top + bPlotH} stroke="#9AA1A8" strokeWidth={1} />
+            <line x1={BM.left} y1={BM.top + bPlotH} x2={BW - BM.right} y2={BM.top + bPlotH} stroke="#9AA1A8" strokeWidth={1} />
+
+            {/* 每个分组柱子 + 误差棒 */}
+            {GROUP_NAMES.map((name, g) => {
+              const cx = BM.left + (g + 0.5) * bSlot;
+              const m = meanStd[g];
+              return (
+                <g key={name}>
+                  {/* X 轴刻度 */}
+                  <line x1={cx} y1={BM.top + bPlotH} x2={cx} y2={BM.top + bPlotH + 4} stroke="#9AA1A8" strokeWidth={1} />
+                  {/* 组名 */}
+                  <text x={cx} y={BM.top + bPlotH + 20} textAnchor="middle" fontSize={10} fill="#666666">
+                    {name}
+                  </text>
+
+                  {m && (
+                    <>
+                      {/* 柱子（均值） */}
+                      <rect
+                        x={cx - barW / 2}
+                        y={bYOf(m.mean)}
+                        width={barW}
+                        height={Math.max(1, BM.top + bPlotH - bYOf(m.mean))}
+                        fill="#1A3F90"
+                        fillOpacity={0.2}
+                        stroke="#1A3F90"
+                        strokeWidth={1.5}
+                      />
+                      {/* 误差棒（均值 ± 标准差） */}
+                      {m.sd !== null && (
+                        <>
+                          <line
+                            x1={cx}
+                            y1={bYOf(m.mean + m.sd)}
+                            x2={cx}
+                            y2={bYOf(m.mean - m.sd)}
+                            stroke="#E6C260"
+                            strokeWidth={2}
+                          />
+                          <line
+                            x1={cx - barW / 3}
+                            y1={bYOf(m.mean + m.sd)}
+                            x2={cx + barW / 3}
+                            y2={bYOf(m.mean + m.sd)}
+                            stroke="#E6C260"
+                            strokeWidth={2}
+                          />
+                          <line
+                            x1={cx - barW / 3}
+                            y1={bYOf(m.mean - m.sd)}
+                            x2={cx + barW / 3}
+                            y2={bYOf(m.mean - m.sd)}
+                            stroke="#E6C260"
+                            strokeWidth={2}
+                          />
+                        </>
+                      )}
+                    </>
+                  )}
+                </g>
+              );
+            })}
+
+            {!barHasAny && (
+              <text x={BW / 2} y={BH / 2} textAnchor="middle" fontSize={13} fill="#9AA1A8">
+                在上方输入数字，柱形图将实时生成
               </text>
             )}
           </svg>
