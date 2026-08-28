@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ClipboardEvent } from "react";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Copy } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 
 const GROUP_NAMES = [
@@ -63,6 +63,35 @@ export default function BoxPlotPage() {
   const [data, setData] = useState<string[][]>(() =>
     GROUP_NAMES.map(() => Array.from({ length: SLOTS }, () => ""))
   );
+
+  const [copiedCol, setCopiedCol] = useState<number | null>(null);
+
+  // 复制某一列已填写的数字（竖向换行），空框跳过；粘贴逻辑保持原样不动
+  const copyColumn = async (g: number) => {
+    const vals = data[g]
+      .map((s) => s.trim())
+      .filter((s) => s !== "");
+    if (vals.length === 0) return;
+    const text = vals.join("\n");
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      setCopiedCol(g);
+      setTimeout(() => setCopiedCol((c) => (c === g ? null : c)), 1500);
+    } catch {
+      /* 剪贴板不可用时静默忽略 */
+    }
+  };
 
   const setCell = (g: number, i: number, v: string) => {
     setData((prev) => {
@@ -178,6 +207,15 @@ export default function BoxPlotPage() {
             <p className="mt-1.5 text-center text-[10px] text-ink-faint">
               已录入 {parsed[g].length}/{SLOTS}
             </p>
+            <button
+              type="button"
+              onClick={() => copyColumn(g)}
+              disabled={parsed[g].length === 0}
+              className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-md border border-line bg-surface px-2 py-1.5 text-[11px] text-ink-soft transition duration-200 hover:border-primary/40 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line disabled:hover:text-ink-soft"
+            >
+              <Copy className="h-3 w-3" />
+              {copiedCol === g ? "已复制 ✓" : "复制本组"}
+            </button>
           </div>
         ))}
       </div>
