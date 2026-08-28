@@ -137,7 +137,7 @@ export default function BoxPlotPage() {
   const hasAny = parsed.some((v) => v.length > 0);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 pb-16 pt-6">
+    <div className="mx-auto max-w-[1240px] px-4 pb-16 pt-6">
       <PageHeader
         title="箱型图快速绘图"
         desc="临时实时可视化工具 · 数据不存储、刷新即清空"
@@ -153,12 +153,12 @@ export default function BoxPlotPage() {
         </div>
       </PageHeader>
 
-      {/* 输入区：10 组，每组占一竖列，横向排布，宽度不足自动换行 */}
-      <div className="mt-4 flex flex-wrap gap-3">
+      {/* 输入区：10 组，每组占一竖列、强制单行横向排布；桌面完整可见，窄屏横向滚动 */}
+      <div className="mt-4 flex flex-nowrap gap-3 overflow-x-auto pb-2">
         {GROUP_NAMES.map((name, g) => (
           <div
             key={name}
-            className="flex w-28 flex-col rounded-xl border border-line bg-card p-3 shadow-card"
+            className="flex w-24 shrink-0 flex-col rounded-xl border border-line bg-card p-3 shadow-card"
           >
             <p className="mb-2 text-center text-xs font-medium text-primary">{name}</p>
             <div className="flex flex-col gap-1.5">
