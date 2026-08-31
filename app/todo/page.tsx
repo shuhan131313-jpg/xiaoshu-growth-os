@@ -29,6 +29,11 @@ function sanitizeInput(s: string): string {
     .join("");
 }
 
+/** 取待办文本的安全字符串，异常数据也不会导致渲染崩溃 */
+function safeText(t: TodoRecord): string {
+  return typeof t.text === "string" ? sanitizeInput(t.text) : "";
+}
+
 export default function TodoPage() {
   const today = useMemo(() => todayKey(), []);
   const [todos, setTodos] = useState<TodoRecord[]>([]);
@@ -36,27 +41,44 @@ export default function TodoPage() {
   const inputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   // 跟踪 IME 组合输入状态：组合进行中不改写受控值，避免拼音乱码混杂
   const composingRef = useRef(false);
-
-  // 跨天迁移：加载时清理「昨日已完成」、保留「昨日未完成」并带到今天
-  async function migrateIfNeeded() {
-    const all = (await repos.todo.all()) as TodoRecord[];
-    const stale = all.filter((t) => t.date !== today);
-    if (stale.length === 0) return;
-    for (const t of stale) {
-      if (t.done) {
-        if (t.id != null) await repos.todo.delete(t.id);
-      } else if (t.id != null) {
-        await repos.todo.update(t.id, { date: today });
-      }
-    }
-  }
+  // 顶部常驻新增输入框的状态（与待办行解耦，永远不会因某一行异常而消失）
+  const [newText, setNewText] = useState("");
+  const composingAddRef = useRef(false);
 
   async function load() {
-    await migrateIfNeeded();
-    const rows = ((await repos.todo.whereDate(today)) as TodoRecord[]).sort(
-      (a, b) => a.order - b.order
-    );
-    setTodos(rows);
+    try {
+      const all = (await repos.todo.all()) as TodoRecord[];
+      // 跨天迁移：加载时清理「昨日已完成」、保留「昨日未完成」并带到今天
+      const stale = all.filter((t) => t.date !== today);
+      if (stale.length > 0) {
+        for (const t of stale) {
+          if (t.done) {
+            if (t.id != null) await repos.todo.delete(t.id);
+          } else if (t.id != null) {
+            await repos.todo.update(t.id, { date: today });
+          }
+        }
+      }
+      const rows = (await repos.todo.whereDate(today)) as TodoRecord[];
+      // 容错：清洗残留异常字符，避免坏数据导致渲染崩溃
+      const cleaned: TodoRecord[] = rows.map((t) => ({
+        ...t,
+        text: typeof t.text === "string" ? sanitizeInput(t.text) : "",
+      }));
+      // 若清洗后内容与原文不同，回写 DB 保持整洁
+      await Promise.all(
+        cleaned
+          .filter((t, i) => t.text !== (typeof rows[i].text === "string" ? rows[i].text : ""))
+          .map((t) =>
+            t.id != null ? repos.todo.update(t.id, { text: t.text }) : Promise.resolve()
+          )
+      );
+      cleaned.sort((a, b) => a.order - b.order);
+      setTodos(cleaned);
+    } catch (err) {
+      // 任何异常都不要阻断页面渲染，至少保留原有列表
+      console.error("待办加载失败（已容错）", err);
+    }
   }
 
   useEffect(() => {
@@ -73,19 +95,24 @@ export default function TodoPage() {
     [todos]
   );
 
-  async function addTodo() {
+  async function commitAdd() {
+    const text = sanitizeInput(newText).trim();
+    setNewText(""); // 始终清空输入，保持输入框稳定存在
+    if (!text) return; // 空内容不创建空白行，避免残留
     const maxOrder = todos.reduce((mx, t) => Math.max(mx, t.order), -1);
     const rec: TodoRecord = {
       date: today,
-      text: "",
+      text,
       done: false,
       order: maxOrder + 1,
       createdAt: Date.now(),
     };
-    const id = (await repos.todo.add(rec)) as number;
-    const created = { ...rec, id };
-    setTodos((prev) => [...prev, created]);
-    requestAnimationFrame(() => inputRefs.current[id]?.focus());
+    try {
+      const id = (await repos.todo.add(rec)) as number;
+      setTodos((prev) => [...prev, { ...rec, id }]);
+    } catch (err) {
+      console.error("待办添加失败（已容错）", err);
+    }
   }
 
   async function toggleDone(t: TodoRecord) {
@@ -133,9 +160,37 @@ export default function TodoPage() {
 
       <Card>
         <CardContent>
-          {/* 顶部加号按钮 */}
-          <div className="mb-4">
-            <Button variant="soft" size="sm" onClick={addTodo} className="gap-1">
+          {/* 顶部常驻新增输入：始终存在，不会因某一行异常而消失 */}
+          <div className="mb-4 flex gap-2">
+            <Input
+              value={newText}
+              onChange={(e) => {
+                // 组合输入进行中交给浏览器处理，避免拼音乱码混杂
+                if (composingAddRef.current) return;
+                setNewText(sanitizeInput(e.target.value));
+              }}
+              onCompositionStart={() => {
+                composingAddRef.current = true;
+              }}
+              onCompositionEnd={(e) => {
+                composingAddRef.current = false;
+                setNewText(sanitizeInput(e.currentTarget.value));
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  commitAdd();
+                }
+              }}
+              placeholder="要做的事…（回车添加）"
+              className="h-9"
+            />
+            <Button
+              variant="soft"
+              size="sm"
+              onClick={commitAdd}
+              className="shrink-0 gap-1"
+            >
               <Plus className="h-4 w-4" /> 新增待办
             </Button>
           </div>
@@ -193,7 +248,7 @@ export default function TodoPage() {
                     ref={(el) => {
                       if (t.id != null) inputRefs.current[t.id] = el;
                     }}
-                    value={t.text}
+                    value={safeText(t)}
                     onChange={(e) => {
                       // 组合输入进行中交给浏览器处理，不在中途改写受控值，避免乱码
                       if (composingRef.current) return;
