@@ -31,7 +31,7 @@ function sanitizeInput(s: string): string {
 
 /** 取待办文本的安全字符串，异常数据也不会导致渲染崩溃 */
 function safeText(t: TodoRecord): string {
-  return typeof t.text === "string" ? sanitizeInput(t.text) : "";
+  return typeof t.text === "string" ? t.text : "";
 }
 
 export default function TodoPage() {
@@ -43,7 +43,6 @@ export default function TodoPage() {
   const composingRef = useRef(false);
   // 顶部常驻新增输入框的状态（与待办行解耦，永远不会因某一行异常而消失）
   const [newText, setNewText] = useState("");
-  const composingAddRef = useRef(false);
 
   async function load() {
     try {
@@ -122,10 +121,21 @@ export default function TodoPage() {
     setTodos((prev) => prev.map((x) => (x.id === t.id ? { ...x, done: next } : x)));
   }
 
-  async function editText(t: TodoRecord, text: string) {
+  async function editText(
+    t: TodoRecord,
+    text: string,
+    commit = !composingRef.current
+  ) {
     if (t.id == null) return;
-    await repos.todo.update(t.id, { text });
+    // 始终更新显示，保证 IME 中文组合输入不被打断
     setTodos((prev) => prev.map((x) => (x.id === t.id ? { ...x, text } : x)));
+    if (!commit) return; // 组合输入中：只更新显示，不写库（避免拼音乱码入库）
+    const clean = sanitizeInput(text);
+    try {
+      await repos.todo.update(t.id, { text: clean });
+    } catch (err) {
+      console.error("待办更新失败（已容错）", err);
+    }
   }
 
   // 空内容待办（未输入即失焦）自动移除，避免残留空行
@@ -164,18 +174,7 @@ export default function TodoPage() {
           <div className="mb-4 flex gap-2">
             <Input
               value={newText}
-              onChange={(e) => {
-                // 组合输入进行中交给浏览器处理，避免拼音乱码混杂
-                if (composingAddRef.current) return;
-                setNewText(sanitizeInput(e.target.value));
-              }}
-              onCompositionStart={() => {
-                composingAddRef.current = true;
-              }}
-              onCompositionEnd={(e) => {
-                composingAddRef.current = false;
-                setNewText(sanitizeInput(e.currentTarget.value));
-              }}
+              onChange={(e) => setNewText(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -249,17 +248,13 @@ export default function TodoPage() {
                       if (t.id != null) inputRefs.current[t.id] = el;
                     }}
                     value={safeText(t)}
-                    onChange={(e) => {
-                      // 组合输入进行中交给浏览器处理，不在中途改写受控值，避免乱码
-                      if (composingRef.current) return;
-                      editText(t, sanitizeInput(e.target.value));
-                    }}
+                    onChange={(e) => editText(t, e.target.value)}
                     onCompositionStart={() => {
                       composingRef.current = true;
                     }}
                     onCompositionEnd={(e) => {
                       composingRef.current = false;
-                      editText(t, sanitizeInput(e.currentTarget.value));
+                      editText(t, e.currentTarget.value);
                     }}
                     onBlur={() => removeIfEmpty(t)}
                     placeholder="要做的事…"
