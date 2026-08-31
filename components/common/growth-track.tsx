@@ -42,20 +42,29 @@ export function GrowthTrack({ step }: { step: number }) {
           出发
         </text>
 
-        {/* 浙大校门（简笔画） */}
-        <g stroke="#1A3F90" strokeWidth={3} fill="none" strokeLinejoin="round">
-          {/* 门柱 */}
-          <rect x={888} y={70} width={12} height={80} rx={2} />
-          <rect x={950} y={70} width={12} height={80} rx={2} />
+        {/* 浙大校门（简笔画，纯净线条风） */}
+        <g
+          stroke="#1A3F90"
+          strokeWidth={2.5}
+          fill="none"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        >
+          {/* 两侧门柱 */}
+          <rect x={888} y={72} width={13} height={78} rx={2} />
+          <rect x={959} y={72} width={13} height={78} rx={2} />
           {/* 门楣 */}
-          <rect x={876} y={58} width={96} height={16} rx={3} />
-          {/* 屋顶坡面 */}
-          <path d="M866,58 L934,30 L1002,58" />
+          <rect x={880} y={62} width={99} height={14} rx={3} />
+          {/* 屋顶坡面（对称三角） */}
+          <path d="M872,62 L934,40 L996,62" />
+          {/* 中缝细线，体现校门开口 */}
+          <path d="M934,150 L934,76" strokeWidth={1.5} />
         </g>
+        {/* 校名置于校门图形下方，不压门框 */}
         <text
-          x={894}
-          y={112}
-          fontSize={15}
+          x={934}
+          y={172}
+          fontSize={13}
           fontWeight={700}
           fill="#1A3F90"
           textAnchor="middle"

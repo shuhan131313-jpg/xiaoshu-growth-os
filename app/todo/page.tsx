@@ -10,11 +10,32 @@ import { repos } from "@/lib/db/repo";
 import type { TodoRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
 
+/**
+ * 过滤异常字符：屏蔽 IME 残留控制符、私有区、孤立代理、替换符(乱码标志)等，
+ * 仅保留正常可见文本与汉字，避免输入框出现拼音乱码混杂。
+ */
+function sanitizeInput(s: string): string {
+  return Array.from(s)
+    .filter((ch) => {
+      const code = ch.codePointAt(0) ?? 0;
+      if (code < 0x20) return false; // C0 控制符
+      if (code === 0x7f) return false; // DEL
+      if (code >= 0x80 && code < 0xa0) return false; // C1 控制符
+      if (code >= 0xe000 && code <= 0xf8ff) return false; // 私有使用区
+      if (code >= 0xd800 && code <= 0xdfff) return false; // 孤立代理
+      if (code === 0xfffd) return false; // 替换符（乱码标志）
+      return true;
+    })
+    .join("");
+}
+
 export default function TodoPage() {
   const today = useMemo(() => todayKey(), []);
   const [todos, setTodos] = useState<TodoRecord[]>([]);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const inputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  // 跟踪 IME 组合输入状态：组合进行中不改写受控值，避免拼音乱码混杂
+  const composingRef = useRef(false);
 
   // 跨天迁移：加载时清理「昨日已完成」、保留「昨日未完成」并带到今天
   async function migrateIfNeeded() {
@@ -173,7 +194,18 @@ export default function TodoPage() {
                       if (t.id != null) inputRefs.current[t.id] = el;
                     }}
                     value={t.text}
-                    onChange={(e) => editText(t, e.target.value)}
+                    onChange={(e) => {
+                      // 组合输入进行中交给浏览器处理，不在中途改写受控值，避免乱码
+                      if (composingRef.current) return;
+                      editText(t, sanitizeInput(e.target.value));
+                    }}
+                    onCompositionStart={() => {
+                      composingRef.current = true;
+                    }}
+                    onCompositionEnd={(e) => {
+                      composingRef.current = false;
+                      editText(t, sanitizeInput(e.currentTarget.value));
+                    }}
                     onBlur={() => removeIfEmpty(t)}
                     placeholder="要做的事…"
                     className={
