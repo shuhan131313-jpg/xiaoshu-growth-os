@@ -54,14 +54,6 @@ function shiftYearMonth(ym: string, delta: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-/** 月份下拉文案：2026-09 → 2026 年 9 月（本月） */
-function monthLabel(ym: string, cur: string, prev: string): string {
-  const [y, m] = ym.split("-").map(Number);
-  const base = `${y} 年 ${m} 月`;
-  if (ym === cur) return `${base}（本月）`;
-  if (ym === prev) return `${base}（上月）`;
-  return base;
-}
 
 /**
  * 顶部「土地 + 可左右移动树苗」可视化：
@@ -134,8 +126,10 @@ export default function AccountPage() {
 
   // 全部记账记录（最新在前，含所有月份，按月派生展示与汇总）
   const [allRecords, setAllRecords] = useState<AccountRecord[]>([]);
-  // 当前查看的月份（YYYY-MM），默认本月
+  // 当前查看的月份（YYYY-MM），默认本月；由底部月份卡片点击切换
   const [viewMonth, setViewMonth] = useState(curMonth);
+  // 底部汇总的游标月份：展示「游标月 + 它的上个月」，可用箭头翻更早月份
+  const [cursorMonth, setCursorMonth] = useState(curMonth);
 
   // 日历标记
   const [dayMap, setDayMap] = useState<
@@ -170,17 +164,7 @@ export default function AccountPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year, month]);
 
-  // 本月 / 上月汇总（自然月自动划分；跨月后本月统计自然从零重新累计）
-  const curTotals = useMemo(
-    () => sumRows(allRecords.filter((r) => monthOf(r) === curMonth)),
-    [allRecords, curMonth]
-  );
-  const prevTotals = useMemo(
-    () => sumRows(allRecords.filter((r) => monthOf(r) === prevMonth)),
-    [allRecords, prevMonth]
-  );
-
-  // 下拉可选月份：有记录的月份 + 本月（新月份即使暂无记录也可选中）
+  // 可选月份：有记录的月份 + 本月（用于翻页边界）
   const availableMonths = useMemo(() => {
     const set = new Set<string>();
     allRecords.forEach((r) => {
@@ -201,6 +185,35 @@ export default function AccountPage() {
     [allRecords, viewMonth]
   );
 
+  /* ---- 底部月度汇总：游标月 + 它的上个月 ---- */
+  const cursorPrev = useMemo(
+    () => shiftYearMonth(cursorMonth, -1),
+    [cursorMonth]
+  );
+  const cursorTotals = useMemo(
+    () => sumRows(allRecords.filter((r) => monthOf(r) === cursorMonth)),
+    [allRecords, cursorMonth]
+  );
+  const cursorPrevTotals = useMemo(
+    () => sumRows(allRecords.filter((r) => monthOf(r) === cursorPrev)),
+    [allRecords, cursorPrev]
+  );
+
+  // 最早有记账记录的月份，用于限制向前翻页的边界
+  const oldestMonth = useMemo(
+    () => (availableMonths.length ? availableMonths[availableMonths.length - 1] : curMonth),
+    [availableMonths, curMonth]
+  );
+  const canGoNext = cursorMonth < curMonth;
+  const canGoPrev = shiftYearMonth(cursorMonth, -1) >= oldestMonth;
+
+  function shiftCursor(delta: number) {
+    const next = shiftYearMonth(cursorMonth, delta);
+    if (next > curMonth) return; // 不越过本月
+    if (next < oldestMonth && shiftYearMonth(next, -1) < oldestMonth) return; // 不早于有记录的月份
+    setCursorMonth(next);
+  }
+
   async function addRecord(type: "expense" | "income", text: string) {
     const amount = extractAmount(text);
     if (amount <= 0) return; // 无有效数字则忽略
@@ -215,6 +228,7 @@ export default function AccountPage() {
     else setIncomeText("");
     // 新记录记在当天，把查看月份切回本月，避免记完看不到
     setViewMonth(curMonth);
+    setCursorMonth(curMonth);
     await Promise.all([reload(), reloadRecords()]);
   }
 
@@ -258,6 +272,56 @@ export default function AccountPage() {
   const expensePreview = extractAmount(expenseText);
   const incomePreview = extractAmount(incomeText);
 
+  /** 底部可点击的月份卡片：点击即切换下方列表查看该月条目 */
+  const monthBlock = (
+    m: string,
+    label: string,
+    t: { income: number; expense: number; balance: number }
+  ) => {
+    const active = viewMonth === m;
+    return (
+      <button
+        key={m}
+        type="button"
+        onClick={() => setViewMonth(m)}
+        aria-pressed={active}
+        className={`mt-2 w-full rounded-2xl px-3 py-3 text-left transition duration-200 ${
+          active
+            ? "border border-primary/50 bg-primary/10"
+            : "border border-line bg-line/30 hover:border-primary/30"
+        }`}
+      >
+        <p className="flex items-center justify-between text-xs font-medium text-ink-soft">
+          <span>{label}</span>
+          {active && (
+            <span className="text-[11px] font-normal text-primary">正在查看</span>
+          )}
+        </p>
+        <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+          <div>
+            <p className="text-[11px] text-ink-faint">总收入</p>
+            <p className="tabular text-sm font-semibold text-[#C2554F]">+{t.income}</p>
+          </div>
+          <div>
+            <p className="text-[11px] text-ink-faint">总支出</p>
+            <p className="tabular text-sm font-semibold text-[#5E8C6A]">-{t.expense}</p>
+          </div>
+          <div>
+            <p className="text-[11px] text-ink-faint">结余</p>
+            <p
+              className={`tabular text-sm font-semibold ${
+                t.balance >= 0 ? "text-accent-dark" : "text-ink"
+              }`}
+            >
+              {t.balance >= 0 ? "+" : ""}
+              {t.balance}
+            </p>
+          </div>
+        </div>
+      </button>
+    );
+  };
+
   return (
     <div className="space-y-5">
       <PageHeader title="记账" desc="记下每一笔进出，看小树慢慢长大" />
@@ -283,25 +347,6 @@ export default function AccountPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* 月份切换：选择查看哪个月的记账条目（历史月份完整保留，不会自动删除） */}
-      <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-card px-4 py-3 shadow-card">
-        <div className="flex min-w-0 items-center gap-1.5 text-sm font-medium text-primary">
-          <CalendarDays className="h-4 w-4 shrink-0" />
-          查看月份
-        </div>
-        <select
-          value={viewMonth}
-          onChange={(e) => setViewMonth(e.target.value)}
-          className="rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-ink outline-none transition duration-200 focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
-        >
-          {availableMonths.map((m) => (
-            <option key={m} value={m}>
-              {monthLabel(m, curMonth, prevMonth)}
-            </option>
-          ))}
-        </select>
-      </div>
 
       {/* 支出大框 */}
       <Card>
@@ -513,75 +558,48 @@ export default function AccountPage() {
         </CardContent>
       </Card>
 
-      {/* 月度汇总（记账板块底部）：本月汇总 + 上个月汇总，按自然月独立统计 */}
+      {/* 月度汇总（记账板块底部）：点按月份卡片即可切换查看该月条目 */}
       <Card>
         <CardContent>
-          <div className="mb-1 flex items-center gap-1.5 text-sm font-medium text-primary">
-            <CalendarDays className="h-4 w-4" /> 月度汇总
+          <div className="mb-1 flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-sm font-medium text-primary">
+              <CalendarDays className="h-4 w-4" /> 月度汇总
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => shiftCursor(-1)}
+                disabled={!canGoPrev}
+                aria-label="更早一个月"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-ink-soft transition duration-200 hover:bg-line/50 disabled:cursor-not-allowed disabled:opacity-25 disabled:hover:bg-transparent"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => shiftCursor(1)}
+                disabled={!canGoNext}
+                aria-label="更晚一个月"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-ink-soft transition duration-200 hover:bg-line/50 disabled:cursor-not-allowed disabled:opacity-25 disabled:hover:bg-transparent"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-          <p className="mb-3 text-[13px] text-ink-faint">
-            按自然月独立统计；跨入新月份后本月统计重新累计，历史月份记录完整保留可查。
+          <p className="mb-2 text-[13px] text-ink-faint">
+            点按下方月份卡片，即可切换列表查看该月条目；跨入新月份后本月统计重新累计，历史月份完整保留。
           </p>
 
-          {/* 本月 */}
-          <div className="rounded-2xl bg-line/30 px-3 py-3">
-            <p className="text-xs font-medium text-ink-soft">本月 · {curMonth}</p>
-            <div className="mt-2 grid grid-cols-3 gap-2 text-center">
-              <div>
-                <p className="text-[11px] text-ink-faint">总收入</p>
-                <p className="tabular text-sm font-semibold text-[#C2554F]">
-                  +{curTotals.income}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] text-ink-faint">总支出</p>
-                <p className="tabular text-sm font-semibold text-[#5E8C6A]">
-                  -{curTotals.expense}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] text-ink-faint">结余</p>
-                <p
-                  className={`tabular text-sm font-semibold ${
-                    curTotals.balance >= 0 ? "text-accent-dark" : "text-ink"
-                  }`}
-                >
-                  {curTotals.balance >= 0 ? "+" : ""}
-                  {curTotals.balance}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 上个月 */}
-          <div className="mt-2 rounded-2xl border border-line px-3 py-3">
-            <p className="text-xs font-medium text-ink-soft">上个月 · {prevMonth}</p>
-            <div className="mt-2 grid grid-cols-3 gap-2 text-center">
-              <div>
-                <p className="text-[11px] text-ink-faint">总收入</p>
-                <p className="tabular text-sm font-semibold text-[#C2554F]">
-                  +{prevTotals.income}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] text-ink-faint">总支出</p>
-                <p className="tabular text-sm font-semibold text-[#5E8C6A]">
-                  -{prevTotals.expense}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] text-ink-faint">结余</p>
-                <p
-                  className={`tabular text-sm font-semibold ${
-                    prevTotals.balance >= 0 ? "text-accent-dark" : "text-ink"
-                  }`}
-                >
-                  {prevTotals.balance >= 0 ? "+" : ""}
-                  {prevTotals.balance}
-                </p>
-              </div>
-            </div>
-          </div>
+          {monthBlock(
+            cursorMonth,
+            cursorMonth === curMonth ? `本月 · ${cursorMonth}` : cursorMonth,
+            cursorTotals
+          )}
+          {monthBlock(
+            cursorPrev,
+            cursorPrev === prevMonth ? `上个月 · ${cursorPrev}` : cursorPrev,
+            cursorPrevTotals
+          )}
         </CardContent>
       </Card>
 
