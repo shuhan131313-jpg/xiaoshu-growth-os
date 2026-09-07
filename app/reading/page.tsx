@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { BookOpen, RefreshCw, Sparkles, Trash2, Bookmark } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,12 +19,6 @@ export default function ReadingPage() {
   const [sparkText, setSparkText] = useState("");
   const [sparks, setSparks] = useState<SparkRecord[]>([]);
   const [favs, setFavs] = useState<FavoriteRecord[]>([]);
-
-  const curMonth = useMemo(() => today.slice(0, 7), [today]);
-  const monthSparks = useMemo(
-    () => sparks.filter((s) => s.date.startsWith(curMonth)),
-    [sparks, curMonth]
-  );
 
   const bookKey = `book:${book.book}`;
   const bookFav = favs.some((f) => f.type === "book" && f.key === bookKey);
@@ -115,13 +109,13 @@ export default function ReadingPage() {
             记下来
           </Button>
 
-          {monthSparks.length > 0 && (
+          {sparks.length > 0 && (
             <FoldList
               className="mt-4"
-              items={monthSparks}
+              items={sparks}
               title={
                 <p className="text-xs font-medium text-primary">
-                  我的灵感（{monthSparks.length}）
+                  我的灵感（{sparks.length}）
                 </p>
               }
               renderItem={(s) => (

@@ -128,21 +128,6 @@ export default function ExercisePage() {
   const [detailWeight, setDetailWeight] = useState<number | null>(null);
 
   const calPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
-  // 「本月」= 真实当前月份，用于历史记录折叠展示
-  const curMonth = useMemo(() => todayKey().slice(0, 7), [today]);
-
-  const monthHistory = useMemo(
-    () => history.filter((r) => r.date.startsWith(curMonth)),
-    [history, curMonth]
-  );
-  const monthWeights = useMemo(
-    () => weights.filter((w) => w.date.startsWith(curMonth)),
-    [weights, curMonth]
-  );
-  const monthBowel = useMemo(
-    () => bowelLog.filter((b) => b.date.startsWith(curMonth)),
-    [bowelLog, curMonth]
-  );
 
   async function loadMonth() {
     const [exAll, bwAll] = await Promise.all([
@@ -519,17 +504,17 @@ export default function ExercisePage() {
 
       {/* 运动历史（可编辑 / 删除，统一折叠） */}
       <FoldList
-        items={monthHistory}
+        items={history}
         startCollapsed
         title={
           <p className="text-sm font-medium text-primary">
-            运动历史（{monthHistory.length}）
+            运动历史（{history.length}）
           </p>
         }
         empty={
           <Card>
             <CardContent className="py-10 text-center text-sm text-ink-faint">
-              本月还没有运动记录
+              还没有运动记录
             </CardContent>
           </Card>
         }
@@ -605,11 +590,11 @@ export default function ExercisePage() {
             {weights.length > 0 && (
               <div className="mt-4">
                 <FoldList
-                  items={monthWeights}
+                  items={weights}
                   startCollapsed
                   title={
                     <p className="text-xs font-medium text-primary">
-                      近期记录（{monthWeights.length}）
+                      近期记录（{weights.length}）
                     </p>
                   }
                   renderItem={(w) => (
@@ -690,11 +675,11 @@ export default function ExercisePage() {
             {bowelLog.length > 0 && (
               <div className="mt-4">
                 <FoldList
-                  items={monthBowel}
+                  items={bowelLog}
                   startCollapsed
                   title={
                     <p className="text-xs font-medium text-primary">
-                      打卡日志（{monthBowel.length}）
+                      打卡日志（{bowelLog.length}）
                     </p>
                   }
                   renderItem={(b) => (

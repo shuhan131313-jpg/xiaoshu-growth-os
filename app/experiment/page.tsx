@@ -22,12 +22,6 @@ export default function ExperimentPage() {
   const [query, setQuery] = useState("");
   const [saved, setSaved] = useState(false);
 
-  const curMonth = useMemo(() => today.slice(0, 7), [today]);
-  const monthHistory = useMemo(
-    () => history.filter((h) => h.date.startsWith(curMonth)),
-    [history, curMonth]
-  );
-
   async function refresh() {
     const all = await repos.experiment.all();
     setHistory(all.sort((a, b) => b.createdAt - a.createdAt));
@@ -38,15 +32,16 @@ export default function ExperimentPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 全部历史（跨月完整保留），搜索也覆盖所有月份
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return monthHistory;
-    return monthHistory.filter((h) =>
+    if (!q) return history;
+    return history.filter((h) =>
       [h.name, h.type, h.steps, h.result, h.improvement, h.note]
         .filter(Boolean)
         .some((f) => String(f).toLowerCase().includes(q))
     );
-  }, [monthHistory, query]);
+  }, [history, query]);
 
   async function save() {
     if (!note.trim()) return;
@@ -121,7 +116,7 @@ export default function ExperimentPage() {
         empty={
           <Card>
             <CardContent className="py-10 text-center text-sm text-ink-faint">
-              {monthHistory.length === 0 ? "还没有实验记录" : "没有匹配的结果"}
+              {history.length === 0 ? "还没有实验记录" : "没有匹配的结果"}
             </CardContent>
           </Card>
         }

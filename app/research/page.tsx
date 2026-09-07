@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { FlaskConical, RefreshCw, Check, Bookmark, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,12 +31,6 @@ export default function ResearchPage() {
 
   const [lit, setLit] = useState<LiteratureItem>(LITERATURE_POOL[0]);
   const [favs, setFavs] = useState<FavoriteRecord[]>([]);
-
-  const curMonth = useMemo(() => today.slice(0, 7), [today]);
-  const monthHistory = useMemo(
-    () => history.filter((r) => r.date.startsWith(curMonth)),
-    [history, curMonth]
-  );
 
   const paperKey = `paper:${lit.title}`;
   const paperFav = favs.some((f) => f.type === "paper" && f.key === paperKey);
@@ -207,15 +201,15 @@ export default function ResearchPage() {
         </CardContent>
       </Card>
 
-      {/* 写作记录（统一折叠） */}
-      {monthHistory.length > 0 && (
+      {/* 写作记录（全部历史，跨月完整保留；统一折叠） */}
+      {history.length > 0 && (
         <Card>
           <CardContent>
             <FoldList
-              items={monthHistory}
+              items={history}
               title={
                 <p className="mb-3 text-sm font-medium text-primary">
-                  写作记录（{monthHistory.length}）
+                  写作记录（{history.length}）
                 </p>
               }
               renderItem={(r) => (

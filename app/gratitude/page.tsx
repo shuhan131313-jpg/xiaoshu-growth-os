@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Heart, Check, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,12 +16,6 @@ export default function GratitudePage() {
   const [content, setContent] = useState("");
   const [history, setHistory] = useState<GratitudeRecord[]>([]);
   const [saved, setSaved] = useState(false);
-
-  const curMonth = useMemo(() => today.slice(0, 7), [today]);
-  const monthHistory = useMemo(
-    () => history.filter((h) => h.date.startsWith(curMonth)),
-    [history, curMonth]
-  );
 
   async function refresh() {
     const all = await repos.gratitude.all();
@@ -82,10 +76,10 @@ export default function GratitudePage() {
 
       <div>
         <FoldList
-          items={monthHistory}
+          items={history}
           title={
             <p className="mb-3 px-1 text-sm font-medium text-primary">
-              历史日记（{monthHistory.length}）
+              历史日记（{history.length}）
             </p>
           }
           empty={
