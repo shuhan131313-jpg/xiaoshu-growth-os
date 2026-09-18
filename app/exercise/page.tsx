@@ -108,6 +108,7 @@ export default function ExercisePage() {
   const [sheetDate, setSheetDate] = useState<string | null>(null);
   const [editing, setEditing] = useState<ExerciseRecord | null>(null);
   const [project, setProject] = useState("");
+  const [checkInProject, setCheckInProject] = useState("");
   const [duration, setDuration] = useState("");
   const [note, setNote] = useState("");
 
@@ -290,16 +291,16 @@ export default function ExercisePage() {
   }
 
   async function saveExercise() {
-    if (!project.trim() || !duration) return;
+    if (!checkInProject || !duration) return;
     await repos.exercise.add({
       date: todayKey(),
-      project: project.trim(),
+      project: checkInProject,
       duration: Number(duration) || 0,
       createdAt: Date.now(),
     });
     await setTodayTask(todayKey(), "exercise", true);
     await bumpGrowthStep();
-    setProject("");
+    setCheckInProject("");
     setDuration("");
     loadMonth();
     loadAll();
@@ -352,9 +353,9 @@ export default function ExercisePage() {
       <PageHeader title="运动" desc="记录每一次流汗，看见坚持的形状" />
 
       {/* 月历 */}
-      <Card>
+      <Card className="p-4">
         <CardContent>
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-2 flex items-center justify-between">
             <button
               onClick={() => shiftMonth(-1)}
               className="flex h-8 w-8 items-center justify-center rounded-full text-ink-soft hover:bg-line/50"
@@ -378,7 +379,7 @@ export default function ExercisePage() {
               </div>
             ))}
           </div>
-          <div className="mt-1 grid grid-cols-7 gap-1">
+          <div className="mt-1 grid grid-cols-7 gap-x-1 gap-y-0.5">
             {cells.map((d, i) => {
               if (d == null) return <div key={`e${i}`} />;
               const date = `${calPrefix}-${String(d).padStart(2, "0")}`;
@@ -391,7 +392,7 @@ export default function ExercisePage() {
                 <button
                   key={date}
                   onClick={() => openDetail(date)}
-                  className={`relative flex min-h-[60px] min-w-0 flex-col items-center justify-center rounded-xl text-sm transition duration-200 ${
+                  className={`relative flex min-h-[48px] min-w-0 flex-col items-center justify-center rounded-xl text-xs transition duration-200 ${
                     isActive
                       ? "bg-accent/20 font-semibold text-accent-dark"
                       : isToday
@@ -470,25 +471,37 @@ export default function ExercisePage() {
           <p className="mb-3 text-[13px] text-ink-faint">
             记录今天的项目与时长，自动留存历史
           </p>
-          <Label>运动项目</Label>
-          <Input
-            value={project}
-            onChange={(e) => setProject(e.target.value)}
-            placeholder="如：慢跑 / 瑜伽 / 力量训练"
-          />
-          <Label className="mt-3 block">时长（分钟）</Label>
-          <Input
-            type="number"
-            inputMode="numeric"
-            value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-            placeholder="30"
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="min-w-0">
+              <Label htmlFor="exercise-project">运动项目</Label>
+              <select
+                id="exercise-project"
+                value={checkInProject}
+                onChange={(e) => setCheckInProject(e.target.value)}
+                className="h-11 w-full rounded-2xl border border-line bg-surface px-3 text-sm text-ink focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                <option value="" disabled>请选择</option>
+                <option value="爬坡">爬坡</option>
+                <option value="塑性">塑性</option>
+              </select>
+            </div>
+            <div className="min-w-0">
+              <Label htmlFor="exercise-duration">时长（分钟）</Label>
+              <Input
+                id="exercise-duration"
+                type="number"
+                inputMode="numeric"
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                placeholder="30"
+              />
+            </div>
+          </div>
           <Button
             variant="accent"
             className="mt-3 w-full"
             onClick={saveExercise}
-            disabled={!project.trim() || !duration}
+            disabled={!checkInProject || !duration}
           >
             <Dumbbell className="h-4 w-4" /> 保存今日运动
           </Button>
