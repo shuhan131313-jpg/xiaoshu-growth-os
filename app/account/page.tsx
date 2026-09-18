@@ -377,6 +377,8 @@ export default function AccountPage() {
 
           <FoldList
             className="mt-4"
+            startCollapsed
+            startCollapsedShowAll
             items={viewExpense}
             title={
               <p className="mb-3 px-1 text-sm font-medium text-primary">
@@ -449,6 +451,8 @@ export default function AccountPage() {
 
           <FoldList
             className="mt-4"
+            startCollapsed
+            startCollapsedShowAll
             items={viewIncome}
             title={
               <p className="mb-3 px-1 text-sm font-medium text-primary">

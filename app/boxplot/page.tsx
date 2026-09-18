@@ -17,7 +17,7 @@ const GROUP_NAMES = [
   "菌低",
 ] as const;
 
-const SLOTS = 6; // 每组最多 6 个数据
+const SLOTS = 7; // 每组最多 7 个数据
 
 type GroupStats = {
   values: number[];
@@ -57,6 +57,200 @@ function computeStats(values: number[]): GroupStats {
   const whiskerHigh = inliers.length ? inliers[inliers.length - 1] : q3;
   const outliers = sorted.filter((v) => v < lf || v > uf);
   return { values: sorted, q1, q2, q3, iqr, whiskerLow, whiskerHigh, outliers };
+}
+
+// ---------- 显著性字母：单因素 ANOVA + Tukey HSD 事后检验（compact letter display）----------
+type MeanSd = { mean: number; sd: number | null; n: number };
+
+// Lanczos 近似 ln Γ(x)
+const _LG_G = 7;
+const _LG_C = [
+  0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313,
+  -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6,
+  1.5056327351493116e-7,
+];
+function lgamma(z: number): number {
+  if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - lgamma(1 - z);
+  z -= 1;
+  let x = _LG_C[0];
+  for (let i = 1; i < _LG_G + 2; i++) x += _LG_C[i] / (z + i);
+  const t = z + _LG_G + 0.5;
+  return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+}
+
+// 正则化不完全 Beta 函数 I_x(a,b)（Numerical Recipes 连分式）
+function betacf(a: number, b: number, x: number): number {
+  const MAXIT = 200, EPS = 3e-12, FPMIN = 1e-300;
+  const qab = a + b, qap = a + 1, qam = a - 1;
+  let c = 1, d = 1 - (qab * x) / qap;
+  if (Math.abs(d) < FPMIN) d = FPMIN;
+  d = 1 / d;
+  let h = d;
+  for (let m = 1; m <= MAXIT; m++) {
+    const m2 = 2 * m;
+    let aa = (m * (b - m) * x) / ((qam + m2) * (a + m2));
+    d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN;
+    c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN;
+    d = 1 / d; h *= d * c;
+    aa = (-(a + m) * (qab + m) * x) / ((a + m2) * (qap + m2));
+    d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN;
+    c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN;
+    d = 1 / d; const del = d * c; h *= del;
+    if (Math.abs(del - 1) < EPS) break;
+  }
+  return h;
+}
+function betai(a: number, b: number, x: number): number {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  const bt = Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+  if (x < (a + 1) / (a + b + 2)) return (bt * betacf(a, b, x)) / a;
+  return 1 - (bt * betacf(b, a, 1 - x)) / b;
+}
+
+// t 分布 CDF / PDF（ν 自由度）
+function tCdf(t: number, nu: number): number {
+  const x = nu / (nu + t * t);
+  const ib = betai(nu / 2, 0.5, x);
+  return t >= 0 ? 1 - 0.5 * ib : 0.5 * ib;
+}
+function tPdf(t: number, nu: number): number {
+  const c = Math.exp(lgamma((nu + 1) / 2) - lgamma(nu / 2)) / Math.sqrt(nu * Math.PI);
+  return c * Math.pow(1 + (t * t) / nu, -(nu + 1) / 2);
+}
+
+// 学生化极差分布 CDF：F(q;k,ν) = k ∫ f_t(z)[F_t(z+q)-F_t(z)]^{k-1} dz
+type SRGrid = { zs: number[]; fs: number[]; Fs: number[]; dz: number };
+function buildSRGrid(nu: number): SRGrid {
+  const Z = nu <= 3 ? 100 : 60;
+  const n = nu <= 3 ? 4000 : 2400;
+  const dz = (2 * Z) / n;
+  const zs = new Array(n + 1), fs = new Array(n + 1), Fs = new Array(n + 1);
+  for (let i = 0; i <= n; i++) {
+    const z = -Z + i * dz;
+    zs[i] = z;
+    fs[i] = tPdf(z, nu);
+    Fs[i] = tCdf(z, nu);
+  }
+  return { zs, fs, Fs, dz };
+}
+function interpCdf(grid: SRGrid, x: number): number {
+  const { zs, Fs } = grid;
+  if (x <= zs[0]) return 0;
+  if (x >= zs[zs.length - 1]) return 1;
+  const pos = (x - zs[0]) / grid.dz;
+  const i = Math.floor(pos);
+  const frac = pos - i;
+  return Fs[i] + frac * (Fs[i + 1] - Fs[i]);
+}
+function srCdf(q: number, k: number, grid: SRGrid): number {
+  const { zs, fs, Fs, dz } = grid;
+  let sum = 0;
+  const km1 = k - 1;
+  for (let i = 0; i < zs.length; i++) {
+    const Fzq = interpCdf(grid, zs[i] + q);
+    let d = Fzq - Fs[i];
+    if (d < 0) d = 0; else if (d > 1) d = 1;
+    sum += fs[i] * Math.pow(d, km1);
+  }
+  return k * sum * dz;
+}
+function qCritical(k: number, nu: number, alpha: number, grid: SRGrid): number {
+  const target = 1 - alpha;
+  let lo = 0, hi = 60;
+  for (let it = 0; it < 60; it++) {
+    const mid = (lo + hi) / 2;
+    if (srCdf(mid, k, grid) < target) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+// Bron–Kerbosch 求所有极大团（用于把"非显著"图转成紧凑字母标注）
+function maximalCliques(adj: boolean[][]): number[][] {
+  const n = adj.length;
+  const result: number[][] = [];
+  const bronk = (r: number[], p: number[], x: number[]) => {
+    if (p.length === 0 && x.length === 0) { result.push([...r]); return; }
+    const union = [...p, ...x];
+    let u = -1, best = -1;
+    for (const v of union) {
+      let c = 0;
+      for (const w of p) if (adj[v][w]) c++;
+      if (c > best) { best = c; u = v; }
+    }
+    const pcopy = [...p];
+    for (const v of pcopy) {
+      if (u !== -1 && !adj[u][v]) continue;
+      r.push(v);
+      const p2 = p.filter((w) => adj[v][w]);
+      const x2 = x.filter((w) => adj[v][w]);
+      bronk(r, p2, x2);
+      r.pop();
+      p.splice(p.indexOf(v), 1);
+      x.push(v);
+    }
+  };
+  bronk([], Array.from({ length: n }, (_, i) => i), []);
+  return result;
+}
+
+/**
+ * 计算显著性字母（compact letter display）：
+ * - 仅基于 均值/标准差/样本量（无需原始明细），做单因素 ANOVA + Tukey–Kramer HSD。
+ * - 返回与 GROUP_NAMES 等长的字符串数组；无数据组为 ""。
+ * - 无法计算（组数<2 或 误差自由度<1）时返回全空，并在外部用 reason 提示。
+ */
+function computeCLD(
+  groups: (MeanSd | null)[],
+  alpha = 0.05
+): { labels: string[]; ok: boolean; reason: string } {
+  const idxs: { i: number; m: MeanSd }[] = [];
+  groups.forEach((m, i) => { if (m) idxs.push({ i, m }); });
+  const labels = groups.map(() => "");
+  const k = idxs.length;
+  if (k < 2) return { labels, ok: false, reason: "至少需要 2 组有效数据" };
+  const N = idxs.reduce((s, x) => s + x.m.n, 0);
+  const grandMean = idxs.reduce((s, x) => s + x.m.mean * x.m.n, 0) / N;
+  let ssWithin = 0;
+  idxs.forEach((x) => {
+    if (x.m.n >= 2 && x.m.sd !== null) ssWithin += (x.m.n - 1) * x.m.sd * x.m.sd;
+  });
+  const dfWithin = N - k;
+  if (dfWithin < 1) return { labels, ok: false, reason: "误差自由度不足（每组至少需 ≥2 个有效值）" };
+  const MSE = ssWithin / dfWithin;
+  const grid = buildSRGrid(dfWithin);
+  const qc = qCritical(k, dfWithin, alpha, grid);
+  // 非显著性邻接矩阵（含自环）
+  const n = k;
+  const adj: boolean[][] = Array.from({ length: n }, () => new Array(n).fill(false));
+  for (let a = 0; a < n; a++) {
+    adj[a][a] = true;
+    for (let b = a + 1; b < n; b++) {
+      const se = Math.sqrt(MSE * 0.5 * (1 / idxs[a].m.n + 1 / idxs[b].m.n));
+      const hsd = qc * se;
+      const sig = Math.abs(idxs[a].m.mean - idxs[b].m.mean) > hsd;
+      adj[a][b] = !sig;
+      adj[b][a] = !sig;
+    }
+  }
+  // 极大团 → 字母
+  const cliques = maximalCliques(adj);
+  cliques.sort((A, B) => {
+    const mA = Math.max(...A.map((v) => idxs[v].m.mean));
+    const mB = Math.max(...B.map((v) => idxs[v].m.mean));
+    return mB - mA;
+  });
+  const letterOf: Record<number, string[]> = {};
+  cliques.forEach((cl, ci) => {
+    const letter = String.fromCharCode(97 + ci); // a,b,c...
+    cl.forEach((v) => {
+      (letterOf[v] = letterOf[v] || []).push(letter);
+    });
+  });
+  idxs.forEach(({ i }, vi) => {
+    labels[i] = (letterOf[vi] || []).sort().join("");
+  });
+  return { labels, ok: true, reason: "" };
 }
 
 export default function BoxPlotPage() {
@@ -153,6 +347,9 @@ export default function BoxPlotPage() {
       return { mean, sd: Math.sqrt(variance), n: vals.length };
     });
   }, [parsed]);
+
+  // 显著性字母（单因素 ANOVA + Tukey HSD 事后检验）；保持箱型图/均值±SD/复制逻辑不变
+  const cld = useMemo(() => computeCLD(meanStd), [meanStd]);
 
   // Y 轴范围（含离群点）
   const domain = useMemo(() => {
@@ -570,6 +767,19 @@ export default function BoxPlotPage() {
                           />
                         </>
                       )}
+                      {/* 显著性字母（Tukey HSD 事后检验） */}
+                      {cld.labels[g] && (
+                        <text
+                          x={cx}
+                          y={Math.max(BM.top + 6, bYOf(m.sd !== null ? m.mean + m.sd : m.mean) - 12)}
+                          textAnchor="middle"
+                          fontSize={13}
+                          fontWeight={700}
+                          fill="#1A3F90"
+                        >
+                          {cld.labels[g]}
+                        </text>
+                      )}
                     </>
                   )}
                 </g>
@@ -583,6 +793,17 @@ export default function BoxPlotPage() {
             )}
           </svg>
         </div>
+        {cld.ok ? (
+          <p className="mt-1.5 text-[11px] text-ink-faint">
+            柱顶字母为显著性标注（单因素 ANOVA + Tukey HSD 事后检验，α=0.05，Tukey–Kramer 校正）；相同字母表示组间差异不显著。
+          </p>
+        ) : (
+          barHasAny && (
+            <p className="mt-1.5 text-[11px] text-ink-faint">
+              注：{cld.reason}，暂不标注显著性字母。
+            </p>
+          )
+        )}
       </div>
     </div>
   );

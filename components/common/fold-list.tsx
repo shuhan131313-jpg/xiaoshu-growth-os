@@ -12,6 +12,9 @@ import { ChevronDown } from "lucide-react";
  *
  * startCollapsed=true 时：整段在页面加载时默认收起，仅显示标题与展开入口，
  * 需用户手动点击标题展开；展开后仍保留原「>3 条展开/收起」与删除交互。
+ *
+ * startCollapsedShowAll=true（仅配合 startCollapsed 生效）时：展开后直接展示
+ * 全部条目，不再出现「展示前 3 条再折叠」的分段交互。
  */
 export function FoldList<T>({
   items,
@@ -20,6 +23,7 @@ export function FoldList<T>({
   renderItem,
   className,
   startCollapsed = false,
+  startCollapsedShowAll = false,
 }: {
   items: T[];
   title?: ReactNode;
@@ -27,6 +31,7 @@ export function FoldList<T>({
   renderItem: (item: T, index: number) => ReactNode;
   className?: string;
   startCollapsed?: boolean;
+  startCollapsedShowAll?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [collapsed, setCollapsed] = useState(startCollapsed);
@@ -63,7 +68,8 @@ export function FoldList<T>({
   }
 
   // startCollapsed=true：整段默认收起，点击标题展开/收起
-  const visible = expanded ? items : items.slice(0, 3);
+  // startCollapsedShowAll=true：展开后直接展示全部，不再「展示前 3 条再折叠」
+  const visible = startCollapsedShowAll || expanded ? items : items.slice(0, 3);
   return (
     <div className={className}>
       {title != null && (
@@ -86,7 +92,7 @@ export function FoldList<T>({
         ) : (
           <div className="mt-3 space-y-3">{visible.map((it, i) => renderItem(it, i))}</div>
         ))}
-      {!collapsed && items.length > 3 && (
+      {!collapsed && !startCollapsedShowAll && items.length > 3 && (
         <div className="flex justify-center">
           <button
             type="button"
