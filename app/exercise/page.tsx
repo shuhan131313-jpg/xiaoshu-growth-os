@@ -117,6 +117,34 @@ export default function ExercisePage() {
   // 体重 / 排便 简易记录
   const [weightInput, setWeightInput] = useState("");
   const [weights, setWeights] = useState<WeightRecord[]>([]); // 最新在前
+  const calendarWeights = useMemo(() => {
+    // 按日期比较全部历史，跨月及未记录的日期不打断比较。
+    // 同一天若有多条旧记录，只展示最后保存的一条，不改动原始数据。
+    const daily = new Map<string, WeightRecord>();
+    const sorted = [...weights].sort(
+      (a, b) =>
+        a.date.localeCompare(b.date) ||
+        a.createdAt - b.createdAt ||
+        (a.id ?? 0) - (b.id ?? 0)
+    );
+    for (const record of sorted) {
+      if (Number.isFinite(record.value)) daily.set(record.date, record);
+    }
+    const result: Record<string, { value: number; trend: "first" | "same" | "up" | "down" }> = {};
+    let previous: number | undefined;
+    for (const record of daily.values()) {
+      const trend = previous == null
+        ? "first"
+        : record.value > previous
+        ? "up"
+        : record.value < previous
+        ? "down"
+        : "same";
+      result[record.date] = { value: record.value, trend };
+      previous = record.value;
+    }
+    return result;
+  }, [weights]);
   const [bowelNote, setBowelNote] = useState("");
   const [bowelDoneToday, setBowelDoneToday] = useState(false);
   const [bowelLog, setBowelLog] = useState<BowelRecord[]>([]); // 最新在前
@@ -356,13 +384,14 @@ export default function ExercisePage() {
               const date = `${calPrefix}-${String(d).padStart(2, "0")}`;
               const exDone = !!exerciseDates[date];
               const bwDone = !!bowelDates[date];
+              const weight = calendarWeights[date];
               const isToday = date === todayKey();
               const isActive = date === detailDate;
               return (
                 <button
                   key={date}
                   onClick={() => openDetail(date)}
-                  className={`relative flex aspect-square flex-col items-center justify-center rounded-xl text-sm transition duration-200 ${
+                  className={`relative flex min-h-[60px] min-w-0 flex-col items-center justify-center rounded-xl text-sm transition duration-200 ${
                     isActive
                       ? "bg-accent/20 font-semibold text-accent-dark"
                       : isToday
@@ -378,6 +407,23 @@ export default function ExercisePage() {
                     {bwDone && (
                       <span className="text-[10px] leading-none">💩</span>
                     )}
+                  </span>
+                  <span
+                    className={`mt-0.5 h-3 text-[10px] font-medium tabular-nums leading-3 ${
+                      weight?.trend === "up"
+                        ? "text-red-500"
+                        : weight?.trend === "down"
+                        ? "text-green-600"
+                        : "text-ink-soft"
+                    }`}
+                    title={weight ? `体重 ${weight.value} kg，${
+                      weight.trend === "up" ? "较上次增加"
+                      : weight.trend === "down" ? "较上次减少"
+                      : weight.trend === "same" ? "与上次相同"
+                      : "首次记录"
+                    }` : undefined}
+                  >
+                    {weight?.value}
                   </span>
                 </button>
               );
