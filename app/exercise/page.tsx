@@ -353,33 +353,33 @@ export default function ExercisePage() {
       <PageHeader title="运动" desc="记录每一次流汗，看见坚持的形状" />
 
       {/* 月历 */}
-      <Card className="rounded-xl border border-line bg-card p-4 shadow-card">
+      <Card className="rounded-xl border border-line bg-card p-3 shadow-card">
         <CardContent>
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mb-1 flex items-center justify-between">
             <button
               onClick={() => shiftMonth(-1)}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-ink-soft hover:bg-line/50"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-ink-soft hover:bg-line/50"
               aria-label="上个月"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-4 w-4" />
             </button>
             <p className="text-sm font-medium text-ink">{calPrefix}</p>
             <button
               onClick={() => shiftMonth(1)}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-ink-soft hover:bg-line/50"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-ink-soft hover:bg-line/50"
               aria-label="下个月"
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-4 w-4" />
             </button>
           </div>
-          <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-ink-faint">
+          <div className="grid grid-cols-7 text-center text-[10px] text-ink-faint">
             {WEEK.map((w) => (
-              <div key={w} className="py-1">
+              <div key={w} className="py-0.5">
                 {w}
               </div>
             ))}
           </div>
-          <div className="mt-1 grid grid-cols-7 gap-x-1 gap-y-0.5">
+          <div className="grid grid-cols-7 gap-x-0.5">
             {cells.map((d, i) => {
               if (d == null) return <div key={`e${i}`} />;
               const date = `${calPrefix}-${String(d).padStart(2, "0")}`;
@@ -392,7 +392,7 @@ export default function ExercisePage() {
                 <button
                   key={date}
                   onClick={() => openDetail(date)}
-                  className={`relative flex min-h-[48px] min-w-0 flex-col items-center justify-center rounded-xl text-xs transition duration-200 ${
+                  className={`relative flex min-h-11 min-w-0 flex-col items-center justify-center rounded-lg text-[11px] transition duration-200 ${
                     isActive
                       ? "bg-accent/20 font-semibold text-accent-dark"
                       : isToday
@@ -401,7 +401,7 @@ export default function ExercisePage() {
                   }`}
                 >
                   <span>{d}</span>
-                  <span className="mt-0.5 flex h-3 items-center justify-center gap-0.5">
+                  <span className="flex h-3 items-center justify-center gap-0.5">
                     {exDone && (
                       <Dumbbell className="h-3 w-3 text-accent" strokeWidth={2.25} />
                     )}
@@ -410,7 +410,7 @@ export default function ExercisePage() {
                     )}
                   </span>
                   <span
-                    className={`mt-0.5 h-3 text-[10px] font-medium tabular-nums leading-3 ${
+                    className={`h-3 text-[9px] font-medium tabular-nums leading-3 ${
                       weight?.trend === "up"
                         ? "text-red-500"
                         : weight?.trend === "down"

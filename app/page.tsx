@@ -7,9 +7,11 @@ import {
   Bookmark,
   BookOpen,
   Languages,
+  Dumbbell,
+  PenLine,
+  Heart,
   FlaskConical,
   ChevronDown,
-  ChevronRight,
   CheckCircle2,
   Circle,
   Trash2,
@@ -112,6 +114,14 @@ export default function TodayPage() {
     experiment: "/experiment",
     gratitude: "/gratitude",
   };
+  const moduleIcon = {
+    exercise: Dumbbell,
+    reading: BookOpen,
+    english: Languages,
+    research: PenLine,
+    experiment: FlaskConical,
+    gratitude: Heart,
+  };
 
   return (
     <div className="space-y-8">
@@ -146,27 +156,27 @@ export default function TodayPage() {
           <h2 className="text-base font-semibold text-ink">今日进度</h2>
           <span className="text-xs text-ink-faint">阅读可手动标记完成</span>
         </div>
-        <div className="border-y border-line">
+        <div className="grid grid-cols-3 gap-2">
           {TODAY_MODULES.map((item) => {
             const done = moduleStatus[item.key];
             const auto = AUTO_KEYS.has(item.key);
+            const Icon = moduleIcon[item.key];
             return (
-              <div key={item.key} className="flex min-h-14 items-center gap-3 border-b border-line last:border-b-0">
-                <button
-                  type="button"
-                  onClick={auto ? undefined : () => toggle(item.key, done)}
-                  className={auto ? "cursor-default" : "cursor-pointer"}
-                  aria-label={`${item.label}${done ? "已完成" : "未完成"}`}
-                >
-                  {done ? <CheckCircle2 className="h-5 w-5 text-primary" /> : <Circle className="h-5 w-5 text-ink-faint" strokeWidth={1.5} />}
-                </button>
-                <Link href={moduleHref[item.key]} className="flex flex-1 items-center justify-between py-3">
-                  <div>
-                    <p className="text-sm font-medium text-ink">{item.label}</p>
-                    <p className="mt-0.5 text-xs text-ink-faint">{done ? "已完成" : "未记录"}</p>
+              <div key={item.key} className={`flex min-h-[92px] flex-col rounded-lg border px-2.5 py-2.5 ${done ? "border-[#DCE7E1] bg-[#EDF2EF]" : "border-line bg-[#F2F2F0]"}`}>
+                <Link href={moduleHref[item.key]} className="flex flex-1 flex-col">
+                  <div className="flex items-center justify-between">
+                    <Icon className={done ? "h-4 w-4 text-primary" : "h-4 w-4 text-ink-faint"} strokeWidth={1.8} />
+                    {done ? <CheckCircle2 className="h-4 w-4 text-[#5E7C6C]" /> : <Circle className="h-4 w-4 text-ink-faint" strokeWidth={1.4} />}
                   </div>
-                  <ChevronRight className="h-4 w-4 text-ink-faint" />
+                  <p className="mt-2 text-xs font-medium leading-tight text-ink">{item.label}</p>
                 </Link>
+                {auto ? (
+                  <span className={`mt-1 text-[10px] ${done ? "text-[#5E7C6C]" : "text-ink-faint"}`}>{done ? "已完成" : "未记录"}</span>
+                ) : (
+                  <button type="button" onClick={() => toggle(item.key, done)} className={`mt-1 self-start text-[10px] ${done ? "text-[#5E7C6C]" : "text-primary"}`}>
+                    {done ? "已完成 · 取消" : "标记完成"}
+                  </button>
+                )}
               </div>
             );
           })}

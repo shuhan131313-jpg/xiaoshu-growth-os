@@ -5,9 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home,
-  ListPlus,
   Plus,
-  LineChart,
   UserRound,
   X,
 } from "lucide-react";
@@ -18,19 +16,18 @@ const RECORD_PATHS = NAV_ITEMS.filter(
   (item) => !["/", "/growth", "/settings"].includes(item.href)
 );
 
-const QUICK_PATHS = RECORD_PATHS.filter((item) =>
-  ["/exercise", "/account", "/reading", "/research", "/experiment", "/gratitude"].includes(
-    item.href
-  )
+const MY_PATHS = NAV_ITEMS.filter((item) =>
+  ["/growth", "/boxplot", "/settings"].includes(item.href)
 );
 
 export function MobileNav() {
   const pathname = usePathname();
-  const [panel, setPanel] = useState<"records" | "quick" | null>(null);
+  const [panel, setPanel] = useState<"quick" | "mine" | null>(null);
 
   useEffect(() => setPanel(null), [pathname]);
 
-  const inRecords = RECORD_PATHS.some((item) => pathname.startsWith(item.href));
+  const inMine = MY_PATHS.some((item) => pathname.startsWith(item.href));
+  const inRecords = !inMine && RECORD_PATHS.some((item) => pathname.startsWith(item.href));
 
   return (
     <>
@@ -45,10 +42,10 @@ export function MobileNav() {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <p className="text-base font-semibold text-ink">
-                  {panel === "records" ? "全部记录" : "快速新增"}
+                  {panel === "quick" ? "全部功能" : "我的"}
                 </p>
                 <p className="mt-0.5 text-xs text-ink-faint">
-                  {panel === "records" ? "所有现有功能都保留在这里" : "选择要立即记录的内容"}
+                  {panel === "quick" ? "选择要记录或查看的模块" : "统计、个人数据与设置"}
                 </p>
               </div>
               <button
@@ -60,8 +57,13 @@ export function MobileNav() {
               </button>
             </div>
             <div className="grid grid-cols-3 gap-x-3 gap-y-4">
-              {(panel === "records" ? RECORD_PATHS : QUICK_PATHS).map((item) => {
+              {(panel === "quick" ? RECORD_PATHS : MY_PATHS).map((item) => {
                 const Icon = item.icon;
+                const label = item.href === "/exercise"
+                  ? "运动 / 体重"
+                  : item.href === "/settings"
+                  ? "数据与设置"
+                  : item.label;
                 return (
                   <Link
                     key={item.href}
@@ -69,7 +71,7 @@ export function MobileNav() {
                     className="flex min-h-16 flex-col items-center justify-center gap-2 rounded-xl bg-background px-2 py-3 text-center text-xs text-ink-soft"
                   >
                     <Icon className="h-5 w-5 text-primary" strokeWidth={1.8} />
-                    {item.label}
+                    {label}
                   </Link>
                 );
               })}
@@ -79,33 +81,21 @@ export function MobileNav() {
       )}
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface pb-safe md:hidden">
-        <div className="mx-auto grid h-[68px] max-w-md grid-cols-5 items-center px-2">
+        <div className="mx-auto grid h-[68px] max-w-md grid-cols-3 items-center px-5">
           <BottomLink href="/" label="今日" active={pathname === "/"} icon={Home} />
-          <BottomButton
-            label="记录"
-            active={inRecords || panel === "records"}
-            icon={ListPlus}
-            onClick={() => setPanel("records")}
-          />
           <button
             type="button"
             onClick={() => setPanel("quick")}
             aria-label="快速新增记录"
-            className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-soft active:scale-95"
+            className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-soft active:scale-95 ${inRecords || panel === "quick" ? "ring-2 ring-primary/20 ring-offset-2" : ""}`}
           >
             <Plus className="h-6 w-6" />
           </button>
-          <BottomLink
-            href="/growth"
-            label="统计"
-            active={pathname.startsWith("/growth")}
-            icon={LineChart}
-          />
-          <BottomLink
-            href="/settings"
+          <BottomButton
             label="我的"
-            active={pathname.startsWith("/settings")}
+            active={inMine || panel === "mine"}
             icon={UserRound}
+            onClick={() => setPanel("mine")}
           />
         </div>
       </nav>

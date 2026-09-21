@@ -479,33 +479,33 @@ export default function AccountPage() {
       </Card>
 
       {/* 记账日历 */}
-      <Card>
+      <Card className="rounded-xl border border-line bg-card p-3 shadow-card">
         <CardContent>
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-1 flex items-center justify-between">
             <button
               onClick={() => shiftMonth(-1)}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-ink-soft hover:bg-line/50"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-ink-soft hover:bg-line/50"
               aria-label="上个月"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-4 w-4" />
             </button>
             <p className="text-sm font-medium text-ink">{calPrefix}</p>
             <button
               onClick={() => shiftMonth(1)}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-ink-soft hover:bg-line/50"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-ink-soft hover:bg-line/50"
               aria-label="下个月"
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-4 w-4" />
             </button>
           </div>
-          <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-ink-faint">
+          <div className="grid grid-cols-7 text-center text-[10px] text-ink-faint">
             {WEEK.map((w) => (
-              <div key={w} className="py-1">
+              <div key={w} className="py-0.5">
                 {w}
               </div>
             ))}
           </div>
-          <div className="mt-1 grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-x-0.5">
             {cells.map((d, i) => {
               if (d == null) return <div key={`e${i}`} />;
               const date = `${calPrefix}-${String(d).padStart(2, "0")}`;
@@ -516,7 +516,7 @@ export default function AccountPage() {
                 <button
                   key={date}
                   onClick={() => openDay(date)}
-                  className={`relative flex aspect-square flex-col items-center justify-center rounded-xl text-sm transition duration-200 ${
+                  className={`relative flex h-11 min-w-0 flex-col items-center justify-center rounded-lg text-[11px] transition duration-200 ${
                     isActive
                       ? "bg-accent/20 font-semibold text-accent-dark"
                       : isToday
@@ -525,14 +525,14 @@ export default function AccountPage() {
                   }`}
                 >
                   <span>{d}</span>
-                  <span className="mt-0.5 flex flex-col items-center leading-none">
+                  <span className="flex flex-col items-center leading-none">
                     {day?.income ? (
-                      <span className="text-[10px] tabular text-[#C2554F]">
+                      <span className="text-[9px] tabular text-[#C2554F]">
                         +{day.income}
                       </span>
                     ) : null}
                     {day?.expense ? (
-                      <span className="text-[10px] tabular text-[#5E8C6A]">
+                      <span className="text-[9px] tabular text-[#5E8C6A]">
                         -{day.expense}
                       </span>
                     ) : null}
