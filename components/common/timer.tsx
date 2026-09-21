@@ -40,6 +40,7 @@ export function Timer({
   const [done, setDone] = useState(false);
   const anchorRef = useRef<number>(0); // 暂停时累计的起点
   const rafRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const settledRef = useRef(false);
 
   const isCountdown = mode === "countdown";
   const total = isCountdown ? Math.max(1, targetSeconds) : elapsed;
@@ -55,7 +56,8 @@ export function Timer({
     rafRef.current = setInterval(() => {
       const e = Math.floor((Date.now() - anchorRef.current) / 1000);
       setElapsed(e);
-      if (isCountdown && e >= targetSeconds) {
+      if (isCountdown && e >= targetSeconds && !settledRef.current) {
+        settledRef.current = true;
         setRunning(false);
         setElapsed(targetSeconds);
         setDone(true);
@@ -76,11 +78,14 @@ export function Timer({
     setRunning(false);
     setElapsed(0);
     setDone(false);
+    settledRef.current = false;
     anchorRef.current = 0;
   }
   function stop() {
-    if (done) return; // 已完成时 onComplete 已保存，避免重复写入
+    if (done || settledRef.current) return;
+    settledRef.current = true;
     if (running) setRunning(false);
+    setDone(true);
     onStop?.(elapsed);
   }
 

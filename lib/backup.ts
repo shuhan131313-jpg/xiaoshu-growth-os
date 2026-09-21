@@ -1,33 +1,5 @@
 import { db } from "./db/db";
-
-export interface BackupData {
-  version: 1;
-  app: string;
-  exportedAt: string;
-  tables: Record<string, unknown[]>;
-}
-
-const TABLE_NAMES = [
-  "dailyTasks",
-  "exercise",
-  "reading",
-  "english",
-  "research",
-  "literature",
-  "experiment",
-  "gratitude",
-  "spark",
-  "weight",
-  "bowel",
-  "favorite",
-  "growth",
-  "settings",
-  "account",
-  "timeThread",
-  "timeCell",
-  "timeMerge",
-  "todo",
-] as const;
+import { BACKUP_TABLE_NAMES, rowsFromBackup, type BackupData } from "./backup-format";
 
 type AnyTable = {
   toArray(): Promise<unknown[]>;
@@ -40,7 +12,7 @@ const dbTables = db as unknown as Record<string, AnyTable>;
 /** 导出全部数据为 JSON 字符串 */
 export async function exportAll(): Promise<string> {
   const tables: Record<string, unknown[]> = {};
-  for (const name of TABLE_NAMES) {
+  for (const name of BACKUP_TABLE_NAMES) {
     tables[name] = await dbTables[name].toArray();
   }
   const data: BackupData = {
@@ -56,8 +28,8 @@ export async function exportAll(): Promise<string> {
 export async function importAll(json: string): Promise<void> {
   const data = JSON.parse(json) as BackupData;
   if (data.version !== 1) throw new Error("不支持的备份版本");
-  for (const name of TABLE_NAMES) {
-    const rows = (data.tables?.[name] ?? []) as unknown[];
+  for (const name of BACKUP_TABLE_NAMES) {
+    const rows = rowsFromBackup(data, name);
     const table = dbTables[name];
     await table.clear();
     if (rows.length) await table.bulkAdd(rows);

@@ -142,6 +142,29 @@ export interface TodoRecord {
   createdAt: number;
 }
 
+export type LeavesSourceType =
+  | "reading"
+  | "reading_reversal"
+  | "exercise"
+  | "experiment"
+  | "research"
+  | "manual_deduction"
+  | "manual_undo";
+
+export interface LeavesEntry {
+  id?: number;
+  occurredAt: number;
+  date: string;
+  sourceType: LeavesSourceType;
+  sourceId?: string;
+  /** 自动奖励与撤销的稳定唯一键，用于从数据库层阻止重复结算。 */
+  sourceKey: string;
+  description: string;
+  amount: number;
+  mode: "automatic" | "manual";
+  reversalOf?: number;
+}
+
 export interface TimeThread {
   id?: number;
   name: string;
@@ -190,6 +213,7 @@ export class XiaoShuDB extends Dexie {
   timeCell!: Table<TimeCell, number>;
   timeMerge!: Table<TimeMerge, number>;
   todo!: Table<TodoRecord, number>;
+  leaves!: Table<LeavesEntry, number>;
 
   constructor() {
     super("xiaoshu-growth-os");
@@ -238,6 +262,9 @@ export class XiaoShuDB extends Dexie {
     });
     this.version(8).stores({
       todo: "++id, date, done",
+    });
+    this.version(9).stores({
+      leaves: "++id, occurredAt, date, sourceType, sourceId, &sourceKey",
     });
   }
 }

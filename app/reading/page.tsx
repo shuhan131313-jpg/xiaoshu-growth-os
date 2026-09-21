@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BookOpen, RefreshCw, Sparkles, Trash2, Bookmark } from "lucide-react";
+import { BookOpen, RefreshCw, Sparkles, Trash2, Bookmark, CheckCircle2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +12,8 @@ import type { SparkRecord, FavoriteRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
 import { BOOK_POOL, pickDistinct, type BookExcerpt } from "@/lib/ai/content";
 import { getDailyPick, setDailyPick, bumpGrowthStep } from "@/lib/growth";
+import { getTodayTaskMap } from "@/lib/summary";
+import { setReadingCompleteWithLeaves } from "@/lib/leaves";
 
 export default function ReadingPage() {
   const today = todayKey();
@@ -19,14 +21,20 @@ export default function ReadingPage() {
   const [sparkText, setSparkText] = useState("");
   const [sparks, setSparks] = useState<SparkRecord[]>([]);
   const [favs, setFavs] = useState<FavoriteRecord[]>([]);
+  const [readToday, setReadToday] = useState(false);
 
   const bookKey = `book:${book.book}`;
   const bookFav = favs.some((f) => f.type === "book" && f.key === bookKey);
 
   async function refresh() {
-    const [sp, fv] = await Promise.all([repos.spark.all(), repos.favorite.all()]);
+    const [sp, fv, tasks] = await Promise.all([
+      repos.spark.all(),
+      repos.favorite.all(),
+      getTodayTaskMap(today),
+    ]);
     setSparks(sp.sort((a, b) => b.createdAt - a.createdAt));
     setFavs(fv);
+    setReadToday(!!tasks.reading);
   }
 
   useEffect(() => {
@@ -81,9 +89,31 @@ export default function ReadingPage() {
     await refresh();
   }
 
+  async function toggleReadToday() {
+    const next = !readToday;
+    setReadToday(next);
+    await setReadingCompleteWithLeaves(today, next);
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader title="阅读" desc="每天留一段安静的时间，与自己对话" />
+
+      <button
+        type="button"
+        onClick={toggleReadToday}
+        className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
+          readToday ? "border-[#DCE7E1] bg-[#EDF2EF]" : "border-line bg-card"
+        }`}
+      >
+        <span>
+          <span className="block text-sm font-medium text-ink">今日已阅读</span>
+          <span className="mt-0.5 block text-xs text-ink-faint">
+            {readToday ? "已完成；取消后当天不可重复领取" : "当天首次标记获得 +5 🌿"}
+          </span>
+        </span>
+        <CheckCircle2 className={`h-5 w-5 ${readToday ? "text-[#5E7C6C]" : "text-ink-faint"}`} />
+      </button>
 
       {/* 灵光一闪（置顶） */}
       <Card>

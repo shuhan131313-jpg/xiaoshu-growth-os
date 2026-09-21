@@ -1,11 +1,17 @@
 "use client";
 
+import { useEffect } from "react";
 import { Sidebar } from "./sidebar";
 import { AIFab } from "@/components/ai/ai-fab";
 import { GlobalSearch } from "@/components/search/search-dialog";
 import { MobileNav } from "./mobile-nav";
+import { ensureLeavesActivated } from "@/lib/leaves";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    ensureLeavesActivated().catch(() => {});
+  }, []);
+
   return (
     <>
       <Sidebar />

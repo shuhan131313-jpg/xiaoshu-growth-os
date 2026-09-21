@@ -15,6 +15,7 @@ import type { ResearchRecord, FavoriteRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
 import { bumpGrowthStep } from "@/lib/growth";
 import { setTodayTask } from "@/lib/summary";
+import { addResearchWithLeaves, getLeavesSummary } from "@/lib/leaves";
 import {
   LITERATURE_POOL,
   pickDistinct,
@@ -28,6 +29,8 @@ export default function ResearchPage() {
   const [timerKey, setTimerKey] = useState(0);
   const [history, setHistory] = useState<ResearchRecord[]>([]);
   const [saved, setSaved] = useState(false);
+  const [todayLeaves, setTodayLeaves] = useState(0);
+  const [lastAward, setLastAward] = useState(0);
 
   const [lit, setLit] = useState<LiteratureItem>(LITERATURE_POOL[0]);
   const [favs, setFavs] = useState<FavoriteRecord[]>([]);
@@ -39,9 +42,13 @@ export default function ResearchPage() {
     .reduce((sum, item) => sum + item.duration, 0);
 
   async function refresh() {
-    const all = await repos.research.all();
+    const [all, leaves] = await Promise.all([
+      repos.research.all(),
+      getLeavesSummary(),
+    ]);
     setHistory(all.sort((a, b) => b.createdAt - a.createdAt));
     setFavs(await repos.favorite.all());
+    setTodayLeaves(leaves.bySourceToday.research || 0);
   }
 
   useEffect(() => {
@@ -50,17 +57,19 @@ export default function ResearchPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function saveSession(elapsedSec: number) {
+  async function saveSession(elapsedSec: number, rewardEligible = true) {
     const dur = Math.max(1, Math.round(elapsedSec / 60));
-    await repos.research.add({
+    const result = await addResearchWithLeaves({
       date: today,
       duration: dur,
       summary: summary.trim() || undefined,
       createdAt: Date.now(),
-    });
+    }, elapsedSec, rewardEligible);
     await setTodayTask(today, "research", true);
     await bumpGrowthStep();
     setSummary("");
+    setLastAward(result.awarded);
+    if (rewardEligible) setTimerKey((key) => key + 1);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     refresh();
@@ -104,7 +113,7 @@ export default function ResearchPage() {
             </div>
             <div className="text-right">
               <p className="text-xs text-ink-faint">今日获得</p>
-              <p className="mt-1 text-sm font-medium text-primary">积分功能预留</p>
+              <p className="mt-1 text-sm font-medium text-primary">+{todayLeaves} 🌿</p>
             </div>
           </div>
           <div className="w-full max-w-[180px] self-start">
@@ -124,7 +133,7 @@ export default function ResearchPage() {
           />
           {saved && (
             <p className="flex items-center gap-1 text-sm text-accent-dark">
-              <Check className="h-4 w-4" /> 已保存写作记录
+              <Check className="h-4 w-4" /> 已保存写作记录{lastAward > 0 ? ` · +${lastAward} 🌿` : ""}
             </p>
           )}
           <div className="w-full border-t border-line pt-5">
@@ -138,7 +147,7 @@ export default function ResearchPage() {
             <Button
               variant="soft"
               className="mt-3 w-full"
-              onClick={() => saveSession(goalMin * 60)}
+              onClick={() => saveSession(goalMin * 60, false)}
               disabled={!summary.trim()}
             >
               仅保存小结

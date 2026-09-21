@@ -8,17 +8,20 @@ import {
   Plus,
   UserRound,
   X,
+  Leaf,
 } from "lucide-react";
 import { NAV_ITEMS } from "./nav-config";
 import { cn } from "@/lib/utils";
 
-const RECORD_PATHS = NAV_ITEMS.filter(
-  (item) => !["/", "/growth", "/settings"].includes(item.href)
-);
+const RECORD_PATHS = [
+  ...NAV_ITEMS.filter((item) => !["/", "/growth", "/settings"].includes(item.href)),
+  { href: "/leaves?deduct=1", label: "树叶扣分", en: "Leaves", icon: Leaf },
+];
 
-const MY_PATHS = NAV_ITEMS.filter((item) =>
-  ["/growth", "/boxplot", "/settings"].includes(item.href)
-);
+const MY_PATHS = [
+  { href: "/leaves", label: "树叶", en: "Leaves", icon: Leaf },
+  ...NAV_ITEMS.filter((item) => ["/growth", "/settings"].includes(item.href)),
+];
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -26,7 +29,7 @@ export function MobileNav() {
 
   useEffect(() => setPanel(null), [pathname]);
 
-  const inMine = MY_PATHS.some((item) => pathname.startsWith(item.href));
+  const inMine = MY_PATHS.some((item) => pathname.startsWith(item.href.split("?")[0]));
   const inRecords = !inMine && RECORD_PATHS.some((item) => pathname.startsWith(item.href));
 
   return (

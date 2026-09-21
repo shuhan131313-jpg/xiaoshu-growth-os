@@ -16,6 +16,7 @@ import type { ExerciseRecord, WeightRecord, BowelRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
 import { bumpGrowthStep } from "@/lib/growth";
 import { setTodayTask } from "@/lib/summary";
+import { addExerciseWithLeaves } from "@/lib/leaves";
 
 const WEEK = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -292,7 +293,7 @@ export default function ExercisePage() {
 
   async function saveExercise() {
     if (!checkInProject || !duration) return;
-    await repos.exercise.add({
+    await addExerciseWithLeaves({
       date: todayKey(),
       project: checkInProject,
       duration: Number(duration) || 0,

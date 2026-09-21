@@ -15,20 +15,21 @@ import {
   CheckCircle2,
   Circle,
   Trash2,
+  Leaf,
 } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { GROWTH_MODULES, TODAY_MODULES } from "@/lib/constants";
 import { todayKey, greeting, weekdayCN } from "@/lib/utils";
-import {
-  getTodayTaskMap,
-  setTodayTask,
-  getTodayDuration,
-  getHeatmap,
-} from "@/lib/summary";
+import { getTodayTaskMap, getTodayDuration, getHeatmap } from "@/lib/summary";
 import { getGrowthStep } from "@/lib/growth";
 import { repos } from "@/lib/db/repo";
 import type { FavoriteRecord } from "@/lib/db/db";
+import {
+  getLeavesSummary,
+  setReadingCompleteWithLeaves,
+  type LeavesSummary,
+} from "@/lib/leaves";
 
 /** 自动打卡模块：完成对应操作后由数据驱动点亮，无需首页手动点选（阅读除外） */
 const AUTO_KEYS = new Set(["exercise", "english", "research", "experiment", "gratitude"]);
@@ -52,9 +53,15 @@ export default function TodayPage() {
   const [expCount, setExpCount] = useState(0);
   const [gratitudeCount, setGratitudeCount] = useState(0);
   const [ready, setReady] = useState(false);
+  const [leaves, setLeaves] = useState<LeavesSummary>({
+    balance: 0,
+    todayNet: 0,
+    weekNet: 0,
+    bySourceToday: {},
+  });
 
   async function load() {
-    const [map, dur, h, fv, gstep, ex, rs, exp, gratitude] = await Promise.all([
+    const [map, dur, h, fv, gstep, ex, rs, exp, gratitude, leafSummary] = await Promise.all([
       getTodayTaskMap(date),
       getTodayDuration(date),
       getHeatmap(7),
@@ -64,6 +71,7 @@ export default function TodayPage() {
       repos.research.whereDate(date),
       repos.experiment.whereDate(date),
       repos.gratitude.whereDate(date),
+      getLeavesSummary(),
     ]);
     setTaskMap(map);
     setDuration(dur);
@@ -74,6 +82,7 @@ export default function TodayPage() {
     setRsCount(rs.length);
     setExpCount(exp.length);
     setGratitudeCount(gratitude.length);
+    setLeaves(leafSummary);
     setReady(true);
   }
 
@@ -84,7 +93,8 @@ export default function TodayPage() {
 
   async function toggle(key: string, done: boolean) {
     setTaskMap((m) => ({ ...m, [key]: !done }));
-    await setTodayTask(date, key, !done);
+    await setReadingCompleteWithLeaves(date, !done);
+    setLeaves(await getLeavesSummary());
   }
 
   async function removeFav(id?: number) {
@@ -122,6 +132,14 @@ export default function TodayPage() {
     experiment: FlaskConical,
     gratitude: Heart,
   };
+  const todayLeavesByModule: Partial<Record<keyof typeof moduleIcon, number>> = {
+    reading:
+      (leaves.bySourceToday.reading || 0) +
+      (leaves.bySourceToday.reading_reversal || 0),
+    exercise: leaves.bySourceToday.exercise || 0,
+    research: leaves.bySourceToday.research || 0,
+    experiment: leaves.bySourceToday.experiment || 0,
+  };
 
   return (
     <div className="space-y-8">
@@ -135,21 +153,24 @@ export default function TodayPage() {
         </h1>
       </header>
 
-      <section className="rounded-xl bg-primary px-5 py-5 text-white">
+      <Link href="/leaves" className="block rounded-xl bg-primary px-5 py-5 text-white">
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-xs text-white/65">成长积分</p>
-            <p className="tabular mt-1 text-4xl font-semibold tracking-tight">{step}</p>
+            <p className="flex items-center gap-1 text-xs text-white/65"><Leaf className="h-3.5 w-3.5" /> 今日树叶</p>
+            <p className="tabular mt-1 text-4xl font-semibold tracking-tight">
+              {leaves.todayNet > 0 ? "+" : ""}{leaves.todayNet}
+            </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-white/65">今日进度</p>
-            <p className="tabular mt-1 text-xl font-medium">{completed} / {TODAY_MODULES.length}</p>
+            <p className="text-xs text-white/65">当前余额</p>
+            <p className="tabular mt-1 text-xl font-medium">{leaves.balance} 🌿</p>
           </div>
         </div>
-        <div className="mt-5 h-1 overflow-hidden rounded-full bg-white/20">
-          <div className="h-full rounded-full bg-white transition-[width]" style={{ width: `${(completed / TODAY_MODULES.length) * 100}%` }} />
+        <div className="mt-4 flex items-center justify-between border-t border-white/15 pt-3 text-[11px] text-white/60">
+          <span>今日进度 {completed} / {TODAY_MODULES.length}</span>
+          <span>成长步数 {step}</span>
         </div>
-      </section>
+      </Link>
 
       <section>
         <div className="mb-2 flex items-center justify-between">
@@ -161,6 +182,7 @@ export default function TodayPage() {
             const done = moduleStatus[item.key];
             const auto = AUTO_KEYS.has(item.key);
             const Icon = moduleIcon[item.key];
+            const earned = todayLeavesByModule[item.key] || 0;
             return (
               <div key={item.key} className={`flex min-h-[92px] flex-col rounded-lg border px-2.5 py-2.5 ${done ? "border-[#DCE7E1] bg-[#EDF2EF]" : "border-line bg-[#F2F2F0]"}`}>
                 <Link href={moduleHref[item.key]} className="flex flex-1 flex-col">
@@ -171,10 +193,14 @@ export default function TodayPage() {
                   <p className="mt-2 text-xs font-medium leading-tight text-ink">{item.label}</p>
                 </Link>
                 {auto ? (
-                  <span className={`mt-1 text-[10px] ${done ? "text-[#5E7C6C]" : "text-ink-faint"}`}>{done ? "已完成" : "未记录"}</span>
+                  <span className={`mt-1 flex items-center justify-between text-[10px] ${done ? "text-[#5E7C6C]" : "text-ink-faint"}`}>
+                    <span>{done ? "已完成" : "未记录"}</span>
+                    {earned > 0 && <span>+{earned}</span>}
+                  </span>
                 ) : (
-                  <button type="button" onClick={() => toggle(item.key, done)} className={`mt-1 self-start text-[10px] ${done ? "text-[#5E7C6C]" : "text-primary"}`}>
-                    {done ? "已完成 · 取消" : "标记完成"}
+                  <button type="button" onClick={() => toggle(item.key, done)} className={`mt-1 flex w-full items-center justify-between text-[10px] ${done ? "text-[#5E7C6C]" : "text-primary"}`}>
+                    <span>{done ? "已完成 · 取消" : "标记完成"}</span>
+                    {earned > 0 && <span>+{earned}</span>}
                   </button>
                 )}
               </div>
