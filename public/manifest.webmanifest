@@ -1,13 +1,13 @@
 {
-  "name": "小树 · Personal Growth OS",
-  "short_name": "小树",
+  "name": "树",
+  "short_name": "树",
   "description": "轻量化个人成长工作台：学习、科研、日常习惯记录",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#F7F8FA",
-  "theme_color": "#F7F8FA",
+  "background_color": "#F7F7F5",
+  "theme_color": "#F7F7F5",
   "categories": ["productivity", "health", "education"],
   "icons": [
     { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },

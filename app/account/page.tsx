@@ -5,7 +5,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Wallet,
-  Sprout,
   Trash2,
   X,
   CalendarDays,
@@ -56,21 +55,14 @@ function shiftYearMonth(ym: string, delta: number): string {
 
 
 /**
- * 顶部「土地 + 可左右移动树苗」可视化：
- * - 土地为一条细线轨道；树苗绘制在土地上方，左右移动。
+ * 顶部结余位置可视化：
+ * - 用细线和圆点表达结余在基准额度中的位置。
  * - 位置由结余占基准值的比例决定（夹在 0~100%）。
- * - 结余 > 0：茁壮暖黄小树，数值越大枝叶越茂盛；
- *   结余 < 0：枯萎灰树苗，负数绝对值越大越枯萎。
+ * - 不改变记账计算，只调整视觉表达。
  */
 function TreeTrack({ balance }: { balance: number }) {
   const ratio = Math.max(0, Math.min(1, balance / BASELINE)); // 0~1
   const leftPct = 4 + ratio * 92; // 留白，避免贴边
-  const positive = balance >= 0;
-
-  // 茂盛度：0~1，绝对值越大越茂盛 / 越枯萎
-  const intensity = Math.min(1, Math.abs(balance) / BASELINE);
-  const treeColor = positive ? "#E6C260" : "#B0B0B0"; // 暖黄 / 灰
-  const leafScale = 0.7 + intensity * 0.6; // 枝叶缩放
 
   return (
     <div className="relative h-28">
@@ -80,26 +72,16 @@ function TreeTrack({ balance }: { balance: number }) {
         <span>结余 = 收入 − 支出 · 基准 {BASELINE}</span>
         <span>+{BASELINE}</span>
       </div>
-      {/* 土地轨道（细线，属进度元素，用主强调蓝） */}
+      {/* 结余轨道 */}
       <div className="absolute bottom-6 left-0 right-0 h-px bg-primary/30" />
       {/* 基准中点标记 */}
       <div className="absolute bottom-6 left-1/2 h-2 w-px -translate-x-1/2 bg-primary/40" />
-      {/* 树苗（绘制在土地上方，可左右移动） */}
+      {/* 结余位置 */}
       <div
-        className="absolute bottom-6 transition-all duration-500 ease-out"
+        className="absolute bottom-[19px] transition-all duration-500 ease-out"
         style={{ left: `${leftPct}%`, transform: "translateX(-50%)" }}
       >
-        <Sprout
-          className="h-10 w-10 transition-all duration-500"
-          style={{
-            color: treeColor,
-            // 枝叶随强度缩放（以图标中心为锚点）
-            transform: `scale(${leafScale})`,
-            transformOrigin: "bottom center",
-            opacity: positive ? 0.85 + intensity * 0.15 : 0.55 + intensity * 0.25,
-          }}
-          strokeWidth={positive ? 2.2 : 1.8}
-        />
+        <span className={`block h-4 w-4 rounded-full border-4 border-white shadow-card ${balance >= 0 ? "bg-primary" : "bg-ink-faint"}`} />
       </div>
     </div>
   );
@@ -285,7 +267,7 @@ export default function AccountPage() {
         type="button"
         onClick={() => setViewMonth(m)}
         aria-pressed={active}
-        className={`mt-2 w-full rounded-2xl px-3 py-3 text-left transition duration-200 ${
+        className={`mt-2 w-full rounded-xl px-3 py-3 text-left transition duration-200 ${
           active
             ? "border border-primary/50 bg-primary/10"
             : "border border-line bg-line/30 hover:border-primary/30"
@@ -324,7 +306,7 @@ export default function AccountPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="记账" desc="记下每一笔进出，看小树慢慢长大" />
+      <PageHeader title="记账" desc="记下每一笔进出，清楚掌握收支变化" />
 
       {/* 顶部：30000 基准额度进度可视化 */}
       <Card>
@@ -333,7 +315,7 @@ export default function AccountPage() {
             <Wallet className="h-4 w-4" /> 结余进度
           </div>
           <TreeTrack balance={totals.balance} />
-          <div className="mt-2 flex items-center justify-between rounded-2xl bg-line/30 px-3 py-2">
+          <div className="mt-2 flex items-center justify-between rounded-xl bg-line/30 px-3 py-2">
             <span className="text-sm text-ink-soft">当前结余</span>
             <span
               className={`tabular text-lg font-semibold ${
@@ -614,7 +596,7 @@ export default function AccountPage() {
             className="absolute inset-0 bg-black/30"
             onClick={() => setDetailDate(null)}
           />
-          <div className="relative z-10 flex max-h-[88vh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-card shadow-soft md:rounded-3xl">
+          <div className="relative z-10 flex max-h-[88vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-card shadow-soft md:rounded-xl">
             <div className="flex items-center justify-between border-b border-line px-5 py-4">
               <h3 className="text-base font-semibold text-ink">{detailDate} 记账</h3>
               <button
@@ -633,7 +615,7 @@ export default function AccountPage() {
                   {detailRecords.map((r) => (
                     <li
                       key={r.id}
-                      className="flex items-start justify-between gap-2 rounded-2xl bg-line/30 px-3 py-2"
+                      className="flex items-start justify-between gap-2 rounded-xl bg-line/30 px-3 py-2"
                     >
                       <div className="min-w-0">
                         <p className="text-sm text-ink">

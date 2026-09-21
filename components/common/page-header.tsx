@@ -10,9 +10,9 @@ export function PageHeader({
   children?: ReactNode;
 }) {
   return (
-    <header className="mb-6">
-      <h1 className="text-2xl font-semibold text-primary">{title}</h1>
-      {desc && <p className="mt-1 text-sm text-ink-soft">{desc}</p>}
+    <header className="mb-7 border-b border-line pb-5">
+      <h1 className="text-[28px] font-semibold tracking-[-0.025em] text-ink">{title}</h1>
+      {desc && <p className="mt-1.5 text-sm leading-6 text-ink-soft">{desc}</p>}
       {children}
     </header>
   );

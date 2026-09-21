@@ -15,12 +15,17 @@ body {
 }
 
 body {
-  background-color: #f7f8fa;
-  color: #2c2c2c;
+  background-color: #f7f7f5;
+  color: #1f2937;
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
     "Microsoft YaHei", "Noto Sans CJK SC", Inter, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: #c9d5e3;
+  color: #1f2937;
 }
 
 /* 数字统一等宽 */
@@ -32,6 +37,14 @@ body {
 /* 去除点击高亮，保留柔和反馈 */
 * {
   -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  touch-action: manipulation;
 }
 
 /* 刘海屏 / 底部安全区适配 */

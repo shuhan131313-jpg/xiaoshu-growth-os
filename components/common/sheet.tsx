@@ -36,7 +36,7 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
             onClick={onClose}
           />
           <motion.div
-            className="relative z-10 flex max-h-[88vh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-card shadow-soft md:rounded-3xl"
+            className="relative z-10 flex max-h-[88vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-card shadow-soft md:rounded-xl"
             initial={{ y: 40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 40, opacity: 0 }}

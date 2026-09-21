@@ -76,7 +76,7 @@ export function FoldList<T>({
         <button
           type="button"
           onClick={() => setCollapsed((v) => !v)}
-          className="flex w-full items-center justify-between rounded-2xl px-2 py-2 text-left transition duration-200 hover:bg-line/50"
+          className="flex w-full items-center justify-between rounded-lg px-1 py-2 text-left transition duration-200 hover:bg-line/50"
         >
           <span className="min-w-0">{title}</span>
           <ChevronDown

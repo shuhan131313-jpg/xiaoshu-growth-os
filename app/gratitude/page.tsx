@@ -85,7 +85,7 @@ export default function GratitudePage() {
           empty={
             <Card>
               <CardContent className="py-10 text-center text-sm text-ink-faint">
-                还没有记录，从今天开始吧 🌿
+                还没有记录，从今天开始吧
               </CardContent>
             </Card>
           }
@@ -119,7 +119,7 @@ export default function GratitudePage() {
                       ))}
                     </ul>
                     {h.reflection && (
-                      <p className="mt-2 rounded-2xl bg-line/30 p-3 text-[13px] italic text-ink-soft">
+                      <p className="mt-2 rounded-xl bg-line/30 p-3 text-[13px] italic text-ink-soft">
                         “{h.reflection}”
                       </p>
                     )}

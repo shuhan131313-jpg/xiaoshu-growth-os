@@ -4,17 +4,19 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Flame,
-  Sprout,
   Bookmark,
   BookOpen,
   Languages,
   FlaskConical,
   ChevronDown,
+  ChevronRight,
+  CheckCircle2,
+  Circle,
   Trash2,
 } from "lucide-react";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
-import { GROWTH_MODULES } from "@/lib/constants";
-import { GrowthTrack } from "@/components/common/growth-track";
+import { GROWTH_MODULES, TODAY_MODULES } from "@/lib/constants";
 import { todayKey, greeting, weekdayCN } from "@/lib/utils";
 import {
   getTodayTaskMap,
@@ -27,7 +29,7 @@ import { repos } from "@/lib/db/repo";
 import type { FavoriteRecord } from "@/lib/db/db";
 
 /** 自动打卡模块：完成对应操作后由数据驱动点亮，无需首页手动点选（阅读除外） */
-const AUTO_KEYS = new Set(["exercise", "english", "research", "experiment"]);
+const AUTO_KEYS = new Set(["exercise", "english", "research", "experiment", "gratitude"]);
 
 function heatColor(count: number, max: number): string {
   if (count <= 0) return "#E2E5EC";
@@ -46,10 +48,11 @@ export default function TodayPage() {
   const [exCount, setExCount] = useState(0);
   const [rsCount, setRsCount] = useState(0);
   const [expCount, setExpCount] = useState(0);
+  const [gratitudeCount, setGratitudeCount] = useState(0);
   const [ready, setReady] = useState(false);
 
   async function load() {
-    const [map, dur, h, fv, gstep, ex, rs, exp] = await Promise.all([
+    const [map, dur, h, fv, gstep, ex, rs, exp, gratitude] = await Promise.all([
       getTodayTaskMap(date),
       getTodayDuration(date),
       getHeatmap(7),
@@ -58,6 +61,7 @@ export default function TodayPage() {
       repos.exercise.whereDate(date),
       repos.research.whereDate(date),
       repos.experiment.whereDate(date),
+      repos.gratitude.whereDate(date),
     ]);
     setTaskMap(map);
     setDuration(dur);
@@ -67,6 +71,7 @@ export default function TodayPage() {
     setExCount(ex.length);
     setRsCount(rs.length);
     setExpCount(exp.length);
+    setGratitudeCount(gratitude.length);
     setReady(true);
   }
 
@@ -90,75 +95,83 @@ export default function TodayPage() {
   const bookFavs = favs.filter((f) => f.type === "book");
   const englishFavs = favs.filter((f) => f.type === "english");
   const paperFavs = favs.filter((f) => f.type === "paper");
+  const moduleStatus: Record<string, boolean> = {
+    exercise: exCount > 0,
+    reading: !!taskMap.reading,
+    english: !!taskMap.english,
+    research: rsCount > 0,
+    experiment: expCount > 0,
+    gratitude: gratitudeCount > 0,
+  };
+  const completed = TODAY_MODULES.filter((item) => moduleStatus[item.key]).length;
+  const moduleHref: Record<string, string> = {
+    exercise: "/exercise",
+    reading: "/reading",
+    english: "/english",
+    research: "/research",
+    experiment: "/experiment",
+    gratitude: "/gratitude",
+  };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-8">
       {/* 顶部问候 */}
-      <header className="pt-2">
-        <p className="text-sm text-ink-faint">
-          {now.getFullYear()}年{now.getMonth() + 1}月{now.getDate()}日 · {weekdayCN(now)}
+      <header className="pt-1">
+        <p className="tabular text-sm tracking-wide text-ink-faint">
+          {now.getMonth() + 1}.{now.getDate()} · {weekdayCN(now)}
         </p>
-        <h1 className="mt-1 text-3xl font-semibold text-ink">
-          {greeting(now)}，今天也加油 🌱
+        <h1 className="mt-2 text-[32px] font-semibold tracking-[-0.035em] text-ink">
+          {greeting(now)}，树。
         </h1>
-        <p className="mt-1.5 text-sm text-ink-soft">
-          慢慢来，比较快。先挑一件小事开始吧。
-        </p>
       </header>
 
-      {/* 今日成长：成长进度条 + 横向等分树苗条 */}
-      <Card>
-        <CardContent>
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm font-medium text-primary">今日成长</p>
-            <span className="text-[11px] text-ink-faint">
-              运动·英文·论文·实验 自动打卡 · 阅读手动
-            </span>
+      <section className="rounded-xl bg-primary px-5 py-5 text-white">
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="text-xs text-white/65">成长积分</p>
+            <p className="tabular mt-1 text-4xl font-semibold tracking-tight">{step}</p>
           </div>
-          <GrowthTrack step={step} />
-          <div className="flex overflow-hidden rounded-2xl border border-line bg-line/20">
-            {GROWTH_MODULES.map((m, i) => {
-              const done =
-                m.key === "exercise"
-                  ? exCount > 0
-                  : m.key === "english"
-                  ? !!taskMap.english
-                  : m.key === "research"
-                  ? rsCount > 0
-                  : m.key === "experiment"
-                  ? expCount > 0
-                  : !!taskMap[m.key];
-              const auto = AUTO_KEYS.has(m.key);
-              return (
+          <div className="text-right">
+            <p className="text-xs text-white/65">今日进度</p>
+            <p className="tabular mt-1 text-xl font-medium">{completed} / {TODAY_MODULES.length}</p>
+          </div>
+        </div>
+        <div className="mt-5 h-1 overflow-hidden rounded-full bg-white/20">
+          <div className="h-full rounded-full bg-white transition-[width]" style={{ width: `${(completed / TODAY_MODULES.length) * 100}%` }} />
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-base font-semibold text-ink">今日进度</h2>
+          <span className="text-xs text-ink-faint">阅读可手动标记完成</span>
+        </div>
+        <div className="border-y border-line">
+          {TODAY_MODULES.map((item) => {
+            const done = moduleStatus[item.key];
+            const auto = AUTO_KEYS.has(item.key);
+            return (
+              <div key={item.key} className="flex min-h-14 items-center gap-3 border-b border-line last:border-b-0">
                 <button
-                  key={m.key}
                   type="button"
-                  onClick={auto ? undefined : () => toggle(m.key, done)}
-                  aria-label={m.label}
-                  className={`flex h-[92px] flex-1 flex-col items-center justify-center gap-1.5 transition-colors duration-200 ${
-                    i > 0 ? "border-l border-line" : ""
-                  } ${
-                    auto ? "cursor-default" : "cursor-pointer"
-                  } ${done ? "bg-accent/15" : "bg-transparent hover:bg-line/40"}`}
+                  onClick={auto ? undefined : () => toggle(item.key, done)}
+                  className={auto ? "cursor-default" : "cursor-pointer"}
+                  aria-label={`${item.label}${done ? "已完成" : "未完成"}`}
                 >
-                  {done ? (
-                    <Sprout className="h-7 w-7 text-gold" strokeWidth={2} />
-                  ) : (
-                    <span className="h-7 w-7" />
-                  )}
-                  <span
-                    className={`whitespace-nowrap text-[10px] ${
-                      done ? "text-primary" : "text-ink-faint"
-                    }`}
-                  >
-                    {m.label}
-                  </span>
+                  {done ? <CheckCircle2 className="h-5 w-5 text-primary" /> : <Circle className="h-5 w-5 text-ink-faint" strokeWidth={1.5} />}
                 </button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+                <Link href={moduleHref[item.key]} className="flex flex-1 items-center justify-between py-3">
+                  <div>
+                    <p className="text-sm font-medium text-ink">{item.label}</p>
+                    <p className="mt-0.5 text-xs text-ink-faint">{done ? "已完成" : "未记录"}</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-ink-faint" />
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       {/* 收藏夹（折叠面板） */}
       <Card>
@@ -221,10 +234,10 @@ export default function TodayPage() {
       </Card>
 
       {/* 时长统计 */}
-      <Card>
+      <Card className="border-0 bg-[#EDF1F5] shadow-none">
         <CardContent className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gold/15 text-gold">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-primary">
               <Flame className="h-5 w-5" />
             </span>
             <div>
@@ -289,7 +302,7 @@ function FavGroup({
         {items.map((f) => (
           <li
             key={f.id}
-            className="flex items-start justify-between gap-2 rounded-2xl bg-line/30 p-3"
+            className="flex items-start justify-between gap-2 rounded-xl bg-line/30 p-3"
           >
             <div className="min-w-0">
               <p className="text-sm font-medium text-ink">{f.title}</p>

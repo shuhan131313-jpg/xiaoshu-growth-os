@@ -498,7 +498,7 @@ export default function BoxPlotPage() {
       </div>
 
       {/* 图表区 */}
-      <div className="mt-6 rounded-2xl border border-line bg-card p-4 shadow-card">
+      <div className="mt-6 rounded-xl border border-line bg-card p-4 shadow-card">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-sm font-medium text-primary">实时箱型图</p>
           <div className="flex items-center gap-4 text-[11px] text-ink-soft">
@@ -658,7 +658,7 @@ export default function BoxPlotPage() {
       </div>
 
       {/* 各组 均值 ± 标准差 文本区（可一键复制） */}
-      <div className="mt-6 rounded-2xl border border-line bg-card p-4 shadow-card">
+      <div className="mt-6 rounded-xl border border-line bg-card p-4 shadow-card">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-sm font-medium text-primary">各组 均值 ± 标准差</p>
           <button
@@ -680,7 +680,7 @@ export default function BoxPlotPage() {
       </div>
 
       {/* 均值 ± 标准差 柱形误差棒图（独立图表） */}
-      <div className="mt-6 rounded-2xl border border-line bg-card p-4 shadow-card">
+      <div className="mt-6 rounded-xl border border-line bg-card p-4 shadow-card">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-sm font-medium text-primary">均值 ± 标准差 · 柱形误差棒图</p>
           <div className="flex items-center gap-4 text-[11px] text-ink-soft">

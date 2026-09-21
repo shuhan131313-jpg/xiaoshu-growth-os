@@ -34,6 +34,9 @@ export default function ResearchPage() {
 
   const paperKey = `paper:${lit.title}`;
   const paperFav = favs.some((f) => f.type === "paper" && f.key === paperKey);
+  const todayMinutes = history
+    .filter((item) => item.date === today)
+    .reduce((sum, item) => sum + item.duration, 0);
 
   async function refresh() {
     const all = await repos.research.all();
@@ -89,19 +92,28 @@ export default function ResearchPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="论文科研" desc="专注写作，沉淀每日进展；顺手读一篇好文献" />
+      <PageHeader title="论文专注" desc="专注写作，沉淀每日进展；顺手读一篇好文献" />
 
       {/* 写作计时 */}
-      <Card>
-        <CardContent className="flex flex-col items-center gap-4 pt-2">
-          <div className="w-full">
-            <Label>每日目标时长（分钟）</Label>
+      <Card className="rounded-xl border border-primary/10 bg-card p-5 py-7 shadow-card">
+        <CardContent className="flex flex-col items-center gap-6">
+          <div className="flex w-full items-end justify-between border-b border-line pb-4">
+            <div>
+              <p className="text-xs text-ink-faint">今日累计</p>
+              <p className="tabular mt-1 text-2xl font-semibold text-ink">{todayMinutes}<span className="ml-1 text-sm font-normal text-ink-faint">min</span></p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-ink-faint">今日获得</p>
+              <p className="mt-1 text-sm font-medium text-primary">积分功能预留</p>
+            </div>
+          </div>
+          <div className="w-full max-w-[180px] self-start">
+            <Label>专注目标（分钟）</Label>
             <Input
               type="number"
               inputMode="numeric"
               value={goalMin}
               onChange={(e) => setGoalMin(Number(e.target.value) || 0)}
-              className="max-w-[160px]"
             />
           </div>
           <Timer
@@ -115,7 +127,7 @@ export default function ResearchPage() {
               <Check className="h-4 w-4" /> 已保存写作记录
             </p>
           )}
-          <div className="w-full">
+          <div className="w-full border-t border-line pt-5">
             <Label>当日工作小结（结束计时后随记录保存）</Label>
             <Textarea
               value={summary}
@@ -159,7 +171,7 @@ export default function ResearchPage() {
             <p className="font-semibold text-ink">{lit.title}</p>
             <p className="mt-0.5 text-xs text-ink-faint">{lit.journal}</p>
           </div>
-          <p className="rounded-2xl bg-line/30 p-3 text-[13px] italic leading-7 text-ink-soft">
+          <p className="rounded-xl bg-line/30 p-3 text-[13px] italic leading-7 text-ink-soft">
             {lit.excerpt}
           </p>
           <div>
@@ -170,7 +182,7 @@ export default function ResearchPage() {
             <p className="text-sm font-medium text-primary">核心研究结论</p>
             <p className="mt-1 text-[14px] leading-7 text-ink">{lit.findings}</p>
           </div>
-          <div className="rounded-2xl bg-primary/5 p-3">
+          <div className="rounded-xl bg-primary/5 p-3">
             <p className="mb-1 text-sm font-medium text-primary">关联提示</p>
             <p className="text-[13px] leading-7 text-ink-soft">{lit.linkHint}</p>
           </div>
@@ -180,7 +192,7 @@ export default function ResearchPage() {
               {lit.vocab.map((v) => (
                 <span
                   key={v.term}
-                  className="rounded-2xl bg-line/30 px-3 py-1.5 text-[13px]"
+                  className="rounded-xl bg-line/30 px-3 py-1.5 text-[13px]"
                 >
                   <span className="font-medium text-primary">{v.term}</span>
                   <span className="ml-2 text-ink-soft">{v.meaning}</span>

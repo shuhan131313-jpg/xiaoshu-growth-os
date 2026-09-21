@@ -99,7 +99,7 @@ export function Timer({
             cy={size / 2}
             r={r}
             fill="none"
-            stroke="#E2E5EC"
+            stroke="#E8E8E5"
             strokeWidth={stroke}
           />
           {isCountdown && (
@@ -108,7 +108,7 @@ export function Timer({
               cy={size / 2}
               r={r}
               fill="none"
-              stroke="#1A3F90"
+              stroke="#38506B"
               strokeWidth={stroke}
               strokeLinecap="round"
               strokeDasharray={c}
@@ -135,7 +135,7 @@ export function Timer({
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex w-full flex-wrap items-center justify-center gap-3">
         <Button
           variant={running ? "outline" : "accent"}
           size="lg"
@@ -161,7 +161,7 @@ export function Timer({
           </Button>
         )}
         {onStop && (
-          <Button variant="ghost" size="sm" onClick={stop}>
+          <Button variant="ghost" size="sm" onClick={stop} className="basis-full">
             结束并记录
           </Button>
         )}

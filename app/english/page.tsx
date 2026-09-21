@@ -127,7 +127,7 @@ export default function EnglishPage() {
             {p.vocab.map((v) => (
               <div
                 key={v.word}
-                className="rounded-2xl bg-line/30 px-3 py-2 text-[13px]"
+                className="rounded-xl bg-line/30 px-3 py-2 text-[13px]"
               >
                 <span className="font-medium text-primary">{v.word}</span>
                 <span className="ml-2 text-ink-soft">{v.meaning}</span>
@@ -142,7 +142,7 @@ export default function EnglishPage() {
         <CardContent>
           <p className="mb-2 text-sm font-medium text-primary">长难句解析</p>
           <p className="text-[14px] leading-7 text-ink">{p.longSentence.en}</p>
-          <p className="mt-2 rounded-2xl bg-accent/10 p-3 text-[13px] leading-7 text-ink-soft">
+          <p className="mt-2 rounded-xl bg-accent/10 p-3 text-[13px] leading-7 text-ink-soft">
             {p.longSentence.zh}
           </p>
         </CardContent>

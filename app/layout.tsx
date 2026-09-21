@@ -16,21 +16,23 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "小树 · Personal Growth OS",
+  title: "树 · Growth OS",
   description: "轻量化个人成长工作台：学习、科研、日常习惯记录",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "小树",
+    title: "树",
   },
   icons: {
+    icon: "/icons/icon.svg",
+    shortcut: "/icons/icon-192.png",
     apple: "/icons/apple-touch-icon.png",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#F7F8FA",
+  themeColor: "#F7F7F5",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

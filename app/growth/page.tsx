@@ -89,7 +89,7 @@ export default function GrowthPage() {
           <button
             key={r}
             onClick={() => setRange(r)}
-            className={`h-10 rounded-2xl px-6 text-sm font-medium transition duration-200 ${
+            className={`h-10 rounded-xl px-6 text-sm font-medium transition duration-200 ${
               range === r
                 ? "bg-primary text-white shadow-soft"
                 : "bg-line/40 text-ink-soft hover:bg-line/70"
@@ -131,7 +131,7 @@ export default function GrowthPage() {
             </p>
           ) : (
             <p className="text-sm text-ink-faint">
-              点「生成」，小树会根据上面的数据给出一段简短复盘。
+              点「生成」，树会根据上面的数据给出一段简短复盘。
             </p>
           )}
         </CardContent>

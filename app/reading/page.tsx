@@ -121,7 +121,7 @@ export default function ReadingPage() {
               renderItem={(s) => (
                 <div
                   key={s.id}
-                  className="flex items-start justify-between gap-2 rounded-2xl bg-line/30 p-3"
+                  className="flex items-start justify-between gap-2 rounded-xl bg-line/30 p-3"
                 >
                   <div className="min-w-0">
                     <p className="text-[13px] leading-relaxed text-ink">{s.text}</p>
@@ -179,7 +179,7 @@ export default function ReadingPage() {
           <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
             {book.intro}
           </p>
-          <p className="mt-3 rounded-2xl bg-line/30 p-3 text-[14px] leading-relaxed text-ink">
+          <p className="mt-3 rounded-xl bg-line/30 p-3 text-[14px] leading-relaxed text-ink">
             {book.passage}
           </p>
         </CardContent>

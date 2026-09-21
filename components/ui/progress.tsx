@@ -9,9 +9,9 @@ export function Progress({
 }) {
   const pct = Math.min(100, Math.max(0, value));
   return (
-    <div className={cn("h-2.5 w-full overflow-hidden rounded-full bg-line", className)}>
+    <div className={cn("h-1.5 w-full overflow-hidden rounded-full bg-line", className)}>
       <div
-        className="h-full rounded-full bg-gradient-to-r from-accent to-accent-light transition-[width] duration-300"
+        className="h-full rounded-full bg-accent transition-[width] duration-300"
         style={{ width: `${pct}%` }}
       />
     </div>

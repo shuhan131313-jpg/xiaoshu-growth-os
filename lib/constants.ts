@@ -1,6 +1,6 @@
 export const SITE = {
-  name: "小树",
-  fullName: "小树 · Personal Growth OS",
+  name: "树",
+  fullName: "树 · Growth OS",
 };
 
 /** 首页今日待办覆盖的模块（与导航顺序一致） */

@@ -87,7 +87,7 @@ export function GlobalSearch() {
       <button
         onClick={() => setOpen(true)}
         aria-label="全站搜索"
-        className="fixed right-4 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface/90 text-ink-soft shadow-card backdrop-blur transition hover:text-primary"
+        className="fixed right-4 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface text-ink-soft shadow-card transition hover:text-primary"
       >
         <Search className="h-4 w-4" />
       </button>
@@ -104,7 +104,7 @@ export function GlobalSearch() {
               onClick={() => setOpen(false)}
             />
             <motion.div
-              className="relative z-10 mt-12 flex h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-card shadow-soft md:mt-20 md:rounded-3xl"
+              className="relative z-10 mt-12 flex h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-card shadow-soft md:mt-20 md:rounded-xl"
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 40, opacity: 0 }}
@@ -139,7 +139,7 @@ export function GlobalSearch() {
                     {results.map((h, i) => (
                       <li
                         key={i}
-                        className="rounded-2xl border border-line p-3"
+                        className="rounded-xl border border-line p-3"
                       >
                         <div className="mb-1 flex items-center justify-between">
                           <span className="rounded-full bg-primary/12 px-2 py-0.5 text-[11px] text-primary">

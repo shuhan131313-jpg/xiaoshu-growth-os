@@ -123,7 +123,7 @@ export default function SettingsPage() {
               <select
                 value={provider}
                 onChange={(e) => setProvider(e.target.value)}
-                className="h-11 w-full rounded-2xl border border-line bg-surface px-4 text-sm text-ink focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="h-11 w-full rounded-xl border border-line bg-surface px-4 text-sm text-ink focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
                 <option>DeepSeek</option>
                 <option>OpenAI</option>
@@ -151,11 +151,12 @@ export default function SettingsPage() {
       <Card>
         <CardContent>
           <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15 text-primary">
               <Leaf className="h-6 w-6" />
             </span>
             <div>
-              <p className="font-semibold text-ink">小树 · Personal Growth OS</p>
+              <p className="font-semibold text-ink">树</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-ink-faint">Growth OS</p>
               <p className="text-xs text-ink-faint">
                 轻量化个人成长工作台 · v1.0
               </p>

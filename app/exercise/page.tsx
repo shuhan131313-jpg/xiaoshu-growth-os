@@ -353,7 +353,7 @@ export default function ExercisePage() {
       <PageHeader title="运动" desc="记录每一次流汗，看见坚持的形状" />
 
       {/* 月历 */}
-      <Card className="p-4">
+      <Card className="rounded-xl border border-line bg-card p-4 shadow-card">
         <CardContent>
           <div className="mb-2 flex items-center justify-between">
             <button
@@ -478,7 +478,7 @@ export default function ExercisePage() {
                 id="exercise-project"
                 value={checkInProject}
                 onChange={(e) => setCheckInProject(e.target.value)}
-                className="h-11 w-full rounded-2xl border border-line bg-surface px-3 text-sm text-ink focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm text-ink focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
                 <option value="" disabled>请选择</option>
                 <option value="爬坡">爬坡</option>
@@ -659,7 +659,7 @@ export default function ExercisePage() {
                   renderItem={(w) => (
                     <div
                       key={w.id}
-                      className="flex items-center justify-between rounded-2xl bg-line/30 px-3 py-2"
+                      className="flex items-center justify-between rounded-xl bg-line/30 px-3 py-2"
                     >
                       <div className="flex min-w-0 items-baseline gap-2">
                         <span className="tabular text-sm font-medium text-ink">
@@ -744,7 +744,7 @@ export default function ExercisePage() {
                   renderItem={(b) => (
                     <div
                       key={b.id}
-                      className="flex items-center justify-between rounded-2xl bg-line/30 px-3 py-2"
+                      className="flex items-center justify-between rounded-xl bg-line/30 px-3 py-2"
                     >
                       <div className="flex min-w-0 items-center gap-2">
                         <Check className="h-3.5 w-3.5 shrink-0 text-accent" />

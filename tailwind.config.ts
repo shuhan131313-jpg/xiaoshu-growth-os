@@ -11,18 +11,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#F7F8FA",
+        background: "#F7F7F5",
         surface: "#FFFFFF",
         card: "#FFFFFF",
         primary: {
-          DEFAULT: "#1A3F90",
-          light: "#3A5DA8",
-          dark: "#122C66",
+          DEFAULT: "#38506B",
+          light: "#667D96",
+          dark: "#293D53",
         },
         accent: {
-          DEFAULT: "#1A3F90",
-          light: "#3A5DA8",
-          dark: "#122C66",
+          DEFAULT: "#38506B",
+          light: "#667D96",
+          dark: "#293D53",
         },
         gold: {
           DEFAULT: "#E6C260",
@@ -30,11 +30,11 @@ const config: Config = {
           dark: "#C9A43F",
         },
         ink: {
-          DEFAULT: "#2C2C2C",
-          soft: "#666666",
-          faint: "#9AA1A8",
+          DEFAULT: "#1F2937",
+          soft: "#5F6874",
+          faint: "#9299A1",
         },
-        line: "#E2E5EC",
+        line: "#E8E8E5",
       },
       fontFamily: {
         sans: [
@@ -52,13 +52,13 @@ const config: Config = {
         mono: ["var(--font-mono)", '"JetBrains Mono"', "ui-monospace", "monospace"],
       },
       borderRadius: {
-        xl: "16px",
-        "2xl": "20px",
-        "3xl": "24px",
+        xl: "12px",
+        "2xl": "16px",
+        "3xl": "20px",
       },
       boxShadow: {
-        soft: "0 6px 20px rgba(26,63,144,0.14)",
-        card: "0 2px 12px rgba(44,44,44,0.06)",
+        soft: "0 10px 30px rgba(31,41,55,0.10)",
+        card: "0 1px 2px rgba(31,41,55,0.04)",
       },
       transitionDuration: {
         DEFAULT: "250ms",
