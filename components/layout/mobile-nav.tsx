@@ -9,16 +9,24 @@ import {
   UserRound,
   X,
   Leaf,
+  Route,
+  Diamond,
 } from "lucide-react";
 import { NAV_ITEMS } from "./nav-config";
 import { cn } from "@/lib/utils";
 
 const RECORD_PATHS = [
-  ...NAV_ITEMS.filter((item) => !["/", "/growth", "/settings"].includes(item.href)),
+  { href: "/mainline?edit=1", label: "今日主线", en: "Mainline", icon: Route },
+  { href: "/milestones?new=1", label: "记录里程碑", en: "Milestone", icon: Diamond },
+  ...NAV_ITEMS.filter(
+    (item) => !["/", "/mainline", "/milestones", "/growth", "/settings"].includes(item.href)
+  ),
   { href: "/leaves?deduct=1", label: "树叶扣分", en: "Leaves", icon: Leaf },
 ];
 
 const MY_PATHS = [
+  { href: "/mainline", label: "主线", en: "Mainline", icon: Route },
+  { href: "/milestones", label: "里程碑", en: "Milestones", icon: Diamond },
   { href: "/leaves", label: "树叶", en: "Leaves", icon: Leaf },
   ...NAV_ITEMS.filter((item) => ["/growth", "/settings"].includes(item.href)),
 ];

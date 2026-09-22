@@ -165,6 +165,34 @@ export interface LeavesEntry {
   reversalOf?: number;
 }
 
+export type MainlineCategory =
+  | "论文"
+  | "投稿"
+  | "修稿"
+  | "实验"
+  | "写作"
+  | "杂事"
+  | "休息"
+  | "空白";
+
+export interface DailyMainRecord {
+  id?: number;
+  date: string;
+  category: MainlineCategory;
+  note?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface MilestoneRecord {
+  id?: number;
+  date: string;
+  title: string;
+  note?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface TimeThread {
   id?: number;
   name: string;
@@ -214,6 +242,8 @@ export class XiaoShuDB extends Dexie {
   timeMerge!: Table<TimeMerge, number>;
   todo!: Table<TodoRecord, number>;
   leaves!: Table<LeavesEntry, number>;
+  dailyMain!: Table<DailyMainRecord, number>;
+  milestones!: Table<MilestoneRecord, number>;
 
   constructor() {
     super("xiaoshu-growth-os");
@@ -265,6 +295,10 @@ export class XiaoShuDB extends Dexie {
     });
     this.version(9).stores({
       leaves: "++id, occurredAt, date, sourceType, sourceId, &sourceKey",
+    });
+    this.version(10).stores({
+      dailyMain: "++id, &date, category, updatedAt",
+      milestones: "++id, date, createdAt",
     });
   }
 }

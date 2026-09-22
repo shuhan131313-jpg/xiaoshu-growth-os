@@ -19,6 +19,8 @@ export const BACKUP_TABLE_NAMES = [
   "timeMerge",
   "todo",
   "leaves",
+  "dailyMain",
+  "milestones",
 ] as const;
 
 export type BackupTableName = (typeof BACKUP_TABLE_NAMES)[number];

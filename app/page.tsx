@@ -16,6 +16,7 @@ import {
   Circle,
   Trash2,
   Leaf,
+  ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,12 +25,14 @@ import { todayKey, greeting, weekdayCN } from "@/lib/utils";
 import { getTodayTaskMap, getTodayDuration, getHeatmap } from "@/lib/summary";
 import { getGrowthStep } from "@/lib/growth";
 import { repos } from "@/lib/db/repo";
-import type { FavoriteRecord } from "@/lib/db/db";
+import type { DailyMainRecord, FavoriteRecord } from "@/lib/db/db";
 import {
   getLeavesSummary,
   setReadingCompleteWithLeaves,
   type LeavesSummary,
 } from "@/lib/leaves";
+import { getDailyMain } from "@/lib/mainline";
+import { MainlineSheet } from "@/components/mainline/mainline-sheet";
 
 /** 自动打卡模块：完成对应操作后由数据驱动点亮，无需首页手动点选（阅读除外） */
 const AUTO_KEYS = new Set(["exercise", "english", "research", "experiment", "gratitude"]);
@@ -53,6 +56,8 @@ export default function TodayPage() {
   const [expCount, setExpCount] = useState(0);
   const [gratitudeCount, setGratitudeCount] = useState(0);
   const [ready, setReady] = useState(false);
+  const [mainline, setMainline] = useState<DailyMainRecord | undefined>();
+  const [mainlineOpen, setMainlineOpen] = useState(false);
   const [leaves, setLeaves] = useState<LeavesSummary>({
     balance: 0,
     todayNet: 0,
@@ -61,7 +66,7 @@ export default function TodayPage() {
   });
 
   async function load() {
-    const [map, dur, h, fv, gstep, ex, rs, exp, gratitude, leafSummary] = await Promise.all([
+    const [map, dur, h, fv, gstep, ex, rs, exp, gratitude, leafSummary, dailyMain] = await Promise.all([
       getTodayTaskMap(date),
       getTodayDuration(date),
       getHeatmap(7),
@@ -72,6 +77,7 @@ export default function TodayPage() {
       repos.experiment.whereDate(date),
       repos.gratitude.whereDate(date),
       getLeavesSummary(),
+      getDailyMain(date),
     ]);
     setTaskMap(map);
     setDuration(dur);
@@ -83,6 +89,7 @@ export default function TodayPage() {
     setExpCount(exp.length);
     setGratitudeCount(gratitude.length);
     setLeaves(leafSummary);
+    setMainline(dailyMain);
     setReady(true);
   }
 
@@ -151,6 +158,30 @@ export default function TodayPage() {
         <h1 className="mt-2 text-[32px] font-semibold tracking-[-0.035em] text-ink">
           {greeting(now)}，树。
         </h1>
+        <button
+          type="button"
+          onClick={() => setMainlineOpen(true)}
+          className="mt-6 flex w-full items-center justify-between border-y border-line py-4 text-left"
+        >
+          <span className="min-w-0">
+            <span className="block text-[10px] font-medium uppercase tracking-[0.16em] text-ink-faint">
+              Today&apos;s Main
+            </span>
+            {mainline ? (
+              <>
+                <span className="mt-1 block text-lg font-semibold text-ink">{mainline.category}</span>
+                {mainline.note && (
+                  <span className="mt-0.5 block truncate text-sm text-ink-soft">{mainline.note}</span>
+                )}
+              </>
+            ) : (
+              <span className="mt-1 block text-base font-medium text-ink">今天的主线是什么？</span>
+            )}
+          </span>
+          <span className="ml-4 flex shrink-0 items-center gap-0.5 text-xs text-primary">
+            {mainline ? "修改" : "选择主线"}<ChevronRight className="h-4 w-4" />
+          </span>
+        </button>
       </header>
 
       <Link href="/leaves" className="block rounded-xl bg-primary px-5 py-5 text-white">
@@ -313,6 +344,14 @@ export default function TodayPage() {
       </Card>
 
       {!ready && <p className="py-6 text-center text-sm text-ink-faint">加载中…</p>}
+
+      <MainlineSheet
+        open={mainlineOpen}
+        date={date}
+        existing={mainline}
+        onClose={() => setMainlineOpen(false)}
+        onSaved={setMainline}
+      />
     </div>
   );
 }

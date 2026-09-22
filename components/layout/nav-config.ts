@@ -10,6 +10,8 @@ import {
   Heart,
   LineChart,
   Settings,
+  Route,
+  Diamond,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,6 +33,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/research", label: "论文", en: "Research", icon: PenLine },
   { href: "/experiment", label: "实验", en: "Experiment", icon: FlaskConical },
   { href: "/gratitude", label: "感恩日记", en: "Gratitude", icon: Heart },
+  { href: "/mainline", label: "主线", en: "Mainline", icon: Route },
+  { href: "/milestones", label: "里程碑", en: "Milestones", icon: Diamond },
   { href: "/growth", label: "成长回顾", en: "Growth", icon: LineChart },
   { href: "/settings", label: "设置", en: "Settings", icon: Settings },
 ];

@@ -37,6 +37,8 @@ export const repos = {
   timeMerge: repo(db.timeMerge),
   todo: repo(db.todo),
   leaves: repo(db.leaves),
+  dailyMain: repo(db.dailyMain),
+  milestones: repo(db.milestones),
 };
 
 export type Repo = ReturnType<typeof repo>;
