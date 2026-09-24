@@ -5,6 +5,10 @@ import { RotateCcw, Copy } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 import { BoxplotAnalysisBoundary } from "@/components/boxplot/boxplot-analysis-boundary";
 import {
+  BOXPLOT_GROUP_PALETTE,
+  BOXPLOT_TREATMENT_LEGEND,
+} from "@/lib/boxplot-palette";
+import {
   computeCLD,
   computeMeanSd,
   computeStats,
@@ -260,16 +264,20 @@ export default function BoxPlotPage() {
       <BoxplotAnalysisBoundary resetKey={JSON.stringify(data)}>
       {/* 图表区 */}
       <div className="mt-6 rounded-xl border border-line bg-card p-4 shadow-card">
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm font-medium text-primary">实时箱型图</p>
-          <div className="flex items-center gap-4 text-[11px] text-ink-soft">
-            <span className="inline-flex items-center gap-1">
-              <span className="inline-block h-3 w-3 rounded-sm bg-primary/70" /> 四分位区间(IQR)
+          <span className="text-[11px] text-ink-faint">同一处理的高 / 低剂量使用同色</span>
+        </div>
+        <div className="mb-3 flex flex-wrap gap-x-3 gap-y-1.5 text-[10px] text-ink-soft">
+          {BOXPLOT_TREATMENT_LEGEND.map(({ label, palette }) => (
+            <span key={label} className="inline-flex items-center gap-1">
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-sm border"
+                style={{ backgroundColor: palette.fill, borderColor: palette.stroke }}
+              />
+              {label}
             </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-gold" /> 离群点
-            </span>
-          </div>
+          ))}
         </div>
 
         <div className="overflow-x-auto">
@@ -315,6 +323,7 @@ export default function BoxPlotPage() {
             {GROUP_NAMES.map((name, g) => {
               const cx = M.left + (g + 0.5) * slot;
               const s = stats[g];
+              const palette = BOXPLOT_GROUP_PALETTE[g];
               return (
                 <g key={name}>
                   {/* X 轴刻度 */}
@@ -340,7 +349,7 @@ export default function BoxPlotPage() {
                   {s && s.values.length > 0 && (
                     <>
                       {s.values.length === 1 ? (
-                        <circle cx={cx} cy={yOf(s.q2)} r={3.5} fill="#1A3F90" />
+                        <circle cx={cx} cy={yOf(s.q2)} r={3.5} fill={palette.stroke} />
                       ) : (
                         <>
                           {/* 须线 */}
@@ -349,7 +358,7 @@ export default function BoxPlotPage() {
                             y1={yOf(s.q3)}
                             x2={cx}
                             y2={yOf(s.whiskerHigh)}
-                            stroke="#1A3F90"
+                            stroke={palette.stroke}
                             strokeWidth={1.5}
                           />
                           <line
@@ -357,7 +366,7 @@ export default function BoxPlotPage() {
                             y1={yOf(s.q1)}
                             x2={cx}
                             y2={yOf(s.whiskerLow)}
-                            stroke="#1A3F90"
+                            stroke={palette.stroke}
                             strokeWidth={1.5}
                           />
                           {/* 须端短横 */}
@@ -366,7 +375,7 @@ export default function BoxPlotPage() {
                             y1={yOf(s.whiskerHigh)}
                             x2={cx + boxW / 3}
                             y2={yOf(s.whiskerHigh)}
-                            stroke="#1A3F90"
+                            stroke={palette.stroke}
                             strokeWidth={1.5}
                           />
                           <line
@@ -374,7 +383,7 @@ export default function BoxPlotPage() {
                             y1={yOf(s.whiskerLow)}
                             x2={cx + boxW / 3}
                             y2={yOf(s.whiskerLow)}
-                            stroke="#1A3F90"
+                            stroke={palette.stroke}
                             strokeWidth={1.5}
                           />
                           {/* 箱体 */}
@@ -383,9 +392,8 @@ export default function BoxPlotPage() {
                             y={yOf(s.q3)}
                             width={boxW}
                             height={Math.max(1, yOf(s.q1) - yOf(s.q3))}
-                            fill="#1A3F90"
-                            fillOpacity={0.18}
-                            stroke="#1A3F90"
+                            fill={palette.fill}
+                            stroke={palette.stroke}
                             strokeWidth={1.5}
                           />
                           {/* 中位数 */}
@@ -394,14 +402,22 @@ export default function BoxPlotPage() {
                             y1={yOf(s.q2)}
                             x2={cx + boxW / 2}
                             y2={yOf(s.q2)}
-                            stroke="#122C66"
+                            stroke={palette.stroke}
                             strokeWidth={2}
                           />
                         </>
                       )}
                       {/* 离群点 */}
                       {s.outliers.map((o, k) => (
-                        <circle key={k} cx={cx} cy={yOf(o)} r={3} fill="#E6C260" stroke="#C9A43F" strokeWidth={0.5} />
+                        <circle
+                          key={k}
+                          cx={cx}
+                          cy={yOf(o)}
+                          r={3}
+                          fill={palette.stroke}
+                          stroke={palette.fill}
+                          strokeWidth={0.8}
+                        />
                       ))}
                     </>
                   )}
@@ -442,16 +458,9 @@ export default function BoxPlotPage() {
 
       {/* 均值 ± 标准差 柱形误差棒图（独立图表） */}
       <div className="mt-6 rounded-xl border border-line bg-card p-4 shadow-card">
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm font-medium text-primary">均值 ± 标准差 · 柱形误差棒图</p>
-          <div className="flex items-center gap-4 text-[11px] text-ink-soft">
-            <span className="inline-flex items-center gap-1">
-              <span className="inline-block h-3 w-3 rounded-sm bg-primary/70" /> 均值
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="inline-block h-0.5 w-4 bg-gold" /> 标准差
-            </span>
-          </div>
+          <span className="text-[11px] text-ink-faint">浅色柱为均值，同色线为标准差</span>
         </div>
 
         <div className="overflow-x-auto">
@@ -477,6 +486,7 @@ export default function BoxPlotPage() {
             {GROUP_NAMES.map((name, g) => {
               const cx = BM.left + (g + 0.5) * bSlot;
               const m = meanStd[g];
+              const palette = BOXPLOT_GROUP_PALETTE[g];
               return (
                 <g key={name}>
                   {/* X 轴刻度 */}
@@ -494,9 +504,8 @@ export default function BoxPlotPage() {
                         y={bYOf(m.mean)}
                         width={barW}
                         height={Math.max(1, BM.top + bPlotH - bYOf(m.mean))}
-                        fill="#1A3F90"
-                        fillOpacity={0.2}
-                        stroke="#1A3F90"
+                        fill={palette.fill}
+                        stroke={palette.stroke}
                         strokeWidth={1.5}
                       />
                       {/* 误差棒（均值 ± 标准差） */}
@@ -507,7 +516,7 @@ export default function BoxPlotPage() {
                             y1={bYOf(m.mean + m.sd)}
                             x2={cx}
                             y2={bYOf(m.mean - m.sd)}
-                            stroke="#E6C260"
+                            stroke={palette.stroke}
                             strokeWidth={2}
                           />
                           <line
@@ -515,7 +524,7 @@ export default function BoxPlotPage() {
                             y1={bYOf(m.mean + m.sd)}
                             x2={cx + barW / 3}
                             y2={bYOf(m.mean + m.sd)}
-                            stroke="#E6C260"
+                            stroke={palette.stroke}
                             strokeWidth={2}
                           />
                           <line
@@ -523,7 +532,7 @@ export default function BoxPlotPage() {
                             y1={bYOf(m.mean - m.sd)}
                             x2={cx + barW / 3}
                             y2={bYOf(m.mean - m.sd)}
-                            stroke="#E6C260"
+                            stroke={palette.stroke}
                             strokeWidth={2}
                           />
                         </>
@@ -536,7 +545,7 @@ export default function BoxPlotPage() {
                           textAnchor="middle"
                           fontSize={13}
                           fontWeight={700}
-                          fill="#1A3F90"
+                          fill={palette.stroke}
                         >
                           {cld.labels[g]}
                         </text>
