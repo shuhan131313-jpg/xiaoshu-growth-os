@@ -12,6 +12,7 @@ import {
   Settings,
   Route,
   Diamond,
+  Utensils,
   type LucideIcon,
 } from "lucide-react";
 
@@ -27,6 +28,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "今日", en: "Today", icon: Home },
   { href: "/exercise", label: "运动", en: "Exercise", icon: Dumbbell },
   { href: "/account", label: "记账", en: "Account", icon: Wallet },
+  { href: "/food", label: "饮食记录", en: "Food", icon: Utensils },
   { href: "/boxplot", label: "箱型图", en: "Box Plot", icon: Box },
   { href: "/reading", label: "阅读", en: "Reading", icon: BookOpen },
   { href: "/english", label: "英文阅读", en: "English", icon: Type },

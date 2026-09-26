@@ -17,6 +17,7 @@ import {
   Trash2,
   Leaf,
   ChevronRight,
+  Utensils,
 } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -58,6 +59,7 @@ export default function TodayPage() {
   const [ready, setReady] = useState(false);
   const [mainline, setMainline] = useState<DailyMainRecord | undefined>();
   const [mainlineOpen, setMainlineOpen] = useState(false);
+  const [foodSummary, setFoodSummary] = useState({ total: 0, unplanned: 0 });
   const [leaves, setLeaves] = useState<LeavesSummary>({
     balance: 0,
     todayNet: 0,
@@ -66,7 +68,7 @@ export default function TodayPage() {
   });
 
   async function load() {
-    const [map, dur, h, fv, gstep, ex, rs, exp, gratitude, leafSummary, dailyMain] = await Promise.all([
+    const [map, dur, h, fv, gstep, ex, rs, exp, gratitude, leafSummary, dailyMain, foodRecords] = await Promise.all([
       getTodayTaskMap(date),
       getTodayDuration(date),
       getHeatmap(7),
@@ -78,6 +80,7 @@ export default function TodayPage() {
       repos.gratitude.whereDate(date),
       getLeavesSummary(),
       getDailyMain(date),
+      repos.foodRecords.whereDate(date),
     ]);
     setTaskMap(map);
     setDuration(dur);
@@ -90,6 +93,10 @@ export default function TodayPage() {
     setGratitudeCount(gratitude.length);
     setLeaves(leafSummary);
     setMainline(dailyMain);
+    setFoodSummary({
+      total: foodRecords.length,
+      unplanned: foodRecords.filter((record) => record.isUnplanned).length,
+    });
     setReady(true);
   }
 
@@ -239,6 +246,21 @@ export default function TodayPage() {
           })}
         </div>
       </section>
+
+      <Link
+        href="/food"
+        className="flex items-center justify-between border-y border-line py-3.5 text-left transition hover:border-primary/30"
+      >
+        <span className="flex items-center gap-2 text-sm font-medium text-ink">
+          <Utensils className="h-4 w-4 text-primary" strokeWidth={1.8} /> 今日饮食
+        </span>
+        <span className="flex items-center gap-1 text-xs text-ink-faint">
+          {foodSummary.total > 0
+            ? `已记录 ${foodSummary.total} 次 · 计划外 ${foodSummary.unplanned} 次`
+            : "还没有记录"}
+          <ChevronRight className="h-4 w-4" />
+        </span>
+      </Link>
 
       {/* 收藏夹（折叠面板） */}
       <Card>

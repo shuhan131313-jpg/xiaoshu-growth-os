@@ -8,6 +8,7 @@
     "start": "next start",
     "gen:icons": "node scripts/gen-icons.mjs",
     "test:boxplot": "node scripts/test-boxplot.mjs",
+    "test:food": "node scripts/test-food.mjs",
     "test:leaves": "node scripts/test-leaves.mjs",
     "test:mainline": "node scripts/test-mainline.mjs"
   },

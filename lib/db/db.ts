@@ -1,4 +1,5 @@
 import Dexie, { type Table } from "dexie";
+import type { FoodRecordData } from "../food-rules";
 
 export interface DailyTask {
   id?: number;
@@ -193,6 +194,10 @@ export interface MilestoneRecord {
   updatedAt: number;
 }
 
+export interface FoodRecord extends FoodRecordData {
+  id?: number;
+}
+
 export interface TimeThread {
   id?: number;
   name: string;
@@ -244,6 +249,7 @@ export class XiaoShuDB extends Dexie {
   leaves!: Table<LeavesEntry, number>;
   dailyMain!: Table<DailyMainRecord, number>;
   milestones!: Table<MilestoneRecord, number>;
+  foodRecords!: Table<FoodRecord, number>;
 
   constructor() {
     super("xiaoshu-growth-os");
@@ -299,6 +305,9 @@ export class XiaoShuDB extends Dexie {
     this.version(10).stores({
       dailyMain: "++id, &date, category, updatedAt",
       milestones: "++id, date, createdAt",
+    });
+    this.version(11).stores({
+      foodRecords: "++id, date, createdAt",
     });
   }
 }
