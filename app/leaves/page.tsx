@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Cookie, Leaf, MinusCircle, Smartphone, Undo2 } from "lucide-react";
+import { Leaf, MinusCircle, Smartphone, Undo2 } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -104,15 +104,7 @@ export default function LeavesPage() {
           <h2 className="text-sm font-semibold text-ink">快速扣分</h2>
           <p className="mt-0.5 text-xs text-ink-faint">选择一次即可记录，8 秒内可以撤销</p>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => deduct("计划外零食", 10)}
-            className="flex min-h-20 flex-col items-start justify-between rounded-xl border border-line bg-card p-3 text-left"
-          >
-            <Cookie className="h-5 w-5 text-primary" strokeWidth={1.7} />
-            <span className="text-xs text-ink">计划外零食 <span className="text-[#9A6663]">−10</span></span>
-          </button>
+        <div className="grid grid-cols-1 gap-2">
           <button
             type="button"
             onClick={() => deduct("无目的刷手机超过30分钟", 20)}

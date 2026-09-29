@@ -1,176 +1,107 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Play, Pause, RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
+export interface TimerHandle {
+  finish: () => number | null;
+  reset: () => void;
+}
+
 interface TimerProps {
-  mode?: "countup" | "countdown";
-  /** 倒计时目标秒数（mode=countdown 时必填） */
-  targetSeconds?: number;
-  goalLabel?: string;
-  onComplete?: (elapsed: number) => void;
-  onStop?: (elapsed: number) => void;
   size?: number;
-  /** 是否显示「重置」按钮，默认显示；阅读页正向计时仅保留启动/暂停/结束时设为 false */
-  showReset?: boolean;
   className?: string;
+  disabled?: boolean;
+  onActiveChange?: (active: boolean) => void;
 }
 
 function fmt(sec: number): string {
-  const s = Math.max(0, Math.floor(sec));
-  const m = Math.floor(s / 60);
-  const r = s % 60;
-  return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
+  const value = Math.max(0, Math.floor(sec));
+  const hours = Math.floor(value / 3600);
+  const minutes = Math.floor((value % 3600) / 60);
+  const seconds = value % 60;
+  return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
 }
 
-export function Timer({
-  mode = "countup",
-  targetSeconds = 0,
-  goalLabel,
-  onComplete,
-  onStop,
-  size = 220,
-  showReset = true,
-  className,
-}: TimerProps) {
+/** 论文专注使用的开放式计时器：中央开始，外部按钮结束并记录。 */
+export const Timer = forwardRef<TimerHandle, TimerProps>(function Timer(
+  { size = 128, className, disabled = false, onActiveChange },
+  ref
+) {
   const [elapsed, setElapsed] = useState(0);
-  const [running, setRunning] = useState(false);
-  const [done, setDone] = useState(false);
-  const anchorRef = useRef<number>(0); // 暂停时累计的起点
-  const rafRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const settledRef = useRef(false);
-
-  const isCountdown = mode === "countdown";
-  const total = isCountdown ? Math.max(1, targetSeconds) : elapsed;
-  const remaining = Math.max(0, targetSeconds - elapsed);
-  const display = isCountdown ? remaining : elapsed;
-  const ratio = isCountdown
-    ? Math.min(1, elapsed / Math.max(1, targetSeconds))
-    : 0;
+  const [active, setActive] = useState(false);
+  const startedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!running) return;
-    anchorRef.current = Date.now() - elapsed * 1000;
-    rafRef.current = setInterval(() => {
-      const e = Math.floor((Date.now() - anchorRef.current) / 1000);
-      setElapsed(e);
-      if (isCountdown && e >= targetSeconds && !settledRef.current) {
-        settledRef.current = true;
-        setRunning(false);
-        setElapsed(targetSeconds);
-        setDone(true);
-        onComplete?.(targetSeconds);
-      }
-    }, 250);
-    return () => {
-      if (rafRef.current) clearInterval(rafRef.current);
+    if (!active || startedAtRef.current == null) return;
+    const update = () => {
+      if (startedAtRef.current == null) return;
+      setElapsed(Math.floor((Date.now() - startedAtRef.current) / 1000));
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running]);
+    update();
+    const interval = window.setInterval(update, 250);
+    return () => window.clearInterval(interval);
+  }, [active]);
 
-  function toggle() {
-    if (done) return;
-    setRunning((r) => !r);
-  }
-  function reset() {
-    setRunning(false);
+  function start() {
+    if (active || disabled) return;
+    startedAtRef.current = Date.now();
     setElapsed(0);
-    setDone(false);
-    settledRef.current = false;
-    anchorRef.current = 0;
-  }
-  function stop() {
-    if (done || settledRef.current) return;
-    settledRef.current = true;
-    if (running) setRunning(false);
-    setDone(true);
-    onStop?.(elapsed);
+    setActive(true);
+    onActiveChange?.(true);
   }
 
-  // SVG 圆环
-  const stroke = 10;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const offset = c * (1 - ratio);
+  useImperativeHandle(ref, () => ({
+    finish() {
+      if (!active || startedAtRef.current == null) return null;
+      const seconds = Math.max(0, Math.floor((Date.now() - startedAtRef.current) / 1000));
+      setElapsed(seconds);
+      setActive(false);
+      onActiveChange?.(false);
+      return seconds;
+    },
+    reset() {
+      startedAtRef.current = null;
+      setElapsed(0);
+      setActive(false);
+      onActiveChange?.(false);
+    },
+  }), [active, onActiveChange]);
+
+  const stroke = 6;
+  const radius = (size - stroke) / 2;
 
   return (
-    <div className={cn("flex flex-col items-center gap-5", className)}>
+    <div className={cn("flex justify-center", className)}>
       <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} className="-rotate-90">
+        <svg width={size} height={size} aria-hidden="true">
           <circle
             cx={size / 2}
             cy={size / 2}
-            r={r}
-            fill="none"
-            stroke="#E8E8E5"
+            r={radius}
+            fill="#FFFFFF"
+            stroke="#D9DEDF"
             strokeWidth={stroke}
           />
-          {isCountdown && (
-            <circle
-              cx={size / 2}
-              cy={size / 2}
-              r={r}
-              fill="none"
-              stroke="#38506B"
-              strokeWidth={stroke}
-              strokeLinecap="round"
-              strokeDasharray={c}
-              strokeDashoffset={offset}
-              className="transition-[stroke-dashoffset] duration-300"
-            />
-          )}
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span
-            className="tabular font-semibold text-ink"
-            style={{ fontSize: Math.round(size * 0.218) }}
-          >
-            {fmt(display)}
-          </span>
-          {goalLabel && (
-            <span className="mt-1 text-xs text-ink-faint">{goalLabel}</span>
-          )}
-          {done && (
-            <span className="mt-1 text-sm font-medium text-accent-dark">
-              ✓ 完成
+        <div className="absolute inset-0 flex items-center justify-center">
+          {active ? (
+            <span className="tabular text-xl font-semibold tracking-tight text-ink">
+              {fmt(elapsed)}
             </span>
+          ) : (
+            <button
+              type="button"
+              onClick={start}
+              disabled={disabled}
+              className="flex h-full w-full items-center justify-center rounded-full text-base font-semibold text-primary transition hover:bg-primary/[0.03]"
+              aria-label="开始论文专注"
+            >
+              开始
+            </button>
           )}
         </div>
       </div>
-
-      <div className="flex w-full flex-wrap items-center justify-center gap-3">
-        <Button
-          variant={running ? "outline" : "accent"}
-          size="lg"
-          onClick={toggle}
-          disabled={done}
-          className="w-32"
-        >
-          {running ? (
-            <>
-              <Pause className="h-4 w-4" /> 暂停
-            </>
-          ) : done ? (
-            "已完成"
-          ) : (
-            <>
-              <Play className="h-4 w-4" /> 开始
-            </>
-          )}
-        </Button>
-        {showReset && (
-          <Button variant="ghost" size="icon" onClick={reset} aria-label="重置">
-            <RotateCcw className="h-5 w-5" />
-          </Button>
-        )}
-        {onStop && (
-          <Button variant="ghost" size="sm" onClick={stop} className="basis-full">
-            结束并记录
-          </Button>
-        )}
-      </div>
     </div>
   );
-}
+});

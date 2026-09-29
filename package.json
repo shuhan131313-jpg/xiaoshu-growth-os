@@ -11,6 +11,7 @@
     "test:food": "node scripts/test-food.mjs",
     "test:leaves": "node scripts/test-leaves.mjs",
     "test:mainline": "node scripts/test-mainline.mjs",
+    "test:research": "node scripts/test-research.mjs",
     "test:weight-range": "node scripts/test-weight-range.mjs"
   },
   "dependencies": {

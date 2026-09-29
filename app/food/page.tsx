@@ -19,6 +19,7 @@ export default function FoodPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [isUnplanned, setIsUnplanned] = useState(false);
   const [editing, setEditing] = useState<FoodRecord | undefined>();
+  const [feedback, setFeedback] = useState("");
   const summary = foodDaySummary(records);
 
   useEffect(() => {
@@ -39,17 +40,25 @@ export default function FoodPage() {
     setSheetOpen(true);
   }
 
-  function saved(record: FoodRecord) {
+  function showFeedback(message: string) {
+    setFeedback(message);
+    window.setTimeout(() => setFeedback(""), 2500);
+  }
+
+  function saved(record: FoodRecord, leavesDelta: number) {
     setRecords((current) =>
       sortFoodRecords([record, ...current.filter((item) => item.id !== record.id)])
     );
+    if (leavesDelta < 0) showFeedback(`已记录计划外饮食 · ${leavesDelta} 🌿`);
+    else if (leavesDelta > 0) showFeedback(`已改为普通饮食 · +${leavesDelta} 🌿`);
   }
 
   async function remove(record: FoodRecord) {
     if (record.id == null) return;
     if (!window.confirm(`删除“${record.content}”这条饮食记录吗？`)) return;
-    await deleteFoodRecord(record.id);
+    const leavesDelta = await deleteFoodRecord(record.id);
     setRecords((current) => current.filter((item) => item.id !== record.id));
+    if (leavesDelta > 0) showFeedback(`已删除并恢复 · +${leavesDelta} 🌿`);
   }
 
   return (
@@ -88,6 +97,12 @@ export default function FoodPage() {
         )}
       </section>
 
+      {feedback && (
+        <p className="rounded-lg bg-[#F2F2F0] px-3 py-2 text-center text-xs text-ink-soft">
+          {feedback}
+        </p>
+      )}
+
       <Link
         href="/food/history"
         className="flex h-11 items-center justify-center gap-2 rounded-xl text-sm text-ink-soft transition hover:bg-line/50"
@@ -96,7 +111,7 @@ export default function FoodPage() {
       </Link>
 
       <p className="flex items-center justify-center gap-1.5 text-[11px] text-ink-faint">
-        <Cookie className="h-3.5 w-3.5" /> “计划外”只是记录标签，不会自动扣除树叶
+        <Cookie className="h-3.5 w-3.5" /> 每条“计划外”饮食自动扣除 20 树叶
       </p>
 
       <FoodRecordSheet

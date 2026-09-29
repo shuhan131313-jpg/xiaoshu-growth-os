@@ -3,14 +3,20 @@ import { db } from "./db/db";
 import type {
   ExerciseRecord,
   ExperimentRecord,
+  FoodRecord,
   LeavesEntry,
   LeavesSourceType,
   ResearchRecord,
 } from "./db/db";
 import {
   DAILY_LEAVES,
+  FOOD_UNPLANNED_DEDUCTION,
   LEAVES_ACTIVATED_AT_KEY,
   dailyRewardKey,
+  foodUnplannedDeductionKey,
+  foodUnplannedDeleteDelta,
+  foodUnplannedReversalKey,
+  foodUnplannedTransitionDelta,
   researchRewardKey,
   researchLeavesForSeconds,
   startOfWeek,
@@ -169,6 +175,117 @@ export async function addResearchWithLeaves(
       record.createdAt
     );
     return { id, awarded: entryId == null ? 0 : amount };
+  });
+}
+
+export interface FoodLeavesResult {
+  record: FoodRecord;
+  leavesDelta: number;
+}
+
+async function activeFoodDeduction(sourceId: string): Promise<LeavesEntry | undefined> {
+  const entries = await db.leaves.where("sourceId").equals(sourceId).toArray();
+  const reversed = new Set(
+    entries
+      .filter((entry) => entry.sourceType === "food_unplanned_reversal" && entry.reversalOf != null)
+      .map((entry) => entry.reversalOf)
+  );
+  return entries
+    .filter((entry) => entry.sourceType === "food_unplanned" && entry.id != null)
+    .sort((left, right) => right.occurredAt - left.occurredAt)
+    .find((entry) => !reversed.has(entry.id));
+}
+
+async function deductForUnplannedFood(
+  record: FoodRecord & { id: number },
+  occurredAt: number
+): Promise<number> {
+  const sourceId = String(record.id);
+  const entries = await db.leaves.where("sourceId").equals(sourceId).toArray();
+  const cycle = entries.filter((entry) => entry.sourceType === "food_unplanned").length + 1;
+  const entryId = await addAutomaticEntry(
+    "food_unplanned",
+    sourceId,
+    foodUnplannedDeductionKey(sourceId, cycle),
+    record.date,
+    `计划外饮食 · ${record.content}`,
+    -FOOD_UNPLANNED_DEDUCTION,
+    occurredAt
+  );
+  return entryId == null ? 0 : -FOOD_UNPLANNED_DEDUCTION;
+}
+
+async function reverseUnplannedFood(
+  record: FoodRecord & { id: number },
+  occurredAt: number
+): Promise<number> {
+  const original = await activeFoodDeduction(String(record.id));
+  if (!original?.id) return 0;
+  const entryId = await addUniqueEntry({
+    occurredAt,
+    date: todayKey(new Date(occurredAt)),
+    sourceType: "food_unplanned_reversal",
+    sourceId: String(record.id),
+    sourceKey: foodUnplannedReversalKey(original.id),
+    description: `恢复计划外饮食 · ${record.content}`,
+    amount: FOOD_UNPLANNED_DEDUCTION,
+    mode: "automatic",
+    reversalOf: original.id,
+  });
+  return entryId == null ? 0 : FOOD_UNPLANNED_DEDUCTION;
+}
+
+/** 新增饮食与对应扣分在同一事务中完成；普通饮食不会产生流水。 */
+export async function addFoodRecordWithLeaves(record: FoodRecord): Promise<FoodLeavesResult> {
+  return db.transaction("rw", db.foodRecords, db.settings, db.leaves, async () => {
+    const id = await db.foodRecords.add(record);
+    const saved = { ...record, id };
+    const leavesDelta = record.isUnplanned
+      ? await deductForUnplannedFood(saved, record.createdAt)
+      : 0;
+    return { record: saved, leavesDelta };
+  });
+}
+
+/** 编辑文字不重复扣分；只有普通/计划外状态发生变化时才新增扣分或恢复流水。 */
+export async function updateFoodRecordWithLeaves(
+  id: number,
+  patch: Pick<FoodRecord, "content" | "isUnplanned" | "updatedAt">
+): Promise<FoodLeavesResult> {
+  return db.transaction("rw", db.foodRecords, db.settings, db.leaves, async () => {
+    const existing = await db.foodRecords.get(id);
+    if (!existing) throw new Error("找不到这条饮食记录");
+    const record = { ...existing, ...patch, id };
+    await db.foodRecords.put(record);
+
+    const hasActiveDeduction = (await activeFoodDeduction(String(id))) != null;
+    const transitionDelta = foodUnplannedTransitionDelta(
+      existing.isUnplanned,
+      record.isUnplanned,
+      hasActiveDeduction
+    );
+    let leavesDelta = 0;
+    if (transitionDelta < 0) {
+      leavesDelta = await deductForUnplannedFood(record, patch.updatedAt);
+    } else if (transitionDelta > 0) {
+      leavesDelta = await reverseUnplannedFood(existing as FoodRecord & { id: number }, patch.updatedAt);
+    }
+    return { record, leavesDelta };
+  });
+}
+
+/** 删除已实际扣分的计划外饮食时先写入恢复流水，再删除业务记录。 */
+export async function deleteFoodRecordWithLeaves(id: number): Promise<number> {
+  const now = Date.now();
+  return db.transaction("rw", db.foodRecords, db.settings, db.leaves, async () => {
+    const existing = await db.foodRecords.get(id);
+    if (!existing) return 0;
+    const hasActiveDeduction = (await activeFoodDeduction(String(id))) != null;
+    const leavesDelta = foodUnplannedDeleteDelta(existing.isUnplanned, hasActiveDeduction) > 0
+      ? await reverseUnplannedFood(existing as FoodRecord & { id: number }, now)
+      : 0;
+    await db.foodRecords.delete(id);
+    return leavesDelta;
   });
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Utensils } from "lucide-react";
 import { Sheet } from "@/components/common/sheet";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ interface FoodRecordSheetProps {
   isUnplanned: boolean;
   existing?: FoodRecord;
   onClose: () => void;
-  onSaved: (record: FoodRecord) => void;
+  onSaved: (record: FoodRecord, leavesDelta: number) => void;
 }
 
 export function FoodRecordSheet({
@@ -25,28 +25,31 @@ export function FoodRecordSheet({
   onSaved,
 }: FoodRecordSheetProps) {
   const [content, setContent] = useState("");
+  const [unplanned, setUnplanned] = useState(isUnplanned);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
     setContent(existing?.content ?? "");
-  }, [open, existing]);
+    setUnplanned(existing?.isUnplanned ?? isUnplanned);
+  }, [open, existing, isUnplanned]);
 
   async function save() {
-    if (!content.trim() || saving) return;
+    if (!content.trim() || savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
-      const record = existing?.id != null
-        ? await updateFoodRecord(existing.id, content)
+      const result = existing?.id != null
+        ? await updateFoodRecord(existing.id, content, unplanned)
         : await addFoodRecord(content, isUnplanned);
-      onSaved(record);
+      onSaved(result.record, result.leavesDelta);
       onClose();
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
-
-  const unplanned = existing?.isUnplanned ?? isUnplanned;
 
   return (
     <Sheet
@@ -68,6 +71,33 @@ export function FoodRecordSheet({
             autoFocus
           />
         </div>
+        {existing && (
+          <div>
+            <Label>记录类型</Label>
+            <div className="grid grid-cols-2 gap-1 rounded-lg bg-[#F2F2F0] p-1">
+              <button
+                type="button"
+                onClick={() => setUnplanned(false)}
+                aria-pressed={!unplanned}
+                className={`h-9 rounded-md text-xs font-medium ${
+                  !unplanned ? "bg-white text-primary" : "text-ink-soft"
+                }`}
+              >
+                普通饮食
+              </button>
+              <button
+                type="button"
+                onClick={() => setUnplanned(true)}
+                aria-pressed={unplanned}
+                className={`h-9 rounded-md text-xs font-medium ${
+                  unplanned ? "bg-[#F4EEE5] text-[#866C4E]" : "text-ink-soft"
+                }`}
+              >
+                计划外
+              </button>
+            </div>
+          </div>
+        )}
         <div className="flex items-center gap-2 text-xs text-ink-faint">
           <Utensils className="h-3.5 w-3.5" />
           <span>{existing ? "编辑不会改变原始记录时间" : "保存时自动记录当前时间"}</span>

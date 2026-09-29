@@ -6,6 +6,8 @@ export const DAILY_LEAVES = {
   experiment: 10,
 } as const;
 
+export const FOOD_UNPLANNED_DEDUCTION = 20;
+
 export function researchLeavesForSeconds(elapsedSeconds: number): number {
   return Math.floor(Math.max(0, elapsedSeconds) / 600) * 5;
 }
@@ -19,6 +21,34 @@ export function dailyRewardKey(
 
 export function researchRewardKey(sourceId: string | number): string {
   return `auto:research:${sourceId}`;
+}
+
+export function foodUnplannedDeductionKey(
+  sourceId: string | number,
+  cycle: number
+): string {
+  return `auto:food-unplanned:${sourceId}:${cycle}`;
+}
+
+export function foodUnplannedReversalKey(entryId: string | number): string {
+  return `auto:food-unplanned-reversal:${entryId}`;
+}
+
+export function foodUnplannedTransitionDelta(
+  wasUnplanned: boolean,
+  isUnplanned: boolean,
+  hasActiveDeduction: boolean
+): number {
+  if (!wasUnplanned && isUnplanned) return -FOOD_UNPLANNED_DEDUCTION;
+  if (wasUnplanned && !isUnplanned && hasActiveDeduction) return FOOD_UNPLANNED_DEDUCTION;
+  return 0;
+}
+
+export function foodUnplannedDeleteDelta(
+  isUnplanned: boolean,
+  hasActiveDeduction: boolean
+): number {
+  return isUnplanned && hasActiveDeduction ? FOOD_UNPLANNED_DEDUCTION : 0;
 }
 
 export function startOfWeek(date: Date): string {

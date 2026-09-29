@@ -39,6 +39,8 @@ export interface ResearchRecord {
   date: string;
   duration: number;
   summary?: string;
+  /** 旧记录没有该字段时仍按普通历史记录读取。 */
+  source?: "timer" | "manual";
   createdAt: number;
 }
 
@@ -149,6 +151,8 @@ export type LeavesSourceType =
   | "exercise"
   | "experiment"
   | "research"
+  | "food_unplanned"
+  | "food_unplanned_reversal"
   | "manual_deduction"
   | "manual_undo";
 

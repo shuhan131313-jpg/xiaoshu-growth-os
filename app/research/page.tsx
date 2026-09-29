@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FlaskConical, RefreshCw, Check, Bookmark, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Timer } from "@/components/common/timer";
+import { Timer, type TimerHandle } from "@/components/common/timer";
 import { FoldList } from "@/components/common/fold-list";
 import { PageHeader } from "@/components/common/page-header";
 import { repos } from "@/lib/db/repo";
@@ -16,6 +15,8 @@ import { todayKey } from "@/lib/utils";
 import { bumpGrowthStep } from "@/lib/growth";
 import { setTodayTask } from "@/lib/summary";
 import { addResearchWithLeaves, getLeavesSummary } from "@/lib/leaves";
+import { clearResearchDraft, getResearchDraft, saveResearchDraft } from "@/lib/research-draft";
+import { timerDurationMinutes, validManualMinutes } from "@/lib/research-rules";
 import {
   LITERATURE_POOL,
   pickDistinct,
@@ -24,13 +25,17 @@ import {
 
 export default function ResearchPage() {
   const today = todayKey();
-  const [goalMin, setGoalMin] = useState(60);
   const [summary, setSummary] = useState("");
-  const [timerKey, setTimerKey] = useState(0);
   const [history, setHistory] = useState<ResearchRecord[]>([]);
-  const [saved, setSaved] = useState(false);
   const [todayLeaves, setTodayLeaves] = useState(0);
-  const [lastAward, setLastAward] = useState(0);
+  const [timerActive, setTimerActive] = useState(false);
+  const [savingSession, setSavingSession] = useState(false);
+  const [manualSummary, setManualSummary] = useState("");
+  const [manualMinutes, setManualMinutes] = useState("");
+  const [manualSaving, setManualSaving] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const timerRef = useRef<TimerHandle>(null);
+  const manualSubmittingRef = useRef(false);
 
   const [lit, setLit] = useState<LiteratureItem>(LITERATURE_POOL[0]);
   const [favs, setFavs] = useState<FavoriteRecord[]>([]);
@@ -53,26 +58,76 @@ export default function ResearchPage() {
 
   useEffect(() => {
     refresh();
+    getResearchDraft().then(setSummary);
     setLit(pickDistinct(LITERATURE_POOL));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function saveSession(elapsedSec: number, rewardEligible = true) {
-    const dur = Math.max(1, Math.round(elapsedSec / 60));
+  function showFeedback(message: string) {
+    setFeedback(message);
+    window.setTimeout(() => setFeedback(""), 3000);
+  }
+
+  async function createSession(
+    elapsedSec: number,
+    source: "timer" | "manual",
+    text: string
+  ) {
+    const dur = source === "manual"
+      ? validManualMinutes(elapsedSec / 60) ?? 1
+      : timerDurationMinutes(elapsedSec);
     const result = await addResearchWithLeaves({
       date: today,
       duration: dur,
-      summary: summary.trim() || undefined,
+      summary: text.trim() || undefined,
+      source,
       createdAt: Date.now(),
-    }, elapsedSec, rewardEligible);
+    }, elapsedSec);
     await setTodayTask(today, "research", true);
     await bumpGrowthStep();
-    setSummary("");
-    setLastAward(result.awarded);
-    if (rewardEligible) setTimerKey((key) => key + 1);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-    refresh();
+    await refresh();
+    return { duration: dur, awarded: result.awarded };
+  }
+
+  async function saveSummaryOnly() {
+    if (!summary.trim()) return;
+    await saveResearchDraft(summary);
+    showFeedback("本次专注内容已保存，计时继续");
+  }
+
+  async function finishTimer() {
+    if (savingSession) return;
+    const elapsedSec = timerRef.current?.finish();
+    if (elapsedSec == null) return;
+    setSavingSession(true);
+    try {
+      const result = await createSession(elapsedSec, "timer", summary);
+      await clearResearchDraft();
+      setSummary("");
+      timerRef.current?.reset();
+      showFeedback(`已记录 ${result.duration} min · +${result.awarded} 🌿`);
+    } finally {
+      setSavingSession(false);
+    }
+  }
+
+  async function addManualSession() {
+    const minutes = validManualMinutes(manualMinutes);
+    if (minutes == null || manualSubmittingRef.current) {
+      if (minutes == null) showFeedback("请输入大于 0 的有效时长");
+      return;
+    }
+    manualSubmittingRef.current = true;
+    setManualSaving(true);
+    try {
+      const result = await createSession(minutes * 60, "manual", manualSummary);
+      setManualSummary("");
+      setManualMinutes("");
+      showFeedback(`已补充 ${result.duration} min · +${result.awarded} 🌿`);
+    } finally {
+      manualSubmittingRef.current = false;
+      setManualSaving(false);
+    }
   }
 
   async function togglePaperFav() {
@@ -104,57 +159,97 @@ export default function ResearchPage() {
       <PageHeader title="论文专注" desc="专注写作，沉淀每日进展；顺手读一篇好文献" />
 
       {/* 写作计时 */}
-      <Card className="rounded-xl border border-primary/10 bg-card p-5 py-7 shadow-card">
-        <CardContent className="flex flex-col items-center gap-6">
-          <div className="flex w-full items-end justify-between border-b border-line pb-4">
-            <div>
-              <p className="text-xs text-ink-faint">今日累计</p>
-              <p className="tabular mt-1 text-2xl font-semibold text-ink">{todayMinutes}<span className="ml-1 text-sm font-normal text-ink-faint">min</span></p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-ink-faint">今日获得</p>
-              <p className="mt-1 text-sm font-medium text-primary">+{todayLeaves} 🌿</p>
-            </div>
-          </div>
-          <div className="w-full max-w-[180px] self-start">
-            <Label>专注目标（分钟）</Label>
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={goalMin}
-              onChange={(e) => setGoalMin(Number(e.target.value) || 0)}
-            />
-          </div>
-          <Timer
-            key={timerKey}
-            mode="countup"
-            goalLabel={`目标 ${goalMin} 分钟`}
-            onStop={saveSession}
-          />
-          {saved && (
-            <p className="flex items-center gap-1 text-sm text-accent-dark">
-              <Check className="h-4 w-4" /> 已保存写作记录{lastAward > 0 ? ` · +${lastAward} 🌿` : ""}
+      <section className="border-y border-line py-4">
+        <div className="flex items-end justify-between pb-3">
+          <div>
+            <p className="text-[11px] text-ink-faint">今日累计</p>
+            <p className="tabular mt-0.5 text-xl font-semibold text-ink">
+              {todayMinutes}<span className="ml-1 text-xs font-normal text-ink-faint">min</span>
             </p>
-          )}
-          <div className="w-full border-t border-line pt-5">
-            <Label>当日工作小结（结束计时后随记录保存）</Label>
-            <Textarea
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-              placeholder="今天推进了哪部分、卡在哪里、明天计划…"
-              rows={3}
-            />
+          </div>
+          <div className="text-right">
+            <p className="text-[11px] text-ink-faint">今日获得</p>
+            <p className="mt-0.5 text-sm font-medium text-primary">+{todayLeaves} 🌿</p>
+          </div>
+        </div>
+
+        <Timer
+          ref={timerRef}
+          size={128}
+          className="py-1"
+          disabled={savingSession}
+          onActiveChange={setTimerActive}
+        />
+
+        <div className="mt-3">
+          <Label>本次专注内容</Label>
+          <Input
+            value={summary}
+            onChange={(event) => setSummary(event.target.value)}
+            placeholder="修改 Discussion 和 Figure 2"
+            maxLength={240}
+          />
+          <div className="mt-2 grid grid-cols-[0.8fr_1.2fr] gap-2">
             <Button
               variant="soft"
-              className="mt-3 w-full"
-              onClick={() => saveSession(goalMin * 60, false)}
+              size="sm"
+              onClick={saveSummaryOnly}
               disabled={!summary.trim()}
             >
               仅保存小结
             </Button>
+            <Button
+              variant="accent"
+              size="sm"
+              onClick={finishTimer}
+              disabled={!timerActive || savingSession}
+            >
+              {savingSession ? "保存中…" : "结束并记录"}
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        <div className="mt-4 border-t border-line pt-4">
+          <p className="mb-2 text-xs font-medium text-primary">补充记录</p>
+          <Input
+            value={manualSummary}
+            onChange={(event) => setManualSummary(event.target.value)}
+            placeholder="刚才修改了结果部分"
+            maxLength={240}
+          />
+          <div className="mt-2 grid grid-cols-[1fr_1fr] gap-2">
+            <div className="relative">
+              <Input
+                type="number"
+                inputMode="numeric"
+                min="1"
+                step="1"
+                value={manualMinutes}
+                onChange={(event) => setManualMinutes(event.target.value)}
+                placeholder="时长"
+                className="pr-10"
+                aria-label="补充记录时长（分钟）"
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-faint">
+                min
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              onClick={addManualSession}
+              disabled={manualSaving || validManualMinutes(manualMinutes) == null}
+            >
+              {manualSaving ? "保存中…" : "补充记录"}
+            </Button>
+          </div>
+        </div>
+
+        {feedback && (
+          <p className="mt-3 flex items-center justify-center gap-1 rounded-lg bg-[#F2F2F0] px-3 py-2 text-xs text-ink-soft">
+            <Check className="h-3.5 w-3.5 text-primary" /> {feedback}
+          </p>
+        )}
+      </section>
 
       {/* 文献推荐 */}
       <div className="flex items-center justify-between px-1">
@@ -243,7 +338,7 @@ export default function ResearchPage() {
                       {r.date}
                     </span>
                     <span className="tabular text-xs text-ink-faint">
-                      {r.duration} 分钟
+                      {r.duration} 分钟{r.source === "manual" ? " · 补录" : ""}
                     </span>
                   </div>
                   {r.summary && (
