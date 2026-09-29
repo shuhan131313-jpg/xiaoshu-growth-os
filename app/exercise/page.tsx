@@ -17,6 +17,10 @@ import { todayKey } from "@/lib/utils";
 import { bumpGrowthStep } from "@/lib/growth";
 import { setTodayTask } from "@/lib/summary";
 import { addExerciseWithLeaves } from "@/lib/leaves";
+import {
+  filterRecordsByLocalDayRange,
+  type WeightTimeRange,
+} from "@/lib/weight-range";
 
 const WEEK = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -119,6 +123,11 @@ export default function ExercisePage() {
   // 体重 / 排便 简易记录
   const [weightInput, setWeightInput] = useState("");
   const [weights, setWeights] = useState<WeightRecord[]>([]); // 最新在前
+  const [weightRange, setWeightRange] = useState<WeightTimeRange>(7);
+  const chartWeights = useMemo(
+    () => filterRecordsByLocalDayRange(weights, weightRange, today),
+    [weights, weightRange, today]
+  );
   const calendarWeights = useMemo(() => {
     // 按日期比较全部历史，跨月及未记录的日期不打断比较。
     // 同一天若有多条旧记录，只展示最后保存的一条，不改动原始数据。
@@ -693,7 +702,41 @@ export default function ExercisePage() {
             {weights.length > 0 && (
               <div className="mt-4">
                 <p className="mb-2 text-xs font-medium text-primary">体重趋势</p>
-                <WeightChart data={weights} />
+                {chartWeights.length > 0 ? (
+                  <WeightChart data={chartWeights} />
+                ) : (
+                  <div className="flex h-[168px] items-center justify-center text-xs text-ink-faint">
+                    此范围暂无体重记录
+                  </div>
+                )}
+                <div
+                  className="mt-2 grid grid-cols-3 gap-1 rounded-lg bg-[#F2F2F0] p-1"
+                  role="group"
+                  aria-label="体重趋势时间范围"
+                >
+                  {([
+                    { value: 7, label: "7天" },
+                    { value: 30, label: "30天" },
+                    { value: "all", label: "全部" },
+                  ] as const).map((option) => {
+                    const selected = weightRange === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setWeightRange(option.value)}
+                        aria-pressed={selected}
+                        className={`h-8 rounded-md text-xs font-medium transition-colors ${
+                          selected
+                            ? "bg-primary text-white"
+                            : "text-ink-soft hover:bg-white/70 hover:text-ink"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </CardContent>

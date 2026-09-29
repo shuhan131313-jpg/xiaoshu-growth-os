@@ -191,20 +191,20 @@ export default function TodayPage() {
         </button>
       </header>
 
-      <Link href="/leaves" className="block rounded-xl bg-primary px-5 py-5 text-white">
+      <Link href="/leaves" className="block rounded-xl bg-primary px-4 py-3.5 text-white">
         <div className="flex items-end justify-between">
           <div>
-            <p className="flex items-center gap-1 text-xs text-white/65"><Leaf className="h-3.5 w-3.5" /> 今日树叶</p>
-            <p className="tabular mt-1 text-4xl font-semibold tracking-tight">
+            <p className="flex items-center gap-1 text-[11px] text-white/65"><Leaf className="h-3 w-3" /> 今日树叶</p>
+            <p className="tabular mt-0.5 text-2xl font-semibold tracking-tight">
               {leaves.todayNet > 0 ? "+" : ""}{leaves.todayNet}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-white/65">当前余额</p>
-            <p className="tabular mt-1 text-xl font-medium">{leaves.balance} 🌿</p>
+            <p className="text-[11px] text-white/65">当前余额</p>
+            <p className="tabular mt-0.5 text-base font-medium">{leaves.balance} 🌿</p>
           </div>
         </div>
-        <div className="mt-4 flex items-center justify-between border-t border-white/15 pt-3 text-[11px] text-white/60">
+        <div className="mt-2.5 flex items-center justify-between border-t border-white/15 pt-2 text-[10px] text-white/60">
           <span>今日进度 {completed} / {TODAY_MODULES.length}</span>
           <span>成长步数 {step}</span>
         </div>
