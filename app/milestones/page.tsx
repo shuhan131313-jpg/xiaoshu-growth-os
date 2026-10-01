@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Diamond, Plus } from "lucide-react";
+import { Diamond, Pencil, Plus } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 import { MilestoneSheet } from "@/components/milestones/milestone-sheet";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ export default function MilestonesPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [defaultDate, setDefaultDate] = useState(today);
   const [focusDate, setFocusDate] = useState<string | null>(null);
+  const [editing, setEditing] = useState<MilestoneRecord | undefined>();
 
   useEffect(() => {
     (async () => {
@@ -26,6 +27,7 @@ export default function MilestonesPage() {
       setFocusDate(date);
       if (params.get("new") === "1") {
         setDefaultDate(date || today);
+        setEditing(undefined);
         setSheetOpen(true);
       }
     })();
@@ -42,11 +44,21 @@ export default function MilestonesPage() {
 
   function openNew() {
     setDefaultDate(focusDate || today);
+    setEditing(undefined);
+    setSheetOpen(true);
+  }
+
+  function openEdit(record: MilestoneRecord) {
+    setDefaultDate(record.date);
+    setEditing(record);
     setSheetOpen(true);
   }
 
   function saved(record: MilestoneRecord) {
-    setRecords((current) => sortMilestones([record, ...current]));
+    setRecords((current) =>
+      sortMilestones([record, ...current.filter((item) => item.id !== record.id)])
+    );
+    setEditing(record);
   }
 
   return (
@@ -87,11 +99,23 @@ export default function MilestonesPage() {
                   {items.map((record) => (
                     <article key={record.id} className="relative pb-6 last:pb-0">
                       <Diamond className="absolute -left-[27px] top-0.5 h-3 w-3 fill-background text-primary" />
-                      <p className="tabular text-xs text-ink-faint">{shortDate(record.date)}</p>
-                      <h3 className="mt-1 text-base font-semibold leading-snug text-ink">{record.title}</h3>
-                      {record.note && (
-                        <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-ink-soft">{record.note}</p>
-                      )}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="tabular text-xs text-ink-faint">{shortDate(record.date)}</p>
+                          <h3 className="mt-1 text-base font-semibold leading-snug text-ink">{record.title}</h3>
+                          {record.note && (
+                            <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-ink-soft">{record.note}</p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => openEdit(record)}
+                          aria-label={`修改里程碑：${record.title}`}
+                          className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs text-ink-faint transition hover:bg-line/60 hover:text-primary"
+                        >
+                          <Pencil className="h-3 w-3" /> 修改
+                        </button>
+                      </div>
                     </article>
                   ))}
                 </div>
@@ -103,6 +127,7 @@ export default function MilestonesPage() {
       <MilestoneSheet
         open={sheetOpen}
         defaultDate={defaultDate}
+        existing={editing}
         onClose={() => setSheetOpen(false)}
         onSaved={saved}
       />

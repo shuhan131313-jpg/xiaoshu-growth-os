@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Diamond, Route } from "lucide-react";
+import { Diamond, Pencil, Route } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 import { MainlineSheet } from "@/components/mainline/mainline-sheet";
 import { Button } from "@/components/ui/button";
@@ -73,7 +73,9 @@ export default function MainlinePage() {
                   <span className="tabular w-12 shrink-0 text-xs text-ink-faint">{shortDate(record.date)}</span>
                   <span className="w-10 shrink-0 text-sm font-medium text-primary">{record.category}</span>
                   <span className="min-w-0 flex-1 truncate text-sm text-ink-soft">{record.note || ""}</span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-ink-faint" />
+                  <span className="inline-flex shrink-0 items-center gap-1 text-xs text-ink-faint">
+                    <Pencil className="h-3 w-3" /> 修改
+                  </span>
                 </button>
                 {hasMilestone && (
                   <Link

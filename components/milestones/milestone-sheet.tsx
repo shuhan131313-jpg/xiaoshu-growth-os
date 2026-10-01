@@ -7,17 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { addMilestone } from "@/lib/milestones";
+import { addMilestone, updateMilestone } from "@/lib/milestones";
 import type { MilestoneRecord } from "@/lib/db/db";
 
 interface MilestoneSheetProps {
   open: boolean;
   defaultDate: string;
+  existing?: MilestoneRecord;
   onClose: () => void;
   onSaved: (record: MilestoneRecord) => void;
 }
 
-export function MilestoneSheet({ open, defaultDate, onClose, onSaved }: MilestoneSheetProps) {
+export function MilestoneSheet({ open, defaultDate, existing, onClose, onSaved }: MilestoneSheetProps) {
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(defaultDate);
   const [note, setNote] = useState("");
@@ -25,16 +26,18 @@ export function MilestoneSheet({ open, defaultDate, onClose, onSaved }: Mileston
 
   useEffect(() => {
     if (!open) return;
-    setTitle("");
-    setDate(defaultDate);
-    setNote("");
-  }, [open, defaultDate]);
+    setTitle(existing?.title ?? "");
+    setDate(existing?.date ?? defaultDate);
+    setNote(existing?.note ?? "");
+  }, [open, defaultDate, existing]);
 
   async function save() {
     if (!title.trim() || saving) return;
     setSaving(true);
     try {
-      const record = await addMilestone(date, title, note);
+      const record = existing?.id != null
+        ? await updateMilestone(existing.id, date, title, note)
+        : await addMilestone(date, title, note);
       onSaved(record);
       onClose();
     } finally {
@@ -43,7 +46,7 @@ export function MilestoneSheet({ open, defaultDate, onClose, onSaved }: Mileston
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title="今天有什么值得留下？">
+    <Sheet open={open} onClose={onClose} title={existing ? "修改里程碑" : "今天有什么值得留下？"}>
       <div className="space-y-4">
         <div>
           <Label>里程碑</Label>
@@ -69,7 +72,7 @@ export function MilestoneSheet({ open, defaultDate, onClose, onSaved }: Mileston
           />
         </div>
         <Button variant="accent" className="w-full" onClick={save} disabled={!title.trim() || !date || saving}>
-          <Diamond className="h-4 w-4" /> {saving ? "保存中…" : "保存里程碑"}
+          <Diamond className="h-4 w-4" /> {saving ? "保存中…" : existing ? "保存修改" : "保存里程碑"}
         </Button>
       </div>
     </Sheet>
