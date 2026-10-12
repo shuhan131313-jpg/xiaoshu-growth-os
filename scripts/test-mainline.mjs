@@ -12,18 +12,22 @@ async function importTypeScript(relativePath) {
 
 const { MAINLINE_CATEGORIES } = await importTypeScript("../lib/mainline-rules.ts");
 const { BACKUP_TABLE_NAMES, rowsFromBackup } = await importTypeScript("../lib/backup-format.ts");
+const dbSource = await readFile(new URL("../lib/db/db.ts", import.meta.url), "utf8");
 
 assert.deepEqual(MAINLINE_CATEGORIES, [
   "论文",
   "投稿",
   "修稿",
   "实验",
+  "申博",
   "写作",
   "杂事",
   "休息",
-  "空白",
 ]);
 assert.equal(new Set(MAINLINE_CATEGORIES).size, 8, "主线分类不得重复");
+assert.equal(MAINLINE_CATEGORIES.includes("申博"), true, "新建主线必须提供申博");
+assert.equal(MAINLINE_CATEGORIES.includes("空白"), false, "新建主线不得再提供空白");
+assert.match(dbSource, /\|\s*"空白"/, "类型层必须保留空白以兼容历史记录");
 assert.equal(BACKUP_TABLE_NAMES.includes("dailyMain"), true, "备份必须包含主线记录");
 assert.equal(BACKUP_TABLE_NAMES.includes("milestones"), true, "备份必须包含里程碑");
 assert.deepEqual(rowsFromBackup({ tables: {} }, "dailyMain"), [], "老备份缺少主线时应恢复为空");

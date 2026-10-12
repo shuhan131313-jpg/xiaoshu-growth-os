@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Wallet,
+  Pencil,
   Trash2,
   X,
   CalendarDays,
@@ -15,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/common/page-header";
 import { FoldList } from "@/components/common/fold-list";
+import { Sheet } from "@/components/common/sheet";
 import { repos } from "@/lib/db/repo";
 import type { AccountRecord } from "@/lib/db/db";
 import {
@@ -24,6 +26,7 @@ import {
   extractAmount,
 } from "@/lib/summary";
 import { todayKey } from "@/lib/utils";
+import { normalizeAccountEdit, sumAccountRecords } from "@/lib/account-rules";
 
 const WEEK = ["日", "一", "二", "三", "四", "五", "六"];
 const BASELINE = 30000; // 基准额度参考值
@@ -31,19 +34,6 @@ const BASELINE = 30000; // 基准额度参考值
 /** 取记录所属自然月（YYYY-MM），异常数据返回空串 */
 function monthOf(r: AccountRecord): string {
   return typeof r.date === "string" ? r.date.slice(0, 7) : "";
-}
-
-/** 汇总一批记账记录：收入 / 支出 / 结余 */
-function sumRows(rows: AccountRecord[]) {
-  let income = 0;
-  let expense = 0;
-  for (const r of rows) {
-    if (r.type === "income") income += r.amount;
-    else expense += r.amount;
-  }
-  income = Math.round(income * 100) / 100;
-  expense = Math.round(expense * 100) / 100;
-  return { income, expense, balance: Math.round((income - expense) * 100) / 100 };
 }
 
 /** 月份位移：YYYY-MM 往前/往后 delta 个月 */
@@ -122,6 +112,14 @@ export default function AccountPage() {
   const [detailDate, setDetailDate] = useState<string | null>(null);
   const [detailRecords, setDetailRecords] = useState<AccountRecord[]>([]);
 
+  // 编辑原记录：只更新允许字段并保留原 id / createdAt。
+  const [editingRecord, setEditingRecord] = useState<AccountRecord | null>(null);
+  const [editType, setEditType] = useState<"expense" | "income">("expense");
+  const [editAmount, setEditAmount] = useState("");
+  const [editNote, setEditNote] = useState("");
+  const [editDate, setEditDate] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+
   const calPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
   const prevMonth = useMemo(() => shiftYearMonth(curMonth, -1), [curMonth]);
 
@@ -173,11 +171,11 @@ export default function AccountPage() {
     [cursorMonth]
   );
   const cursorTotals = useMemo(
-    () => sumRows(allRecords.filter((r) => monthOf(r) === cursorMonth)),
+    () => sumAccountRecords(allRecords.filter((r) => monthOf(r) === cursorMonth)),
     [allRecords, cursorMonth]
   );
   const cursorPrevTotals = useMemo(
-    () => sumRows(allRecords.filter((r) => monthOf(r) === cursorPrev)),
+    () => sumAccountRecords(allRecords.filter((r) => monthOf(r) === cursorPrev)),
     [allRecords, cursorPrev]
   );
 
@@ -220,6 +218,37 @@ export default function AccountPage() {
     await Promise.all([reload(), reloadRecords()]);
     if (detailDate) {
       setDetailRecords(await getAccountByDate(detailDate));
+    }
+  }
+
+  function openEdit(record: AccountRecord) {
+    setEditingRecord(record);
+    setEditType(record.type);
+    setEditAmount(String(record.amount));
+    setEditNote(record.note ?? "");
+    setEditDate(record.date);
+  }
+
+  async function saveEdit() {
+    if (editingRecord?.id == null || editSaving) return;
+    const changes = normalizeAccountEdit({
+      date: editDate,
+      type: editType,
+      amount: editAmount,
+      note: editNote,
+    });
+    if (!changes) return;
+
+    setEditSaving(true);
+    try {
+      await repos.account.update(editingRecord.id, changes);
+      setEditingRecord(null);
+      await Promise.all([reload(), reloadRecords()]);
+      if (detailDate) {
+        setDetailRecords(await getAccountByDate(detailDate));
+      }
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -389,13 +418,24 @@ export default function AccountPage() {
                         {r.date}
                       </p>
                     </div>
-                    <button
-                      onClick={() => removeRecord(r.id)}
-                      aria-label="删除"
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-faint transition duration-200 hover:bg-line/50 hover:text-red-500"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => openEdit(r)}
+                        aria-label={`修改支出：${r.amount} 元`}
+                        className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs text-ink-faint transition duration-200 hover:bg-line/50 hover:text-primary"
+                      >
+                        <Pencil className="h-3.5 w-3.5" /> 修改
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeRecord(r.id)}
+                        aria-label="删除"
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-ink-faint transition duration-200 hover:bg-line/50 hover:text-red-500"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -463,13 +503,24 @@ export default function AccountPage() {
                         {r.date}
                       </p>
                     </div>
-                    <button
-                      onClick={() => removeRecord(r.id)}
-                      aria-label="删除"
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-faint transition duration-200 hover:bg-line/50 hover:text-red-500"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => openEdit(r)}
+                        aria-label={`修改收入：${r.amount} 元`}
+                        className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs text-ink-faint transition duration-200 hover:bg-line/50 hover:text-primary"
+                      >
+                        <Pencil className="h-3.5 w-3.5" /> 修改
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeRecord(r.id)}
+                        aria-label="删除"
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-ink-faint transition duration-200 hover:bg-line/50 hover:text-red-500"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -627,13 +678,24 @@ export default function AccountPage() {
                           <p className="mt-0.5 text-[13px] text-ink-soft">{r.note}</p>
                         )}
                       </div>
-                      <button
-                        onClick={() => removeRecord(r.id)}
-                        aria-label="删除"
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-ink-faint transition duration-200 hover:bg-line/50 hover:text-red-500"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(r)}
+                          aria-label={`修改${r.type === "income" ? "收入" : "支出"}：${r.amount} 元`}
+                          className="inline-flex h-7 items-center gap-1 rounded-lg px-2 text-xs text-ink-faint transition duration-200 hover:bg-line/50 hover:text-primary"
+                        >
+                          <Pencil className="h-3.5 w-3.5" /> 修改
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeRecord(r.id)}
+                          aria-label="删除"
+                          className="flex h-7 w-7 items-center justify-center rounded-full text-ink-faint transition duration-200 hover:bg-line/50 hover:text-red-500"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -642,6 +704,81 @@ export default function AccountPage() {
           </div>
         </div>
       )}
+
+      <Sheet
+        open={editingRecord != null}
+        onClose={() => setEditingRecord(null)}
+        title="修改记账"
+      >
+        <div className="space-y-4">
+          <div>
+            <Label>类型</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {(["expense", "income"] as const).map((type) => {
+                const selected = editType === type;
+                const label = type === "expense" ? "支出" : "收入";
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setEditType(type)}
+                    aria-pressed={selected}
+                    className={`h-10 rounded-xl border text-sm transition ${
+                      selected
+                        ? "border-primary bg-primary text-white"
+                        : "border-line bg-background text-ink-soft"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <Label>金额</Label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              min="0.01"
+              step="0.01"
+              value={editAmount}
+              onChange={(event) => setEditAmount(event.target.value)}
+              placeholder="0.00"
+            />
+          </div>
+          <div>
+            <Label>描述 / 备注</Label>
+            <Input
+              value={editNote}
+              onChange={(event) => setEditNote(event.target.value)}
+              placeholder="这笔收支的说明"
+              maxLength={160}
+            />
+          </div>
+          <div>
+            <Label>日期</Label>
+            <Input
+              type="date"
+              value={editDate}
+              onChange={(event) => setEditDate(event.target.value)}
+            />
+          </div>
+          <Button
+            variant="accent"
+            className="w-full"
+            onClick={saveEdit}
+            disabled={
+              editSaving ||
+              !editDate ||
+              !Number.isFinite(Number(editAmount)) ||
+              Number(editAmount) <= 0
+            }
+          >
+            {editSaving ? "保存中…" : "保存修改"}
+          </Button>
+        </div>
+      </Sheet>
     </div>
   );
 }

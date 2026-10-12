@@ -175,9 +175,11 @@ export type MainlineCategory =
   | "投稿"
   | "修稿"
   | "实验"
+  | "申博"
   | "写作"
   | "杂事"
   | "休息"
+  /** 仅为兼容旧记录；新建主线不再提供此选项。 */
   | "空白";
 
 export interface DailyMainRecord {
