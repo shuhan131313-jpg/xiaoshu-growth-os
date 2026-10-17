@@ -37,13 +37,15 @@ const homeSource = await readFile(new URL("../app/page.tsx", import.meta.url), "
 assert.match(dbSource, /version\(12\)[\s\S]*recentBooks:\s*"\+\+id, status, updatedAt"/, "书单通过增量版本新增表");
 assert.match(readingSource, /最近在读/, "阅读页展示最近在读");
 assert.match(readingSource, /toggleBookStatus/, "每本书可独立切换状态");
-assert.match(readingSource, /saveBookEdit/, "书名和备注可修改");
+assert.match(readingSource, /saveBookEdit/, "书名可修改");
 assert.match(readingSource, /deleteBook/, "书籍记录可删除");
+assert.doesNotMatch(readingSource, /bookNote|editNote|作者或备注/, "新增和编辑界面只保留书名输入");
 assert.doesNotMatch(readingSource, /每日书摘|换一本|BOOK_POOL/, "每日书摘与换一本逻辑已移除");
-assert.match(homeSource, /\["exercise", "reading", null, "research", null, "gratitude"\]/, "首页保留两个固定空槽位");
+assert.match(homeSource, /PROGRESS_KEYS = \["exercise", "reading", "research", "gratitude"\]/, "首页进度按实际项目自动排列");
+assert.doesNotMatch(homeSource, /PROGRESS_SLOTS|null, "research"|"research", null/, "首页不再保留虚假空槽位");
 
 for (const removedRoute of ["../app/english/page.tsx", "../app/leaves/page.tsx"]) {
   await assert.rejects(access(new URL(removedRoute, import.meta.url)), "已移除的页面路由不应残留");
 }
 
-console.log("最近在读、首页空槽、移除页面与备份兼容测试通过：17 项");
+console.log("最近在读、状态视觉、首页自动排列、移除页面与备份兼容测试通过：19 项");

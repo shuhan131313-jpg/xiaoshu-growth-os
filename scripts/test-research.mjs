@@ -29,12 +29,13 @@ const pageSource = await readFile(new URL("../app/research/page.tsx", import.met
 const timerSource = await readFile(new URL("../components/common/timer.tsx", import.meta.url), "utf8");
 assert.doesNotMatch(pageSource, /专注目标（分钟）|目标 60 分钟/, "页面已删除专注目标");
 assert.doesNotMatch(timerSource, /RotateCcw|aria-label="重置"/, "计时器已删除刷新重置按钮");
-assert.match(pageSource, /onClick=\{saveSummaryOnly\}/, "仅保存小结使用独立保存操作");
+assert.doesNotMatch(pageSource, /saveSummaryOnly|仅保存小结/, "仅保存小结操作已移除");
 assert.match(pageSource, /onClick=\{finishTimer\}/, "结束并记录使用独立结算操作");
+assert.match(pageSource, /draftReady|saveResearchDraft\(summary\)/, "专注内容改为自动保存草稿");
 assert.match(pageSource, /source: "timer" \| "manual"/, "计时和补录共用专注记录体系并标记来源");
 assert.match(pageSource, /repos\.research\.add\(/, "计时和补录直接保存专注记录");
 assert.doesNotMatch(pageSource, /Leaves|leaves|树叶|🌿/, "专注页面不再结算或展示树叶");
 assert.match(pageSource, /title="专注"/, "用户可见模块名称已改为专注");
 assert.doesNotMatch(pageSource, /今日科研文献推荐|收藏此文献/, "科研文献推荐与收藏入口已移除");
 
-console.log("专注计时、补录、输入校验与备份兼容测试通过：19 项");
+console.log("专注计时、补录、自动保存、输入校验与备份兼容测试通过：19 项");

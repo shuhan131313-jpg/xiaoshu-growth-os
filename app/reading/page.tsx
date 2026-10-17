@@ -27,10 +27,8 @@ export default function ReadingPage() {
   const [readToday, setReadToday] = useState(false);
   const [books, setBooks] = useState<RecentBookRecord[]>([]);
   const [bookTitle, setBookTitle] = useState("");
-  const [bookNote, setBookNote] = useState("");
   const [editingBook, setEditingBook] = useState<RecentBookRecord>();
   const [editTitle, setEditTitle] = useState("");
-  const [editNote, setEditNote] = useState("");
   const [editStatus, setEditStatus] = useState<RecentBookStatus>("reading");
   const [bookMessage, setBookMessage] = useState("");
   const [bookSaving, setBookSaving] = useState(false);
@@ -86,10 +84,9 @@ export default function ReadingPage() {
     setBookMessage("");
     try {
       const now = Date.now();
-      const input = normalizeRecentBookInput(bookTitle, bookNote, "reading", now);
+      const input = normalizeRecentBookInput(bookTitle, "", "reading", now);
       await repos.recentBooks.add({ ...input, createdAt: now });
       setBookTitle("");
-      setBookNote("");
       await refresh();
     } finally {
       bookSavingRef.current = false;
@@ -109,7 +106,6 @@ export default function ReadingPage() {
   function openBookEdit(book: RecentBookRecord) {
     setEditingBook(book);
     setEditTitle(book.title);
-    setEditNote(book.note ?? "");
     setEditStatus(book.status);
   }
 
@@ -118,7 +114,7 @@ export default function ReadingPage() {
     editBookSavingRef.current = true;
     setEditBookSaving(true);
     try {
-      const patch = normalizeRecentBookInput(editTitle, editNote, editStatus);
+      const patch = normalizeRecentBookInput(editTitle, editingBook.note ?? "", editStatus);
       await repos.recentBooks.update(editingBook.id, patch);
       setEditingBook(undefined);
       await refresh();
@@ -154,6 +150,71 @@ export default function ReadingPage() {
         </span>
         <CheckCircle2 className={`h-5 w-5 ${readToday ? "text-[#5E7C6C]" : "text-ink-faint"}`} />
       </button>
+
+      <section className="border-y border-line py-4">
+        <div className="mb-3 flex items-center gap-1.5 text-sm font-medium text-primary">
+          <BookOpen className="h-4 w-4" /> 最近在读
+        </div>
+        <Input
+          value={bookTitle}
+          onChange={(event) => {
+            setBookTitle(event.target.value);
+            if (bookMessage) setBookMessage("");
+          }}
+          onEnterSubmit={addBook}
+          enterKeyHint="done"
+          placeholder="输入书名……"
+          maxLength={120}
+        />
+        {bookMessage && <p className="mt-1.5 text-xs text-ink-soft" role="status">{bookMessage}</p>}
+        <Button variant="soft" size="sm" className="mt-2 w-full" onClick={addBook} disabled={!bookTitle.trim() || bookSaving}>
+          <Plus className="h-4 w-4" /> {bookSaving ? "添加中…" : "添加到最近在读"}
+        </Button>
+
+        {books.length === 0 ? (
+          <p className="py-6 text-center text-xs text-ink-faint">还没有书籍记录</p>
+        ) : (
+          <ul className="mt-4 divide-y divide-line">
+            {books.map((book) => (
+              <li
+                key={book.id}
+                className={`flex items-start justify-between gap-3 rounded-lg px-2 py-3 first:pt-2 last:pb-2 ${book.status === "reading" ? "bg-[#FFF6D9]" : "bg-[#E7F0FA]"}`}
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-ink">{book.title}</p>
+                  {book.note && <p className="mt-0.5 text-xs text-ink-faint">{book.note}</p>}
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => toggleBookStatus(book)}
+                    aria-pressed={book.status === "reading"}
+                    className={`rounded-full border px-2.5 py-1 text-[11px] ${book.status === "reading" ? "border-[#D8B84C] bg-[#F8E9A8] text-[#806B20]" : "border-line bg-white/70 text-ink-soft"}`}
+                  >
+                    在读
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (book.status === "reading") toggleBookStatus(book);
+                    }}
+                    aria-pressed={book.status === "finished"}
+                    className={`rounded-full border px-2.5 py-1 text-[11px] ${book.status === "finished" ? "border-primary/30 bg-[#C9DDF2] text-primary" : "border-line bg-white/70 text-ink-soft"}`}
+                  >
+                    读完
+                  </button>
+                  <button onClick={() => openBookEdit(book)} aria-label={`修改${book.title}`} className="p-1.5 text-ink-faint hover:text-primary">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => deleteBook(book.id)} aria-label={`删除${book.title}`} className="p-1.5 text-ink-faint hover:text-red-500">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <Card>
         <CardContent>
@@ -196,73 +257,9 @@ export default function ReadingPage() {
         </CardContent>
       </Card>
 
-      <section className="border-y border-line py-4">
-        <div className="mb-3 flex items-center gap-1.5 text-sm font-medium text-primary">
-          <BookOpen className="h-4 w-4" /> 最近在读
-        </div>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Input
-            value={bookTitle}
-            onChange={(event) => {
-              setBookTitle(event.target.value);
-              if (bookMessage) setBookMessage("");
-            }}
-            onEnterSubmit={addBook}
-            enterKeyHint="done"
-            placeholder="书名"
-            maxLength={120}
-          />
-          <Input
-            value={bookNote}
-            onChange={(event) => setBookNote(event.target.value)}
-            onEnterSubmit={addBook}
-            enterKeyHint="done"
-            placeholder="作者或备注（可选）"
-            maxLength={160}
-          />
-        </div>
-        {bookMessage && <p className="mt-1.5 text-xs text-ink-soft" role="status">{bookMessage}</p>}
-        <Button variant="soft" size="sm" className="mt-2 w-full" onClick={addBook} disabled={!bookTitle.trim() || bookSaving}>
-          <Plus className="h-4 w-4" /> {bookSaving ? "添加中…" : "添加到最近在读"}
-        </Button>
-
-        {books.length === 0 ? (
-          <p className="py-6 text-center text-xs text-ink-faint">还没有书籍记录</p>
-        ) : (
-          <ul className="mt-4 divide-y divide-line">
-            {books.map((book) => (
-              <li key={book.id} className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-ink">{book.title}</p>
-                  {book.note && <p className="mt-0.5 text-xs text-ink-faint">{book.note}</p>}
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => toggleBookStatus(book)}
-                    className={`rounded-full px-2.5 py-1 text-[11px] ${
-                      book.status === "reading" ? "bg-[#EDF1F5] text-primary" : "bg-[#EDF2EF] text-[#5E7C6C]"
-                    }`}
-                  >
-                    {book.status === "reading" ? "在读" : "读完"}
-                  </button>
-                  <button onClick={() => openBookEdit(book)} aria-label={`修改${book.title}`} className="p-1.5 text-ink-faint hover:text-primary">
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                  <button onClick={() => deleteBook(book.id)} aria-label={`删除${book.title}`} className="p-1.5 text-ink-faint hover:text-red-500">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
       <Sheet open={!!editingBook} onClose={() => setEditingBook(undefined)} title="修改书籍">
         <div className="space-y-4">
           <Input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} onEnterSubmit={saveBookEdit} enterKeyHint="done" placeholder="书名" maxLength={120} />
-          <Input value={editNote} onChange={(event) => setEditNote(event.target.value)} onEnterSubmit={saveBookEdit} enterKeyHint="done" placeholder="作者或备注（可选）" maxLength={160} />
           <div className="grid grid-cols-2 gap-1 rounded-lg bg-[#F2F2F0] p-1">
             {(["reading", "finished"] as RecentBookStatus[]).map((status) => (
               <button

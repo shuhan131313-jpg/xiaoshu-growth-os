@@ -63,10 +63,16 @@ assert.deepEqual(
 
 const dbSource = await readFile(new URL("../lib/db/db.ts", import.meta.url), "utf8");
 const foodSource = await readFile(new URL("../lib/food.ts", import.meta.url), "utf8");
+const foodPageSource = await readFile(new URL("../app/food/page.tsx", import.meta.url), "utf8");
+const foodListSource = await readFile(new URL("../components/food/food-record-list.tsx", import.meta.url), "utf8");
 assert.match(dbSource, /version\(11\)[\s\S]*foodRecords:\s*"\+\+id, date, createdAt"/, "数据库通过新版本新增表");
 assert.match(foodSource, /db\.foodRecords\.add\(record\)/, "新增饮食直接写入饮食表");
 assert.match(foodSource, /db\.foodRecords\.update\(id/, "修改饮食直接更新原记录");
 assert.match(foodSource, /db\.foodRecords\.delete\(id\)/, "删除饮食不再触发积分逻辑");
 assert.doesNotMatch(foodSource, /Leaves|leaves|树叶|🌿/, "饮食数据逻辑不再依赖树叶积分");
+assert.match(foodPageSource, /getFoodDayStatus|setFoodDayStatus/, "蛋白质和饮水提醒按日期持久保存");
+assert.match(foodPageSource, /addFoodRecord\(content, false\)/, "饮食页面快速新增默认为正常饮食");
+assert.match(foodListSource, /标记为计划外|标记为正常饮食/, "每条饮食记录都有独立状态按钮");
+assert.doesNotMatch(foodPageSource, /Leaves|leaves|树叶|🌿/, "饮食页面不重新引入树叶逻辑");
 
-console.log("饮食记录日期、排序、编辑、分组、计数、备份与独立保存测试通过：23 项");
+console.log("饮食记录日期、排序、编辑、分组、计数、备份、快速新增与每日提醒测试通过：27 项");

@@ -23,8 +23,8 @@ import type { DailyMainRecord } from "@/lib/db/db";
 import { getDailyMain } from "@/lib/mainline";
 import { MainlineSheet } from "@/components/mainline/mainline-sheet";
 
-const PROGRESS_SLOTS = ["exercise", "reading", null, "research", null, "gratitude"] as const;
-type ProgressKey = Exclude<(typeof PROGRESS_SLOTS)[number], null>;
+const PROGRESS_KEYS = ["exercise", "reading", "research", "gratitude"] as const;
+type ProgressKey = (typeof PROGRESS_KEYS)[number];
 const AUTO_KEYS = new Set<ProgressKey>(["exercise", "research", "gratitude"]);
 
 const MODULES: Record<ProgressKey, {
@@ -35,7 +35,7 @@ const MODULES: Record<ProgressKey, {
   exercise: { label: "运动", href: "/exercise", icon: Dumbbell },
   reading: { label: "阅读", href: "/reading", icon: BookOpen },
   research: { label: "专注", href: "/research", icon: PenLine },
-  gratitude: { label: "感恩日记", href: "/gratitude", icon: Heart },
+  gratitude: { label: "好运来", href: "/gratitude", icon: Heart },
 };
 
 function heatColor(count: number, max: number): string {
@@ -140,10 +140,7 @@ export default function TodayPage() {
           <span className="text-xs text-ink-faint">阅读可手动标记完成</span>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          {PROGRESS_SLOTS.map((key, index) => {
-            if (key == null) {
-              return <div key={`empty-${index}`} aria-hidden="true" className="min-h-[92px]" />;
-            }
+          {PROGRESS_KEYS.map((key) => {
             const module = MODULES[key];
             const done = moduleStatus[key];
             const auto = AUTO_KEYS.has(key);

@@ -34,13 +34,13 @@ function buildReview(s: PeriodStat): string {
   if (s.readingCount > 0) focus.push(`阅读 ${s.readingCount} 次`);
   if (s.researchMinutes > 0) focus.push(`专注 ${s.researchMinutes} 分钟`);
   if (s.experimentCount > 0) focus.push(`实验 ${s.experimentCount} 次`);
-  if (s.gratitudeCount > 0) focus.push(`感恩 ${s.gratitudeCount} 篇`);
+  if (s.gratitudeCount > 0) focus.push(`好运来 ${s.gratitudeCount} 篇`);
   const pct = Math.round(s.avgCompletion * 100);
   const advice =
     pct >= 70
       ? "保持得很好，把这种节奏固化成默认状态。"
       : pct >= 40
-      ? "已有不错的基础，试着把最低频的习惯（如感恩）提上日程。"
+      ? "已有不错的基础，试着把最低频的习惯（如好运来）提上日程。"
       : "起步阶段不必焦虑，先从每天一件事开始，让「不中断」成为习惯。";
   return `${opener}：${focus.join("、") || "暂无明显积累"}。\n本周期打卡 ${s.checkinDays} 天，平均完成率 ${pct}%。\n💡 ${advice}`;
 }
@@ -73,7 +73,7 @@ export default function GrowthPage() {
         { label: "阅读", value: `${stat.readingCount} 次 / ${stat.readingMinutes} 分` },
         { label: "专注", value: `${stat.researchCount} 次 / ${stat.researchMinutes} 分` },
         { label: "实验", value: `${stat.experimentCount} 次` },
-        { label: "感恩", value: `${stat.gratitudeCount} 篇` },
+        { label: "好运来", value: `${stat.gratitudeCount} 篇` },
       ]
     : [];
 

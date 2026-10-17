@@ -1,42 +1,43 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { History, Plus, Utensils } from "lucide-react";
+import { Check, History, Utensils } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 import { FoodRecordList } from "@/components/food/food-record-list";
 import { FoodRecordSheet } from "@/components/food/food-record-sheet";
 import { Button } from "@/components/ui/button";
-import { deleteFoodRecord, getFoodRecordsForDate } from "@/lib/food";
+import { Input } from "@/components/ui/input";
+import { addFoodRecord, deleteFoodRecord, getFoodRecordsForDate, updateFoodRecord } from "@/lib/food";
 import { foodDaySummary, formatFoodDate, sortFoodRecords } from "@/lib/food-rules";
 import { todayKey } from "@/lib/utils";
 import type { FoodRecord } from "@/lib/db/db";
+import { getFoodDayStatus, setFoodDayStatus, type FoodDayStatus } from "@/lib/food-status";
 
 export default function FoodPage() {
   const today = useMemo(() => todayKey(), []);
   const [records, setRecords] = useState<FoodRecord[]>([]);
   const [ready, setReady] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [isUnplanned, setIsUnplanned] = useState(false);
   const [editing, setEditing] = useState<FoodRecord | undefined>();
+  const [foodText, setFoodText] = useState("");
+  const [foodSaving, setFoodSaving] = useState(false);
+  const [dayStatus, setDayStatus] = useState<FoodDayStatus>({ protein: false, water: false });
   const [feedback, setFeedback] = useState("");
+  const foodSavingRef = useRef(false);
   const summary = foodDaySummary(records);
 
   useEffect(() => {
-    getFoodRecordsForDate(today)
-      .then(setRecords)
+    Promise.all([getFoodRecordsForDate(today), getFoodDayStatus(today)])
+      .then(([nextRecords, nextStatus]) => {
+        setRecords(nextRecords);
+        setDayStatus(nextStatus);
+      })
       .finally(() => setReady(true));
   }, [today]);
 
-  function openNew(unplanned: boolean) {
-    setEditing(undefined);
-    setIsUnplanned(unplanned);
-    setSheetOpen(true);
-  }
-
   function openEdit(record: FoodRecord) {
     setEditing(record);
-    setIsUnplanned(record.isUnplanned);
     setSheetOpen(true);
   }
 
@@ -49,7 +50,35 @@ export default function FoodPage() {
     setRecords((current) =>
       sortFoodRecords([record, ...current.filter((item) => item.id !== record.id)])
     );
-    showFeedback(record.isUnplanned ? "已记录计划外饮食" : "已保存饮食记录");
+    showFeedback("已保存饮食记录");
+  }
+
+  async function addFood() {
+    const content = foodText.trim();
+    if (!content || foodSavingRef.current) return;
+    foodSavingRef.current = true;
+    setFoodSaving(true);
+    try {
+      const record = await addFoodRecord(content, false);
+      setRecords((current) => sortFoodRecords([...current, record]));
+      setFoodText("");
+      showFeedback("已保存饮食记录");
+    } finally {
+      foodSavingRef.current = false;
+      setFoodSaving(false);
+    }
+  }
+
+  async function toggleStatus(record: FoodRecord, isUnplanned: boolean) {
+    if (record.id == null || record.isUnplanned === isUnplanned) return;
+    const updated = await updateFoodRecord(record.id, record.content, isUnplanned);
+    setRecords((current) => sortFoodRecords(current.map((item) => item.id === updated.id ? updated : item)));
+    showFeedback(isUnplanned ? "已标记为计划外饮食" : "已标记为正常饮食");
+  }
+
+  async function toggleDayStatus(field: keyof FoodDayStatus) {
+    const next = await setFoodDayStatus(today, { [field]: !dayStatus[field] });
+    setDayStatus(next);
   }
 
   async function remove(record: FoodRecord) {
@@ -69,16 +98,38 @@ export default function FoodPage() {
           : "随手记下什么时候吃了什么，不做评价"}
       />
 
-      <div className="grid grid-cols-2 gap-3">
-        <Button variant="accent" onClick={() => openNew(false)}>
-          <Plus className="h-4 w-4" /> 普通饮食
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => openNew(true)}
-          className="border-[#D8C3A5] bg-[#F4EEE5] text-[#866C4E] hover:bg-[#EEE4D6]"
-        >
-          <Plus className="h-4 w-4" /> 计划外
+      <div className="grid grid-cols-2 gap-2">
+        {([
+          ["protein", "蛋白质"],
+          ["water", "水"],
+        ] as const).map(([field, label]) => {
+          const selected = dayStatus[field];
+          return (
+            <button
+              key={field}
+              type="button"
+              onClick={() => toggleDayStatus(field)}
+              aria-pressed={selected}
+              className={`flex h-10 items-center justify-center gap-1.5 rounded-xl border text-sm transition ${selected ? "border-[#D8B84C] bg-[#FFF4C7] text-[#806B20]" : "border-line bg-surface text-ink-soft hover:bg-line/40"}`}
+            >
+              {selected && <Check className="h-4 w-4" />}
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex gap-2">
+        <Input
+          value={foodText}
+          onChange={(event) => setFoodText(event.target.value)}
+          onEnterSubmit={addFood}
+          enterKeyHint="done"
+          placeholder="吃了什么？"
+          maxLength={160}
+        />
+        <Button variant="accent" onClick={addFood} disabled={!foodText.trim() || foodSaving}>
+          {foodSaving ? "保存中…" : "保存"}
         </Button>
       </div>
 
@@ -92,7 +143,7 @@ export default function FoodPage() {
             <p className="mt-1 text-xs text-ink-faint">吃完随手记一句就好</p>
           </div>
         ) : (
-          <FoodRecordList records={records} onEdit={openEdit} onDelete={remove} />
+          <FoodRecordList records={records} onEdit={openEdit} onDelete={remove} onToggleStatus={toggleStatus} />
         )}
       </section>
 
@@ -111,10 +162,17 @@ export default function FoodPage() {
 
       <FoodRecordSheet
         open={sheetOpen}
-        isUnplanned={isUnplanned}
+        isUnplanned={editing?.isUnplanned ?? false}
         existing={editing}
-        onClose={() => setSheetOpen(false)}
-        onSaved={saved}
+        onClose={() => {
+          setSheetOpen(false);
+          setEditing(undefined);
+        }}
+        onSaved={(record) => {
+          saved(record);
+          setSheetOpen(false);
+          setEditing(undefined);
+        }}
       />
     </div>
   );

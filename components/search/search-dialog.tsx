@@ -17,7 +17,7 @@ const MODULE_LABEL: Record<string, string> = {
   reading: "阅读",
   research: "专注",
   experiment: "实验",
-  gratitude: "感恩",
+  gratitude: "好运来",
   spark: "灵光",
 };
 
@@ -122,7 +122,7 @@ export function GlobalSearch() {
               <div className="flex-1 overflow-y-auto px-4 py-3">
                 {!q.trim() ? (
                   <p className="py-10 text-center text-sm text-ink-faint">
-                    输入关键词，检索运动、阅读、专注、实验、感恩与灵感记录
+                    输入关键词，检索运动、阅读、专注、实验、好运来与灵感记录
                   </p>
                 ) : results.length === 0 ? (
                   <p className="py-10 text-center text-sm text-ink-faint">没有匹配的记录</p>

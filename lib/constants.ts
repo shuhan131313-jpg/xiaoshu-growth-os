@@ -8,15 +8,15 @@ export const TODAY_MODULES = [
   { key: "exercise", label: "运动" },
   { key: "reading", label: "阅读" },
   { key: "research", label: "专注" },
-  { key: "gratitude", label: "感恩日记" },
+  { key: "gratitude", label: "好运来" },
 ] as const;
 
 export type TodayModuleKey = (typeof TODAY_MODULES)[number]["key"];
 
-/** 首页「今日成长」树苗条：核心模块（不含感恩日记），与侧边导航核心模块一一对应 */
+/** 首页「今日成长」树苗条：核心模块（不含好运来），与侧边导航核心模块一一对应 */
 export const GROWTH_MODULES = [
   { key: "exercise", label: "运动" },
   { key: "reading", label: "阅读" },
   { key: "research", label: "专注" },
-  { key: "gratitude", label: "感恩日记" },
+  { key: "gratitude", label: "好运来" },
 ] as const;

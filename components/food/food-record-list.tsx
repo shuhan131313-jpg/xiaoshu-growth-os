@@ -8,9 +8,10 @@ interface FoodRecordListProps {
   records: FoodRecord[];
   onEdit: (record: FoodRecord) => void;
   onDelete: (record: FoodRecord) => void;
+  onToggleStatus: (record: FoodRecord, isUnplanned: boolean) => void;
 }
 
-export function FoodRecordList({ records, onEdit, onDelete }: FoodRecordListProps) {
+export function FoodRecordList({ records, onEdit, onDelete, onToggleStatus }: FoodRecordListProps) {
   return (
     <div className="divide-y divide-line">
       {records.map((record) => (
@@ -19,16 +20,29 @@ export function FoodRecordList({ records, onEdit, onDelete }: FoodRecordListProp
             {formatFoodTime(record.createdAt)}
           </time>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="break-words text-sm text-ink">{record.content}</p>
-              {record.isUnplanned && (
-                <span className="shrink-0 rounded-full border border-[#D8C3A5] bg-[#F4EEE5] px-2 py-0.5 text-[10px] text-[#866C4E]">
-                  计划外
-                </span>
-              )}
-            </div>
+            <button type="button" onClick={() => onEdit(record)} className="break-words text-left text-sm text-ink hover:text-primary">
+              {record.content}
+            </button>
           </div>
           <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={() => onToggleStatus(record, true)}
+              aria-label={`${record.content} 标记为计划外`}
+              aria-pressed={record.isUnplanned}
+              className={`flex h-8 w-8 items-center justify-center rounded-full transition ${record.isUnplanned ? "bg-[#F4D3D0]" : "bg-line/50 hover:bg-[#F4EEE5]"}`}
+            >
+              <span className="h-3 w-3 rounded-full bg-[#C2554F]" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onToggleStatus(record, false)}
+              aria-label={`${record.content} 标记为正常饮食`}
+              aria-pressed={!record.isUnplanned}
+              className={`flex h-8 w-8 items-center justify-center rounded-full transition ${!record.isUnplanned ? "bg-[#DCEBDD]" : "bg-line/50 hover:bg-[#EDF2EF]"}`}
+            >
+              <span className="h-3 w-3 rounded-full bg-[#5E8C6A]" />
+            </button>
             <button
               type="button"
               onClick={() => onEdit(record)}

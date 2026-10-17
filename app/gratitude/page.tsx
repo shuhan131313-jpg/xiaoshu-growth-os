@@ -49,12 +49,12 @@ export default function GratitudePage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="感恩日记" desc="记录值得感谢的小事，训练看见光的能力" />
+      <PageHeader title="好运来" desc="记录今天值得留下的好事" />
 
       <Card>
         <CardContent className="space-y-3">
           <p className="text-sm font-medium text-primary">
-            今天，我要感谢…（想到什么写什么，支持换行）
+            今天，有什么好运值得留下？（想到什么写什么，支持换行）
           </p>
           <Textarea
             value={content}
@@ -64,7 +64,7 @@ export default function GratitudePage() {
             className="min-h-[200px] resize-y"
           />
           <Button variant="accent" className="w-full" onClick={save}>
-            <Heart className="h-4 w-4" /> 保存今日感恩
+            <Heart className="h-4 w-4" /> 保存今日好运
           </Button>
           {saved && (
             <p className="flex items-center justify-center gap-1 text-sm text-accent-dark">

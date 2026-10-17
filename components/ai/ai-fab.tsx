@@ -54,7 +54,7 @@ export function AIFab() {
       const parts = [
         `近 7 天平均每日完成率约 ${avg}%。`,
         sEx > 0 ? `运动已连续 ${sEx} 天。` : "运动还没形成连续习惯，先从每周 2 次开始吧。",
-        sGr > 0 ? `感恩日记连续 ${sGr} 天，你正在训练看见光。` : "今天写 3 件感恩小事，心情会更好。",
+        sGr > 0 ? `好运来连续 ${sGr} 天，你正在训练看见光。` : "今天写 3 件好运来，给自己留一点好心情。",
         `阅读累计 ${rd.length} 次、专注 ${rs.length} 次、实验 ${exp.length} 次。`,
       ];
       return "📊 习惯分析\n" + parts.join("\n");
@@ -63,7 +63,7 @@ export function AIFab() {
       const map = await getTodayTaskMap(todayKey());
       const undone = TODAY_MODULES.filter((m) => !map[m.key]).map((m) => m.label);
       if (undone.length === 0)
-        return "✅ 今天的计划都完成啦，了不起！可以写写今天的感恩日记，给这一天收个温柔的尾。";
+        return "✅ 今天的计划都完成啦，了不起！可以写写好运来，给这一天收个温柔的尾。";
       return (
         "🗓️ 今日学习计划\n还有这些没做：" +
         undone.join("、") +
@@ -76,7 +76,7 @@ export function AIFab() {
     const lines: string[] = [];
     if (gr.length) {
       const items = gr.flatMap((g) => g.items).slice(0, 5);
-      lines.push("最近你感恩的事：" + (items.join("，") || "（暂无）") + "。");
+      lines.push("最近你的好运来：" + (items.join("，") || "（暂无）") + "。");
     }
     if (rd.length) {
       const feels = rd.map((r) => r.feeling).filter(Boolean).slice(0, 3);

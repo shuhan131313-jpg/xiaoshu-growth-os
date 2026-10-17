@@ -27,6 +27,7 @@ export default function ResearchPage() {
   const [manualMinutes, setManualMinutes] = useState("");
   const [manualSaving, setManualSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const [draftReady, setDraftReady] = useState(false);
   const timerRef = useRef<TimerHandle>(null);
   const manualSubmittingRef = useRef(false);
 
@@ -41,9 +42,21 @@ export default function ResearchPage() {
 
   useEffect(() => {
     refresh();
-    getResearchDraft().then(setSummary);
+    getResearchDraft().then((draft) => {
+      setSummary(draft);
+      setDraftReady(true);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    const timer = window.setTimeout(() => {
+      if (summary.trim()) void saveResearchDraft(summary);
+      else void clearResearchDraft();
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [summary, draftReady]);
 
   function showFeedback(message: string) {
     setFeedback(message);
@@ -69,12 +82,6 @@ export default function ResearchPage() {
     await bumpGrowthStep();
     await refresh();
     return { duration: dur };
-  }
-
-  async function saveSummaryOnly() {
-    if (!summary.trim()) return;
-    await saveResearchDraft(summary);
-    showFeedback("本次专注内容已保存，计时继续");
   }
 
   async function finishTimer() {
@@ -143,24 +150,14 @@ export default function ResearchPage() {
             placeholder="修改 Discussion 和 Figure 2"
             maxLength={240}
           />
-          <div className="mt-2 grid grid-cols-[0.8fr_1.2fr] gap-2">
-            <Button
-              variant="soft"
-              size="sm"
-              onClick={saveSummaryOnly}
-              disabled={!summary.trim()}
-            >
-              仅保存小结
-            </Button>
-            <Button
-              variant="accent"
-              size="sm"
-              onClick={finishTimer}
-              disabled={!timerActive || savingSession}
-            >
-              {savingSession ? "保存中…" : "结束并记录"}
-            </Button>
-          </div>
+          <Button
+            variant="accent"
+            className="mt-2 w-full"
+            onClick={finishTimer}
+            disabled={!timerActive || savingSession}
+          >
+            {savingSession ? "保存中…" : "结束并记录"}
+          </Button>
         </div>
 
         <div className="mt-4 border-t border-line pt-4">

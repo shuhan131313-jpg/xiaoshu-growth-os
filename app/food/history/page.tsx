@@ -6,7 +6,7 @@ import { ChevronLeft, Utensils } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 import { FoodRecordList } from "@/components/food/food-record-list";
 import { FoodRecordSheet } from "@/components/food/food-record-sheet";
-import { deleteFoodRecord, getAllFoodRecords } from "@/lib/food";
+import { deleteFoodRecord, getAllFoodRecords, updateFoodRecord } from "@/lib/food";
 import { formatFoodDate, groupFoodRecordsByDay, sortFoodRecords } from "@/lib/food-rules";
 import type { FoodRecord } from "@/lib/db/db";
 
@@ -33,6 +33,13 @@ export default function FoodHistoryPage() {
       sortFoodRecords([record, ...current.filter((item) => item.id !== record.id)])
     );
     showFeedback("已保存修改");
+  }
+
+  async function toggleStatus(record: FoodRecord, isUnplanned: boolean) {
+    if (record.id == null || record.isUnplanned === isUnplanned) return;
+    const updated = await updateFoodRecord(record.id, record.content, isUnplanned);
+    setRecords((current) => current.map((item) => item.id === updated.id ? updated : item));
+    showFeedback(isUnplanned ? "已标记为计划外饮食" : "已标记为正常饮食");
   }
 
   async function remove(record: FoodRecord) {
@@ -78,7 +85,7 @@ export default function FoodHistoryPage() {
                   {group.total} 次 · {group.unplanned} 次计划外
                 </p>
               </div>
-              <FoodRecordList records={group.records} onEdit={setEditing} onDelete={remove} />
+              <FoodRecordList records={group.records} onEdit={setEditing} onDelete={remove} onToggleStatus={toggleStatus} />
             </section>
           ))}
         </div>
