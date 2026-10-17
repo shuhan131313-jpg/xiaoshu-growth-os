@@ -14,7 +14,7 @@ interface FoodRecordSheetProps {
   isUnplanned: boolean;
   existing?: FoodRecord;
   onClose: () => void;
-  onSaved: (record: FoodRecord, leavesDelta: number) => void;
+  onSaved: (record: FoodRecord) => void;
 }
 
 export function FoodRecordSheet({
@@ -40,10 +40,10 @@ export function FoodRecordSheet({
     savingRef.current = true;
     setSaving(true);
     try {
-      const result = existing?.id != null
+      const record = existing?.id != null
         ? await updateFoodRecord(existing.id, content, unplanned)
         : await addFoodRecord(content, isUnplanned);
-      onSaved(result.record, result.leavesDelta);
+      onSaved(record);
       onClose();
     } finally {
       savingRef.current = false;

@@ -11,10 +11,8 @@ async function importTypeScript(relativePath) {
 }
 
 const research = await importTypeScript("../lib/research-rules.ts");
-const leaves = await importTypeScript("../lib/leaves-rules.ts");
 const backup = await importTypeScript("../lib/backup-format.ts");
 const { timerDurationMinutes, validManualMinutes } = research;
-const { researchLeavesForSeconds, researchRewardKey } = leaves;
 const { BACKUP_TABLE_NAMES, rowsFromBackup } = backup;
 
 assert.equal(timerDurationMinutes(47 * 60 + 59), 47, "计时记录使用完整实际分钟，不进位");
@@ -24,12 +22,6 @@ assert.equal(validManualMinutes("9"), 9, "不足 10 分钟仍可补录");
 for (const invalid of ["", "0", "-3", "abc", Number.NaN]) {
   assert.equal(validManualMinutes(invalid), null, `非法时长 ${String(invalid)} 不创建记录`);
 }
-assert.equal(researchLeavesForSeconds(47 * 60), 20, "47 分钟正常计时 +20");
-assert.equal(researchLeavesForSeconds(35 * 60), 15, "35 分钟补录 +15");
-assert.equal(researchLeavesForSeconds(80 * 60), 40, "80 分钟补录 +40");
-assert.equal(researchLeavesForSeconds(9 * 60), 0, "9 分钟补录 +0");
-assert.equal(researchRewardKey(12), researchRewardKey(12), "同一论文记录使用稳定奖励键");
-assert.notEqual(researchRewardKey(12), researchRewardKey(13), "不同论文记录独立结算");
 assert.equal(BACKUP_TABLE_NAMES.includes("research"), true, "正常计时与补录共用备份中的 research 表");
 assert.deepEqual(rowsFromBackup({ tables: { research: [{ duration: 20 }] } }, "research"), [{ duration: 20 }], "旧记录缺少 source 字段仍可恢复");
 
@@ -39,6 +31,10 @@ assert.doesNotMatch(pageSource, /专注目标（分钟）|目标 60 分钟/, "�
 assert.doesNotMatch(timerSource, /RotateCcw|aria-label="重置"/, "计时器已删除刷新重置按钮");
 assert.match(pageSource, /onClick=\{saveSummaryOnly\}/, "仅保存小结使用独立保存操作");
 assert.match(pageSource, /onClick=\{finishTimer\}/, "结束并记录使用独立结算操作");
-assert.match(pageSource, /source: "timer" \| "manual"/, "计时和补录共用论文记录体系并标记来源");
+assert.match(pageSource, /source: "timer" \| "manual"/, "计时和补录共用专注记录体系并标记来源");
+assert.match(pageSource, /repos\.research\.add\(/, "计时和补录直接保存专注记录");
+assert.doesNotMatch(pageSource, /Leaves|leaves|树叶|🌿/, "专注页面不再结算或展示树叶");
+assert.match(pageSource, /title="专注"/, "用户可见模块名称已改为专注");
+assert.doesNotMatch(pageSource, /今日科研文献推荐|收藏此文献/, "科研文献推荐与收藏入口已移除");
 
-console.log("论文计时、补录奖励、输入校验、幂等键与备份兼容测试通过：22 项");
+console.log("专注计时、补录、输入校验与备份兼容测试通过：19 项");

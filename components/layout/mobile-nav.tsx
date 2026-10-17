@@ -8,7 +8,6 @@ import {
   Plus,
   UserRound,
   X,
-  Leaf,
   Route,
   Diamond,
   Utensils,
@@ -22,14 +21,12 @@ const RECORD_PATHS = [
   ...NAV_ITEMS.filter(
     (item) => !["/", "/mainline", "/milestones", "/growth", "/settings"].includes(item.href)
   ),
-  { href: "/leaves?deduct=1", label: "树叶扣分", en: "Leaves", icon: Leaf },
 ];
 
 const MY_PATHS = [
   { href: "/mainline", label: "主线", en: "Mainline", icon: Route },
   { href: "/milestones", label: "里程碑", en: "Milestones", icon: Diamond },
   { href: "/food/history", label: "饮食记录", en: "Food", icon: Utensils },
-  { href: "/leaves", label: "树叶", en: "Leaves", icon: Leaf },
   ...NAV_ITEMS.filter((item) => ["/growth", "/settings"].includes(item.href)),
 ];
 

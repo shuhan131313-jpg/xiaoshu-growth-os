@@ -32,9 +32,8 @@ function buildReview(s: PeriodStat): string {
   const focus: string[] = [];
   if (s.exerciseMinutes > 0) focus.push(`运动 ${s.exerciseMinutes} 分钟`);
   if (s.readingCount > 0) focus.push(`阅读 ${s.readingCount} 次`);
-  if (s.researchMinutes > 0) focus.push(`论文 ${s.researchMinutes} 分钟`);
+  if (s.researchMinutes > 0) focus.push(`专注 ${s.researchMinutes} 分钟`);
   if (s.experimentCount > 0) focus.push(`实验 ${s.experimentCount} 次`);
-  if (s.englishCount > 0) focus.push(`英文 ${s.englishCount} 篇`);
   if (s.gratitudeCount > 0) focus.push(`感恩 ${s.gratitudeCount} 篇`);
   const pct = Math.round(s.avgCompletion * 100);
   const advice =
@@ -72,11 +71,9 @@ export default function GrowthPage() {
         { label: "平均完成率", value: `${Math.round(stat.avgCompletion * 100)}%` },
         { label: "运动", value: `${stat.exerciseCount} 次 / ${stat.exerciseMinutes} 分` },
         { label: "阅读", value: `${stat.readingCount} 次 / ${stat.readingMinutes} 分` },
-        { label: "论文", value: `${stat.researchCount} 次 / ${stat.researchMinutes} 分` },
-        { label: "英文", value: `${stat.englishCount} 篇` },
+        { label: "专注", value: `${stat.researchCount} 次 / ${stat.researchMinutes} 分` },
         { label: "实验", value: `${stat.experimentCount} 次` },
         { label: "感恩", value: `${stat.gratitudeCount} 篇` },
-        { label: "收藏文献", value: `${stat.literatureCount} 篇` },
       ]
     : [];
 

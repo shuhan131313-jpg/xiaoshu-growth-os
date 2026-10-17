@@ -14,7 +14,6 @@ import type { ExperimentRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
 import { bumpGrowthStep } from "@/lib/growth";
 import { setTodayTask } from "@/lib/summary";
-import { addExperimentWithLeaves } from "@/lib/leaves";
 
 export default function ExperimentPage() {
   const today = todayKey();
@@ -46,7 +45,7 @@ export default function ExperimentPage() {
 
   async function save() {
     if (!note.trim()) return;
-    await addExperimentWithLeaves({
+    await repos.experiment.add({
       date: today,
       note: note.trim(),
       createdAt: Date.now(),

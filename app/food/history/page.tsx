@@ -28,20 +28,19 @@ export default function FoodHistoryPage() {
     window.setTimeout(() => setFeedback(""), 2500);
   }
 
-  function saved(record: FoodRecord, leavesDelta: number) {
+  function saved(record: FoodRecord) {
     setRecords((current) =>
       sortFoodRecords([record, ...current.filter((item) => item.id !== record.id)])
     );
-    if (leavesDelta < 0) showFeedback(`已改为计划外 · ${leavesDelta} 🌿`);
-    else if (leavesDelta > 0) showFeedback(`已改为普通饮食 · +${leavesDelta} 🌿`);
+    showFeedback("已保存修改");
   }
 
   async function remove(record: FoodRecord) {
     if (record.id == null) return;
     if (!window.confirm(`删除“${record.content}”这条饮食记录吗？`)) return;
-    const leavesDelta = await deleteFoodRecord(record.id);
+    await deleteFoodRecord(record.id);
     setRecords((current) => current.filter((item) => item.id !== record.id));
-    if (leavesDelta > 0) showFeedback(`已删除并恢复 · +${leavesDelta} 🌿`);
+    showFeedback("已删除饮食记录");
   }
 
   return (
@@ -90,8 +89,8 @@ export default function FoodHistoryPage() {
         isUnplanned={editing?.isUnplanned ?? false}
         existing={editing}
         onClose={() => setEditing(undefined)}
-        onSaved={(record, leavesDelta) => {
-          saved(record, leavesDelta);
+        onSaved={(record) => {
+          saved(record);
           setEditing(undefined);
         }}
       />

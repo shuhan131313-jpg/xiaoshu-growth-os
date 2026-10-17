@@ -64,7 +64,9 @@ assert.deepEqual(
 const dbSource = await readFile(new URL("../lib/db/db.ts", import.meta.url), "utf8");
 const foodSource = await readFile(new URL("../lib/food.ts", import.meta.url), "utf8");
 assert.match(dbSource, /version\(11\)[\s\S]*foodRecords:\s*"\+\+id, date, createdAt"/, "数据库通过新版本新增表");
-assert.match(foodSource, /deleteFoodRecordWithLeaves\(id\)/, "删除通过树叶事务处理恢复逻辑");
-assert.match(foodSource, /addFoodRecordWithLeaves\(record\)/, "新增饮食通过统一树叶引擎处理");
+assert.match(foodSource, /db\.foodRecords\.add\(record\)/, "新增饮食直接写入饮食表");
+assert.match(foodSource, /db\.foodRecords\.update\(id/, "修改饮食直接更新原记录");
+assert.match(foodSource, /db\.foodRecords\.delete\(id\)/, "删除饮食不再触发积分逻辑");
+assert.doesNotMatch(foodSource, /Leaves|leaves|树叶|🌿/, "饮食数据逻辑不再依赖树叶积分");
 
-console.log("饮食记录日期、排序、编辑、分组、计数、备份与树叶事务接入测试通过：21 项");
+console.log("饮食记录日期、排序、编辑、分组、计数、备份与独立保存测试通过：23 项");

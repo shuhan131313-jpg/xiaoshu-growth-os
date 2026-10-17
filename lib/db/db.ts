@@ -86,6 +86,15 @@ export interface SparkRecord {
   createdAt: number;
 }
 
+export interface RecentBookRecord {
+  id?: number;
+  title: string;
+  note?: string;
+  status: "reading" | "finished";
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface WeightRecord {
   id?: number;
   date: string; // YYYY-MM-DD
@@ -256,6 +265,7 @@ export class XiaoShuDB extends Dexie {
   dailyMain!: Table<DailyMainRecord, number>;
   milestones!: Table<MilestoneRecord, number>;
   foodRecords!: Table<FoodRecord, number>;
+  recentBooks!: Table<RecentBookRecord, number>;
 
   constructor() {
     super("xiaoshu-growth-os");
@@ -314,6 +324,9 @@ export class XiaoShuDB extends Dexie {
     });
     this.version(11).stores({
       foodRecords: "++id, date, createdAt",
+    });
+    this.version(12).stores({
+      recentBooks: "++id, status, updatedAt",
     });
   }
 }

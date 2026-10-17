@@ -16,7 +16,6 @@ import type { ExerciseRecord, WeightRecord, BowelRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
 import { bumpGrowthStep } from "@/lib/growth";
 import { setTodayTask } from "@/lib/summary";
-import { addExerciseWithLeaves } from "@/lib/leaves";
 import {
   filterRecordsByLocalDayRange,
   type WeightTimeRange,
@@ -302,7 +301,7 @@ export default function ExercisePage() {
 
   async function saveExercise() {
     if (!checkInProject || !duration) return;
-    await addExerciseWithLeaves({
+    await repos.exercise.add({
       date: todayKey(),
       project: checkInProject,
       duration: Number(duration) || 0,

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Cookie, History, Plus, Utensils } from "lucide-react";
+import { History, Plus, Utensils } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 import { FoodRecordList } from "@/components/food/food-record-list";
 import { FoodRecordSheet } from "@/components/food/food-record-sheet";
@@ -45,20 +45,19 @@ export default function FoodPage() {
     window.setTimeout(() => setFeedback(""), 2500);
   }
 
-  function saved(record: FoodRecord, leavesDelta: number) {
+  function saved(record: FoodRecord) {
     setRecords((current) =>
       sortFoodRecords([record, ...current.filter((item) => item.id !== record.id)])
     );
-    if (leavesDelta < 0) showFeedback(`已记录计划外饮食 · ${leavesDelta} 🌿`);
-    else if (leavesDelta > 0) showFeedback(`已改为普通饮食 · +${leavesDelta} 🌿`);
+    showFeedback(record.isUnplanned ? "已记录计划外饮食" : "已保存饮食记录");
   }
 
   async function remove(record: FoodRecord) {
     if (record.id == null) return;
     if (!window.confirm(`删除“${record.content}”这条饮食记录吗？`)) return;
-    const leavesDelta = await deleteFoodRecord(record.id);
+    await deleteFoodRecord(record.id);
     setRecords((current) => current.filter((item) => item.id !== record.id));
-    if (leavesDelta > 0) showFeedback(`已删除并恢复 · +${leavesDelta} 🌿`);
+    showFeedback("已删除饮食记录");
   }
 
   return (
@@ -109,10 +108,6 @@ export default function FoodPage() {
       >
         <History className="h-4 w-4" /> 查看历史饮食
       </Link>
-
-      <p className="flex items-center justify-center gap-1.5 text-[11px] text-ink-faint">
-        <Cookie className="h-3.5 w-3.5" /> 每条“计划外”饮食自动扣除 20 树叶
-      </p>
 
       <FoodRecordSheet
         open={sheetOpen}

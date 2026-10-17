@@ -115,7 +115,7 @@ export default function SettingsPage() {
           </p>
           <p className="text-[13px] leading-6 text-ink-soft">
             首期 AI 由本地内容池提供，无需联网。若填入 API Key，二期开启真实模型后，
-            书摘、英文、文献与复盘将升级为实时生成（Key 仅存于本机）。
+            复盘与本地助手可在后续升级为实时生成（Key 仅存于本机）。
           </p>
           <div className="grid grid-cols-2 gap-3">
             <div>

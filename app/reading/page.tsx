@@ -1,103 +1,119 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BookOpen, RefreshCw, Sparkles, Trash2, Bookmark, CheckCircle2 } from "lucide-react";
+import { BookOpen, CheckCircle2, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FoldList } from "@/components/common/fold-list";
 import { PageHeader } from "@/components/common/page-header";
+import { Sheet } from "@/components/common/sheet";
 import { repos } from "@/lib/db/repo";
-import type { SparkRecord, FavoriteRecord } from "@/lib/db/db";
+import type { RecentBookRecord, SparkRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
-import { BOOK_POOL, pickDistinct, type BookExcerpt } from "@/lib/ai/content";
-import { getDailyPick, setDailyPick, bumpGrowthStep } from "@/lib/growth";
-import { getTodayTaskMap } from "@/lib/summary";
-import { setReadingCompleteWithLeaves } from "@/lib/leaves";
+import { bumpGrowthStep } from "@/lib/growth";
+import { getTodayTaskMap, setTodayTask } from "@/lib/summary";
+import {
+  normalizeRecentBookInput,
+  sortRecentBooks,
+  type RecentBookStatus,
+} from "@/lib/recent-books-rules";
 
 export default function ReadingPage() {
   const today = todayKey();
-  const [book, setBook] = useState<BookExcerpt>(BOOK_POOL[0]);
   const [sparkText, setSparkText] = useState("");
   const [sparks, setSparks] = useState<SparkRecord[]>([]);
-  const [favs, setFavs] = useState<FavoriteRecord[]>([]);
   const [readToday, setReadToday] = useState(false);
-
-  const bookKey = `book:${book.book}`;
-  const bookFav = favs.some((f) => f.type === "book" && f.key === bookKey);
+  const [books, setBooks] = useState<RecentBookRecord[]>([]);
+  const [bookTitle, setBookTitle] = useState("");
+  const [bookNote, setBookNote] = useState("");
+  const [editingBook, setEditingBook] = useState<RecentBookRecord>();
+  const [editTitle, setEditTitle] = useState("");
+  const [editNote, setEditNote] = useState("");
+  const [editStatus, setEditStatus] = useState<RecentBookStatus>("reading");
 
   async function refresh() {
-    const [sp, fv, tasks] = await Promise.all([
+    const [sp, tasks, recentBooks] = await Promise.all([
       repos.spark.all(),
-      repos.favorite.all(),
       getTodayTaskMap(today),
+      repos.recentBooks.all(),
     ]);
     setSparks(sp.sort((a, b) => b.createdAt - a.createdAt));
-    setFavs(fv);
     setReadToday(!!tasks.reading);
+    setBooks(sortRecentBooks(recentBooks));
   }
 
   useEffect(() => {
     refresh();
-    (async () => {
-      const saved = await getDailyPick<BookExcerpt>(
-        "book",
-        BOOK_POOL,
-        (item, v) => item.book === v,
-        BOOK_POOL[0]
-      );
-      setBook(saved);
-    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function changeBook() {
-    const next = pickDistinct(BOOK_POOL, book);
-    setBook(next);
-    await setDailyPick("book", next.book);
-  }
-
   async function saveSpark() {
-    const t = sparkText.trim();
-    if (!t) return;
-    await repos.spark.add({ date: today, text: t, createdAt: Date.now() });
+    const text = sparkText.trim();
+    if (!text) return;
+    await repos.spark.add({ date: today, text, createdAt: Date.now() });
     setSparkText("");
     await bumpGrowthStep();
-    refresh();
+    await refresh();
   }
 
-  async function deleteSpark(id: number) {
+  async function deleteSpark(id?: number) {
+    if (id == null) return;
     await repos.spark.delete(id);
-    refresh();
-  }
-
-  async function toggleBookFav() {
-    if (bookFav) {
-      const ex = favs.find((f) => f.type === "book" && f.key === bookKey);
-      if (ex?.id) await repos.favorite.delete(ex.id);
-    } else {
-      await repos.favorite.add({
-        type: "book",
-        key: bookKey,
-        title: book.book,
-        author: book.author,
-        excerpt: book.passage,
-        date: today,
-        createdAt: Date.now(),
-      });
-    }
     await refresh();
   }
 
   async function toggleReadToday() {
     const next = !readToday;
     setReadToday(next);
-    await setReadingCompleteWithLeaves(today, next);
+    await setTodayTask(today, "reading", next);
+  }
+
+  async function addBook() {
+    if (!bookTitle.trim()) return;
+    const now = Date.now();
+    const input = normalizeRecentBookInput(bookTitle, bookNote, "reading", now);
+    await repos.recentBooks.add({ ...input, createdAt: now });
+    setBookTitle("");
+    setBookNote("");
+    await refresh();
+  }
+
+  async function toggleBookStatus(book: RecentBookRecord) {
+    if (book.id == null) return;
+    await repos.recentBooks.update(book.id, {
+      status: book.status === "reading" ? "finished" : "reading",
+      updatedAt: Date.now(),
+    });
+    await refresh();
+  }
+
+  function openBookEdit(book: RecentBookRecord) {
+    setEditingBook(book);
+    setEditTitle(book.title);
+    setEditNote(book.note ?? "");
+    setEditStatus(book.status);
+  }
+
+  async function saveBookEdit() {
+    if (editingBook?.id == null || !editTitle.trim()) return;
+    const patch = normalizeRecentBookInput(editTitle, editNote, editStatus);
+    await repos.recentBooks.update(editingBook.id, patch);
+    setEditingBook(undefined);
+    await refresh();
+  }
+
+  async function deleteBook(id?: number) {
+    if (id == null) return;
+    await repos.recentBooks.delete(id);
+    if (editingBook?.id === id) setEditingBook(undefined);
+    await refresh();
   }
 
   return (
     <div className="space-y-5">
-      <PageHeader title="阅读" desc="每天留一段安静的时间，与自己对话" />
+      <PageHeader title="阅读" desc="留一点安静的时间，记录读过的内容与想法" />
 
       <button
         type="button"
@@ -109,33 +125,25 @@ export default function ReadingPage() {
         <span>
           <span className="block text-sm font-medium text-ink">今日已阅读</span>
           <span className="mt-0.5 block text-xs text-ink-faint">
-            {readToday ? "已完成；取消后当天不可重复领取" : "当天首次标记获得 +5 🌿"}
+            {readToday ? "今天已经留过阅读时间" : "点击标记今天已阅读"}
           </span>
         </span>
         <CheckCircle2 className={`h-5 w-5 ${readToday ? "text-[#5E7C6C]" : "text-ink-faint"}`} />
       </button>
 
-      {/* 灵光一闪（置顶） */}
       <Card>
         <CardContent>
           <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-primary">
             <Sparkles className="h-4 w-4" /> 灵光一闪
           </div>
-          <p className="mb-2 text-[13px] text-ink-faint">
-            随时记下脑子里蹦出的小灵感
-          </p>
+          <p className="mb-2 text-[13px] text-ink-faint">随时记下脑子里蹦出的小灵感</p>
           <Textarea
             value={sparkText}
-            onChange={(e) => setSparkText(e.target.value)}
+            onChange={(event) => setSparkText(event.target.value)}
             placeholder="比如：一个突然想到的研究角度…"
             rows={3}
           />
-          <Button
-            variant="soft"
-            className="mt-3 w-full"
-            onClick={saveSpark}
-            disabled={!sparkText.trim()}
-          >
+          <Button variant="soft" className="mt-3 w-full" onClick={saveSpark} disabled={!sparkText.trim()}>
             记下来
           </Button>
 
@@ -143,24 +151,17 @@ export default function ReadingPage() {
             <FoldList
               className="mt-4"
               items={sparks}
-              title={
-                <p className="text-xs font-medium text-primary">
-                  我的灵感（{sparks.length}）
-                </p>
-              }
-              renderItem={(s) => (
-                <div
-                  key={s.id}
-                  className="flex items-start justify-between gap-2 rounded-xl bg-line/30 p-3"
-                >
+              title={<p className="text-xs font-medium text-primary">我的灵感（{sparks.length}）</p>}
+              renderItem={(spark) => (
+                <div key={spark.id} className="flex items-start justify-between gap-2 rounded-xl bg-line/30 p-3">
                   <div className="min-w-0">
-                    <p className="text-[13px] leading-relaxed text-ink">{s.text}</p>
-                    <p className="mt-1 tabular text-[11px] text-ink-faint">{s.date}</p>
+                    <p className="text-[13px] leading-relaxed text-ink">{spark.text}</p>
+                    <p className="tabular mt-1 text-[11px] text-ink-faint">{spark.date}</p>
                   </div>
                   <button
-                    onClick={() => deleteSpark(s.id!)}
+                    onClick={() => deleteSpark(spark.id)}
                     aria-label="删除灵感"
-                    className="shrink-0 text-ink-faint transition duration-200 hover:text-red-500"
+                    className="shrink-0 text-ink-faint transition hover:text-red-500"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -171,49 +172,72 @@ export default function ReadingPage() {
         </CardContent>
       </Card>
 
-      {/* 每日书摘（独立区块 + 收藏） */}
-      <Card>
-        <CardContent>
-          <div className="mb-2 flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
-              <BookOpen className="h-4 w-4" /> 每日书摘
-            </span>
-            <div className="flex items-center gap-1">
+      <section className="border-y border-line py-4">
+        <div className="mb-3 flex items-center gap-1.5 text-sm font-medium text-primary">
+          <BookOpen className="h-4 w-4" /> 最近在读
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Input value={bookTitle} onChange={(event) => setBookTitle(event.target.value)} placeholder="书名" maxLength={120} />
+          <Input value={bookNote} onChange={(event) => setBookNote(event.target.value)} placeholder="作者或备注（可选）" maxLength={160} />
+        </div>
+        <Button variant="soft" size="sm" className="mt-2 w-full" onClick={addBook} disabled={!bookTitle.trim()}>
+          <Plus className="h-4 w-4" /> 添加到最近在读
+        </Button>
+
+        {books.length === 0 ? (
+          <p className="py-6 text-center text-xs text-ink-faint">还没有书籍记录</p>
+        ) : (
+          <ul className="mt-4 divide-y divide-line">
+            {books.map((book) => (
+              <li key={book.id} className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-ink">{book.title}</p>
+                  {book.note && <p className="mt-0.5 text-xs text-ink-faint">{book.note}</p>}
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => toggleBookStatus(book)}
+                    className={`rounded-full px-2.5 py-1 text-[11px] ${
+                      book.status === "reading" ? "bg-[#EDF1F5] text-primary" : "bg-[#EDF2EF] text-[#5E7C6C]"
+                    }`}
+                  >
+                    {book.status === "reading" ? "在读" : "读完"}
+                  </button>
+                  <button onClick={() => openBookEdit(book)} aria-label={`修改${book.title}`} className="p-1.5 text-ink-faint hover:text-primary">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => deleteBook(book.id)} aria-label={`删除${book.title}`} className="p-1.5 text-ink-faint hover:text-red-500">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <Sheet open={!!editingBook} onClose={() => setEditingBook(undefined)} title="修改书籍">
+        <div className="space-y-4">
+          <Input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} placeholder="书名" maxLength={120} />
+          <Input value={editNote} onChange={(event) => setEditNote(event.target.value)} placeholder="作者或备注（可选）" maxLength={160} />
+          <div className="grid grid-cols-2 gap-1 rounded-lg bg-[#F2F2F0] p-1">
+            {(["reading", "finished"] as RecentBookStatus[]).map((status) => (
               <button
-                onClick={changeBook}
-                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-ink-faint hover:bg-line/50"
+                key={status}
+                type="button"
+                onClick={() => setEditStatus(status)}
+                className={`h-9 rounded-md text-xs font-medium ${editStatus === status ? "bg-white text-primary" : "text-ink-soft"}`}
               >
-                <RefreshCw className="h-3 w-3" /> 换一本
+                {status === "reading" ? "在读" : "读完"}
               </button>
-              <button
-                onClick={toggleBookFav}
-                aria-label={bookFav ? "取消收藏" : "收藏书摘"}
-                className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] transition duration-200 hover:bg-line/50"
-              >
-                <Bookmark
-                  className={`h-4 w-4 ${
-                    bookFav ? "fill-gold text-gold" : "text-ink-faint"
-                  }`}
-                />
-              </button>
-            </div>
+            ))}
           </div>
-          <p className="font-semibold text-ink">{book.book}</p>
-          <p className="mt-0.5 text-xs text-ink-faint">{book.author}</p>
-          {book.region && (
-            <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
-              {book.region}
-              {book.tag ? ` · ${book.tag}` : ""}
-            </span>
-          )}
-          <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
-            {book.intro}
-          </p>
-          <p className="mt-3 rounded-xl bg-line/30 p-3 text-[14px] leading-relaxed text-ink">
-            {book.passage}
-          </p>
-        </CardContent>
-      </Card>
+          <Button variant="accent" className="w-full" onClick={saveBookEdit} disabled={!editTitle.trim()}>
+            保存修改
+          </Button>
+        </div>
+      </Sheet>
     </div>
   );
 }

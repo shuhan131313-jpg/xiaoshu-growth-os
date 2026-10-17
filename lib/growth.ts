@@ -29,29 +29,3 @@ export async function bumpGrowthStep(): Promise<number> {
   await setMeta("growthStep", next);
   return next;
 }
-
-/** 每日内容（英文/书摘）当日锁定，避免每次打开随机刷新 */
-export async function getDailyPick<T>(
-  prefix: string,
-  pool: T[],
-  matchKey: (item: T, v: string) => boolean,
-  fallback: T
-): Promise<T> {
-  const saved = await getMeta<string>(`daily:${prefix}:${todayStr()}`, "");
-  if (saved) {
-    const found = pool.find((x) => matchKey(x, saved));
-    if (found) return found;
-  }
-  return fallback;
-}
-
-export async function setDailyPick(prefix: string, value: string): Promise<void> {
-  await setMeta(`daily:${prefix}:${todayStr()}`, value);
-}
-
-function todayStr(): string {
-  const d = new Date();
-  const mm = `${d.getMonth() + 1}`.padStart(2, "0");
-  const dd = `${d.getDate()}`.padStart(2, "0");
-  return `${d.getFullYear()}-${mm}-${dd}`;
-}

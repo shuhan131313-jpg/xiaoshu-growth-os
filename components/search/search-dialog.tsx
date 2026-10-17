@@ -15,23 +15,19 @@ interface Hit {
 const MODULE_LABEL: Record<string, string> = {
   exercise: "运动",
   reading: "阅读",
-  research: "论文",
-  literature: "文献",
+  research: "专注",
   experiment: "实验",
   gratitude: "感恩",
-  english: "英文",
   spark: "灵光",
 };
 
 async function collectAll(): Promise<Hit[]> {
-  const [ex, rd, rs, lit, exp, gr, en, sp] = await Promise.all([
+  const [ex, rd, rs, exp, gr, sp] = await Promise.all([
     db.exercise.toArray(),
     db.reading.toArray(),
     db.research.toArray(),
-    db.literature.toArray(),
     db.experiment.toArray(),
     db.gratitude.toArray(),
-    db.english.toArray(),
     db.spark.toArray(),
   ]);
   const hits: Hit[] = [];
@@ -40,9 +36,7 @@ async function collectAll(): Promise<Hit[]> {
   for (const r of rd)
     hits.push({ module: "reading", date: r.date, text: `${r.book ?? ""} ${r.feeling ?? ""}` });
   for (const r of rs)
-    hits.push({ module: "research", date: r.date, text: r.summary ?? "论文写作" });
-  for (const r of lit)
-    hits.push({ module: "literature", date: r.date, text: `${r.title} ${r.cnSummary}` });
+    hits.push({ module: "research", date: r.date, text: r.summary ?? "专注记录" });
   for (const r of exp)
     hits.push({
       module: "experiment",
@@ -57,8 +51,6 @@ async function collectAll(): Promise<Hit[]> {
         ? r.content
         : `${(r.items ?? []).join(" ")} ${r.reflection ?? ""}`,
     });
-  for (const r of en)
-    hits.push({ module: "english", date: r.date, text: `${r.title ?? ""} ${r.content ?? ""}` });
   for (const r of sp)
     hits.push({ module: "spark", date: r.date, text: r.text });
   return hits;
@@ -130,7 +122,7 @@ export function GlobalSearch() {
               <div className="flex-1 overflow-y-auto px-4 py-3">
                 {!q.trim() ? (
                   <p className="py-10 text-center text-sm text-ink-faint">
-                    输入关键词，检索运动、阅读、论文、实验、感恩、英文等全部记录
+                    输入关键词，检索运动、阅读、专注、实验、感恩与灵感记录
                   </p>
                 ) : results.length === 0 ? (
                   <p className="py-10 text-center text-sm text-ink-faint">没有匹配的记录</p>

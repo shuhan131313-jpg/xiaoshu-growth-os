@@ -23,7 +23,7 @@ function fmt(sec: number): string {
   return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
 }
 
-/** 论文专注使用的开放式计时器：中央开始，外部按钮结束并记录。 */
+/** 专注模块使用的开放式计时器：中央开始，外部按钮结束并记录。 */
 export const Timer = forwardRef<TimerHandle, TimerProps>(function Timer(
   { size = 128, className, disabled = false, onActiveChange },
   ref
@@ -95,7 +95,7 @@ export const Timer = forwardRef<TimerHandle, TimerProps>(function Timer(
               onClick={start}
               disabled={disabled}
               className="flex h-full w-full items-center justify-center rounded-full text-base font-semibold text-primary transition hover:bg-primary/[0.03]"
-              aria-label="开始论文专注"
+              aria-label="开始专注"
             >
               开始
             </button>

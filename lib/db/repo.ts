@@ -20,15 +20,12 @@ export const repos = {
   dailyTasks: repo(db.dailyTasks),
   exercise: repo(db.exercise),
   reading: repo(db.reading),
-  english: repo(db.english),
   research: repo(db.research),
-  literature: repo(db.literature),
   experiment: repo(db.experiment),
   gratitude: repo(db.gratitude),
   spark: repo(db.spark),
   weight: repo(db.weight),
   bowel: repo(db.bowel),
-  favorite: repo(db.favorite),
   growth: repo(db.growth),
   settings: repo(db.settings),
   account: repo(db.account),
@@ -36,10 +33,10 @@ export const repos = {
   timeCell: repo(db.timeCell),
   timeMerge: repo(db.timeMerge),
   todo: repo(db.todo),
-  leaves: repo(db.leaves),
   dailyMain: repo(db.dailyMain),
   milestones: repo(db.milestones),
   foodRecords: repo(db.foodRecords),
+  recentBooks: repo(db.recentBooks),
 };
 
 export type Repo = ReturnType<typeof repo>;

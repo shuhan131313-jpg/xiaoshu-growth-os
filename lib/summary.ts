@@ -4,10 +4,8 @@ import type {
   ExerciseRecord,
   ReadingRecord,
   ResearchRecord,
-  EnglishRecord,
   ExperimentRecord,
   GratitudeRecord,
-  LiteratureItem,
   AccountRecord,
 } from "./db/db";
 import { TODAY_MODULES, type TodayModuleKey } from "./constants";
@@ -42,7 +40,7 @@ export async function getCompletionRate(date: string): Promise<number> {
   return TODAY_MODULES.length ? done / TODAY_MODULES.length : 0;
 }
 
-/** 今日各项时长合计（运动/阅读/论文，单位分钟） */
+/** 今日各项时长合计（运动/阅读/专注，单位分钟） */
 export async function getTodayDuration(date: string): Promise<number> {
   const [ex, rd, rs] = await Promise.all([
     repos.exercise.whereDate(date),
@@ -75,7 +73,8 @@ export async function getHeatmap(days = 7): Promise<{ date: string; count: numbe
     d.setDate(cursor.getDate() - i);
     const k = todayKey(d);
     const rows = await db.dailyTasks.where("date").equals(k).toArray();
-    const done = rows.filter((r) => r.done).length;
+    const activeKeys = new Set(TODAY_MODULES.map((module) => module.key));
+    const done = rows.filter((row) => row.done && activeKeys.has(row.key as TodayModuleKey)).length;
     out.push({ date: k, count: done });
   }
   return out;
@@ -100,24 +99,20 @@ export interface PeriodStat {
   readingMinutes: number;
   researchCount: number;
   researchMinutes: number;
-  englishCount: number;
   experimentCount: number;
   gratitudeCount: number;
-  literatureCount: number;
   checkinDays: number; // 有勾选完成的天数
   avgCompletion: number; // 平均完成率 0-1
 }
 
 /** 周期（周/月）汇总统计 */
 export async function getPeriodStat(start: string, end: string): Promise<PeriodStat> {
-  const [ex, rd, rs, en, exp, gr, lit, tasks] = await Promise.all([
+  const [ex, rd, rs, exp, gr, tasks] = await Promise.all([
     inRange<ExerciseRecord>(db.exercise, start, end),
     inRange<ReadingRecord>(db.reading, start, end),
     inRange<ResearchRecord>(db.research, start, end),
-    inRange<EnglishRecord>(db.english, start, end),
     inRange<ExperimentRecord>(db.experiment, start, end),
     inRange<GratitudeRecord>(db.gratitude, start, end),
-    inRange<LiteratureItem>(db.literature, start, end),
     db.dailyTasks.toArray(),
   ]);
   const sumMin = <T extends { duration?: number }>(a: T[]) =>
@@ -138,10 +133,8 @@ export async function getPeriodStat(start: string, end: string): Promise<PeriodS
     readingMinutes: sumMin(rd),
     researchCount: rs.length,
     researchMinutes: sumMin(rs),
-    englishCount: en.length,
     experimentCount: exp.length,
     gratitudeCount: gr.length,
-    literatureCount: lit.length,
     checkinDays: daysWithTask.size,
     avgCompletion,
   };

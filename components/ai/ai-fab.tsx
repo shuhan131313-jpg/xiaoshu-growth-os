@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Leaf, X, Sparkles } from "lucide-react";
+import { X, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sheet } from "@/components/common/sheet";
 import { Button } from "@/components/ui/button";
@@ -35,13 +35,12 @@ export function AIFab() {
       return pickDistinct(ENCOURAGE_POOL);
     }
     if (action === "analyze") {
-      const [ex, rd, rs, gr, exp, en] = await Promise.all([
+      const [ex, rd, rs, gr, exp] = await Promise.all([
         datesByTable(repos.exercise),
         datesByTable(repos.reading),
         datesByTable(repos.research),
         datesByTable(repos.gratitude),
         datesByTable(repos.experiment),
-        datesByTable(repos.english),
       ]);
       const [sEx, sGr] = await Promise.all([
         computeStreak(ex),
@@ -56,7 +55,7 @@ export function AIFab() {
         `近 7 天平均每日完成率约 ${avg}%。`,
         sEx > 0 ? `运动已连续 ${sEx} 天。` : "运动还没形成连续习惯，先从每周 2 次开始吧。",
         sGr > 0 ? `感恩日记连续 ${sGr} 天，你正在训练看见光。` : "今天写 3 件感恩小事，心情会更好。",
-        `阅读累计 ${rd.length} 次、论文 ${rs.length} 次、实验 ${exp.length} 次、英文 ${en.length} 篇。`,
+        `阅读累计 ${rd.length} 次、专注 ${rs.length} 次、实验 ${exp.length} 次。`,
       ];
       return "📊 习惯分析\n" + parts.join("\n");
     }
@@ -64,7 +63,7 @@ export function AIFab() {
       const map = await getTodayTaskMap(todayKey());
       const undone = TODAY_MODULES.filter((m) => !map[m.key]).map((m) => m.label);
       if (undone.length === 0)
-        return "✅ 今天的计划都完成啦，了不起！可以复习一篇英文短文，或写写今天的感恩日记，给这一天收个温柔的尾。";
+        return "✅ 今天的计划都完成啦，了不起！可以写写今天的感恩日记，给这一天收个温柔的尾。";
       return (
         "🗓️ 今日学习计划\n还有这些没做：" +
         undone.join("、") +
@@ -104,7 +103,7 @@ export function AIFab() {
         aria-label="树 AI 助手"
         className="fixed bottom-24 right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-white shadow-soft md:bottom-8 md:right-8"
       >
-        <Leaf className="h-6 w-6" />
+        <Sparkles className="h-5 w-5" />
       </motion.button>
 
       <Sheet open={open} onClose={() => setOpen(false)} title="树 AI 助手">
