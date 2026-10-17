@@ -76,6 +76,21 @@ export default function SettingsPage() {
     }
   }
 
+  async function saveFallbackJson() {
+    if (!copyFallback) return;
+    try {
+      JSON.parse(copyFallback);
+      const result = await downloadBackup(copyFallback);
+      if (result === "saved") flash("文件保存操作已完成");
+      else if (result === "shared") flash("已打开系统分享面板，请选择保存位置");
+      else if (result === "downloaded") flash("已启动下载，请到浏览器下载列表或手机“下载”目录查看");
+      else if (result === "cancelled") flash("已取消保存，请重试或使用复制备用方案");
+      else flash("保存失败，请重试或使用复制备用方案", true);
+    } catch {
+      flash("备份文本无效，无法保存", true);
+    }
+  }
+
   async function onImport() {
     let json: string | null;
     try {
@@ -144,6 +159,9 @@ export default function SettingsPage() {
               />
               <Button variant="outline" className="w-full" onClick={() => copyTextRef.current?.select()}>
                 全选备份内容
+              </Button>
+              <Button variant="accent" className="w-full" onClick={saveFallbackJson}>
+                <Download className="h-4 w-4" /> 保存为 JSON 文件
               </Button>
             </div>
           )}
