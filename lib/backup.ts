@@ -69,8 +69,13 @@ export async function downloadBackup(json: string): Promise<BackupExportResult> 
     share?: (data: ShareData) => Promise<void>;
     canShare?: (data: ShareData) => boolean;
   };
-  const file = new File([blob], filename, { type: "application/json" });
-  if (share.share && share.canShare?.({ files: [file] })) {
+  let file: File | null = null;
+  try {
+    if (typeof File !== "undefined") file = new File([blob], filename, { type: "application/json" });
+  } catch {
+    file = null;
+  }
+  if (file && share.share && share.canShare?.({ files: [file] })) {
     try {
       await share.share({ title: "树备份", files: [file] });
       return "shared";
