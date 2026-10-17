@@ -25,6 +25,7 @@ export function MilestoneSheet({ open, defaultDate, existing, onClose, onSaved }
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const savingRef = useRef(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -32,6 +33,10 @@ export function MilestoneSheet({ open, defaultDate, existing, onClose, onSaved }
     setDate(existing?.date ?? defaultDate);
     setNote(existing?.note ?? "");
     setMessage("");
+    window.requestAnimationFrame(() => {
+      titleInputRef.current?.focus({ preventScroll: true });
+      titleInputRef.current?.scrollIntoView({ block: "center", inline: "nearest" });
+    });
   }, [open, defaultDate, existing]);
 
   async function save() {
@@ -61,6 +66,7 @@ export function MilestoneSheet({ open, defaultDate, existing, onClose, onSaved }
         <div>
           <Label>里程碑</Label>
           <Input
+            ref={titleInputRef}
             value={title}
             onChange={(event) => {
               setTitle(event.target.value);

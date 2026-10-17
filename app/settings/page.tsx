@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/common/page-header";
-import { exportAll, importAll, downloadBackup, pickBackupFile } from "@/lib/backup";
+import { copyBackup, exportAll, importAll, downloadBackup, pickBackupFile } from "@/lib/backup";
 import { repos } from "@/lib/db/repo";
 
 export default function SettingsPage() {
@@ -43,9 +43,29 @@ export default function SettingsPage() {
   }
 
   async function onExport() {
-    const json = await exportAll();
-    downloadBackup(json);
-    flash("已导出备份文件");
+    try {
+      const json = await exportAll();
+      JSON.parse(json);
+      const result = await downloadBackup(json);
+      if (result === "saved") flash("已保存备份文件");
+      else if (result === "shared") flash("已打开系统分享面板，请选择保存位置");
+      else if (result === "downloaded") flash("已启动下载，请在浏览器下载列表或手机“下载”目录中查看");
+      else if (result === "cancelled") flash("已取消备份保存");
+      else flash("保存失败，请重试或使用复制备份内容", true);
+    } catch {
+      flash("备份生成失败，请重试", true);
+    }
+  }
+
+  async function onCopyBackup() {
+    try {
+      const json = await exportAll();
+      JSON.parse(json);
+      const copied = await copyBackup(json);
+      flash(copied ? "已复制完整备份内容，请粘贴保存为 .json 文件" : "复制失败，请重试", !copied);
+    } catch {
+      flash("备份生成失败，请重试", true);
+    }
   }
 
   async function onImport() {
@@ -94,6 +114,9 @@ export default function SettingsPage() {
               <Upload className="h-4 w-4" /> 导入恢复
             </Button>
           </div>
+          <Button variant="soft" className="w-full" onClick={onCopyBackup}>
+            复制备份内容
+          </Button>
           {msg && (
             <p className="flex items-center gap-1 text-sm text-accent-dark">
               <Check className="h-4 w-4" /> {msg}

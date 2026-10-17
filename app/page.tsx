@@ -177,16 +177,6 @@ export default function TodayPage() {
         </div>
       </section>
 
-      <Link href="/food" className="flex items-center justify-between border-y border-line py-3.5 text-left transition hover:border-primary/30">
-        <span className="flex items-center gap-2 text-sm font-medium text-ink">
-          <Utensils className="h-4 w-4 text-primary" strokeWidth={1.8} /> 今日饮食
-        </span>
-        <span className="flex items-center gap-1 text-xs text-ink-faint">
-          {foodSummary.total > 0 ? `已记录 ${foodSummary.total} 次 · 计划外 ${foodSummary.unplanned} 次` : "还没有记录"}
-          <ChevronRight className="h-4 w-4" />
-        </span>
-      </Link>
-
       <Card className="border-0 bg-[#EDF1F5] shadow-none">
         <CardContent className="flex items-center justify-between">
           <div className="flex items-center gap-3">
