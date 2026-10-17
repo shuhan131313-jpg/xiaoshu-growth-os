@@ -12,6 +12,7 @@ import {
   Heart,
   PenLine,
   Utensils,
+  Wallet,
 } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,9 +24,9 @@ import type { DailyMainRecord } from "@/lib/db/db";
 import { getDailyMain } from "@/lib/mainline";
 import { MainlineSheet } from "@/components/mainline/mainline-sheet";
 
-const PROGRESS_KEYS = ["exercise", "reading", "research", "gratitude"] as const;
+const PROGRESS_KEYS = ["exercise", "reading", "research", "gratitude", "food", "account"] as const;
 type ProgressKey = (typeof PROGRESS_KEYS)[number];
-const AUTO_KEYS = new Set<ProgressKey>(["exercise", "research", "gratitude"]);
+const AUTO_KEYS = new Set<ProgressKey>(["exercise", "research", "gratitude", "food", "account"]);
 
 const MODULES: Record<ProgressKey, {
   label: string;
@@ -36,6 +37,8 @@ const MODULES: Record<ProgressKey, {
   reading: { label: "阅读", href: "/reading", icon: BookOpen },
   research: { label: "专注", href: "/research", icon: PenLine },
   gratitude: { label: "好运来", href: "/gratitude", icon: Heart },
+  food: { label: "饮食记录", href: "/food", icon: Utensils },
+  account: { label: "记账", href: "/account", icon: Wallet },
 };
 
 function heatColor(count: number, max: number): string {
@@ -52,13 +55,14 @@ export default function TodayPage() {
   const [exCount, setExCount] = useState(0);
   const [rsCount, setRsCount] = useState(0);
   const [gratitudeCount, setGratitudeCount] = useState(0);
+  const [accountCount, setAccountCount] = useState(0);
   const [ready, setReady] = useState(false);
   const [mainline, setMainline] = useState<DailyMainRecord>();
   const [mainlineOpen, setMainlineOpen] = useState(false);
   const [foodSummary, setFoodSummary] = useState({ total: 0, unplanned: 0 });
 
   async function load() {
-    const [map, dur, heatmap, exercise, research, gratitude, dailyMain, foodRecords] = await Promise.all([
+    const [map, dur, heatmap, exercise, research, gratitude, dailyMain, foodRecords, accountRecords] = await Promise.all([
       getTodayTaskMap(date),
       getTodayDuration(date),
       getHeatmap(7),
@@ -67,6 +71,7 @@ export default function TodayPage() {
       repos.gratitude.whereDate(date),
       getDailyMain(date),
       repos.foodRecords.whereDate(date),
+      repos.account.whereDate(date),
     ]);
     setTaskMap(map);
     setDuration(dur);
@@ -79,6 +84,7 @@ export default function TodayPage() {
       total: foodRecords.length,
       unplanned: foodRecords.filter((record) => record.isUnplanned).length,
     });
+    setAccountCount(accountRecords.length);
     setReady(true);
   }
 
@@ -99,6 +105,8 @@ export default function TodayPage() {
     reading: !!taskMap.reading,
     research: rsCount > 0,
     gratitude: gratitudeCount > 0,
+    food: foodSummary.total > 0,
+    account: accountCount > 0,
   };
 
   return (

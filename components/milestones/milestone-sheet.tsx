@@ -56,7 +56,7 @@ export function MilestoneSheet({ open, defaultDate, existing, onClose, onSaved }
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title={existing ? "修改里程碑" : "今天有什么值得留下？"}>
+    <Sheet placement="top" open={open} onClose={onClose} title={existing ? "修改里程碑" : "今天有什么值得留下？"}>
       <div className="space-y-4">
         <div>
           <Label>里程碑</Label>
@@ -70,7 +70,6 @@ export function MilestoneSheet({ open, defaultDate, existing, onClose, onSaved }
             enterKeyHint="done"
             placeholder="一句话记下这件事"
             maxLength={160}
-            autoFocus
           />
           {message && <p className="mt-1.5 text-xs text-ink-soft" role="status">{message}</p>}
         </div>

@@ -15,16 +15,15 @@ const { BACKUP_TABLE_NAMES, rowsFromBackup } = await importTypeScript("../lib/ba
 const dbSource = await readFile(new URL("../lib/db/db.ts", import.meta.url), "utf8");
 
 assert.deepEqual(MAINLINE_CATEGORIES, [
-  "论文",
-  "投稿",
-  "修稿",
-  "实验",
+  "小论文",
   "申博",
-  "写作",
-  "杂事",
+  "数据",
+  "实验",
+  "求职",
+  "其他",
   "休息",
 ]);
-assert.equal(new Set(MAINLINE_CATEGORIES).size, 8, "主线分类不得重复");
+assert.equal(new Set(MAINLINE_CATEGORIES).size, 7, "主线分类不得重复");
 assert.equal(MAINLINE_CATEGORIES.includes("申博"), true, "新建主线必须提供申博");
 assert.equal(MAINLINE_CATEGORIES.includes("空白"), false, "新建主线不得再提供空白");
 assert.match(dbSource, /\|\s*"空白"/, "类型层必须保留空白以兼容历史记录");

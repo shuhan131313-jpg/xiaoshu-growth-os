@@ -41,7 +41,7 @@ assert.match(readingSource, /saveBookEdit/, "书名可修改");
 assert.match(readingSource, /deleteBook/, "书籍记录可删除");
 assert.doesNotMatch(readingSource, /bookNote|editNote|作者或备注/, "新增和编辑界面只保留书名输入");
 assert.doesNotMatch(readingSource, /每日书摘|换一本|BOOK_POOL/, "每日书摘与换一本逻辑已移除");
-assert.match(homeSource, /PROGRESS_KEYS = \["exercise", "reading", "research", "gratitude"\]/, "首页进度按实际项目自动排列");
+assert.match(homeSource, /PROGRESS_KEYS = \["exercise", "reading", "research", "gratitude", "food", "account"\]/, "首页进度按固定六项自动排列");
 assert.doesNotMatch(homeSource, /PROGRESS_SLOTS|null, "research"|"research", null/, "首页不再保留虚假空槽位");
 
 for (const removedRoute of ["../app/english/page.tsx", "../app/leaves/page.tsx"]) {

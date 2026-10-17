@@ -8,11 +8,11 @@ import { FoodRecordList } from "@/components/food/food-record-list";
 import { FoodRecordSheet } from "@/components/food/food-record-sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { addFoodRecord, deleteFoodRecord, getFoodRecordsForDate, updateFoodRecord } from "@/lib/food";
+import { addFoodRecord, deleteFoodRecord, getFoodDayMarkerState, getFoodRecordsForDate, toggleFoodDayMarker, updateFoodRecord } from "@/lib/food";
 import { foodDaySummary, formatFoodDate, sortFoodRecords } from "@/lib/food-rules";
 import { todayKey } from "@/lib/utils";
 import type { FoodRecord } from "@/lib/db/db";
-import { getFoodDayStatus, setFoodDayStatus, type FoodDayStatus } from "@/lib/food-status";
+type FoodDayStatus = { protein: boolean; water: boolean };
 
 export default function FoodPage() {
   const today = useMemo(() => todayKey(), []);
@@ -28,7 +28,7 @@ export default function FoodPage() {
   const summary = foodDaySummary(records);
 
   useEffect(() => {
-    Promise.all([getFoodRecordsForDate(today), getFoodDayStatus(today)])
+    Promise.all([getFoodRecordsForDate(today), getFoodDayMarkerState(today)])
       .then(([nextRecords, nextStatus]) => {
         setRecords(nextRecords);
         setDayStatus(nextStatus);
@@ -77,8 +77,12 @@ export default function FoodPage() {
   }
 
   async function toggleDayStatus(field: keyof FoodDayStatus) {
-    const next = await setFoodDayStatus(today, { [field]: !dayStatus[field] });
-    setDayStatus(next);
+    const marker = await toggleFoodDayMarker(today, field);
+    setRecords((current) => marker
+      ? sortFoodRecords([...current, marker])
+      : current.filter((item) => item.content !== (field === "protein" ? "蛋白质达标" : "水达标")));
+    setDayStatus((current) => ({ ...current, [field]: !current[field] }));
+    showFeedback(marker ? `已记录${field === "protein" ? "蛋白质达标" : "水达标"}` : `已取消${field === "protein" ? "蛋白质达标" : "水达标"}`);
   }
 
   async function remove(record: FoodRecord) {
@@ -86,6 +90,9 @@ export default function FoodPage() {
     if (!window.confirm(`删除“${record.content}”这条饮食记录吗？`)) return;
     await deleteFoodRecord(record.id);
     setRecords((current) => current.filter((item) => item.id !== record.id));
+    if (record.content === "蛋白质达标" || record.content === "水达标") {
+      setDayStatus((current) => ({ ...current, [record.content === "蛋白质达标" ? "protein" : "water"]: false }));
+    }
     showFeedback("已删除饮食记录");
   }
 

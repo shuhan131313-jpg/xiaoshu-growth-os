@@ -180,6 +180,10 @@ export interface LeavesEntry {
 }
 
 export type MainlineCategory =
+  | "小论文"
+  | "数据"
+  | "求职"
+  | "其他"
   | "论文"
   | "投稿"
   | "修稿"

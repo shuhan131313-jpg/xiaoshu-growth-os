@@ -70,7 +70,8 @@ assert.match(foodSource, /db\.foodRecords\.add\(record\)/, "新增饮食直接�
 assert.match(foodSource, /db\.foodRecords\.update\(id/, "修改饮食直接更新原记录");
 assert.match(foodSource, /db\.foodRecords\.delete\(id\)/, "删除饮食不再触发积分逻辑");
 assert.doesNotMatch(foodSource, /Leaves|leaves|树叶|🌿/, "饮食数据逻辑不再依赖树叶积分");
-assert.match(foodPageSource, /getFoodDayStatus|setFoodDayStatus/, "蛋白质和饮水提醒按日期持久保存");
+assert.match(foodSource, /FOOD_DAY_MARKERS/, "蛋白质和饮水使用普通饮食记录");
+assert.match(foodPageSource, /getFoodDayMarkerState|toggleFoodDayMarker/, "蛋白质和饮水状态来自普通饮食记录");
 assert.match(foodPageSource, /addFoodRecord\(content, false\)/, "饮食页面快速新增默认为正常饮食");
 assert.match(foodListSource, /标记为计划外|标记为正常饮食/, "每条饮食记录都有独立状态按钮");
 assert.doesNotMatch(foodPageSource, /Leaves|leaves|树叶|🌿/, "饮食页面不重新引入树叶逻辑");

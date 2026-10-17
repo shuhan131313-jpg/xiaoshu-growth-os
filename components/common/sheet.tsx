@@ -9,10 +9,11 @@ interface SheetProps {
   onClose: () => void;
   title?: string;
   children: ReactNode;
+  placement?: "bottom" | "top";
 }
 
 /** 移动端底部上滑抽屉；桌面端居中弹窗。统一 250ms 柔和动效。 */
-export function Sheet({ open, onClose, title, children }: SheetProps) {
+export function Sheet({ open, onClose, title, children, placement = "bottom" }: SheetProps) {
   useEffect(() => {
     if (open) {
       const prev = document.body.style.overflow;
@@ -27,7 +28,7 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
     <AnimatePresence>
       {open && (
         <div
-          className="fixed inset-x-0 z-50 flex items-end justify-center md:inset-0 md:items-center"
+          className={`fixed inset-x-0 z-50 flex justify-center md:inset-0 md:items-center ${placement === "top" ? "items-start pt-4" : "items-end"}`}
           style={{
             top: "var(--visual-viewport-offset-top)",
             height: "var(--visual-viewport-height)",
@@ -42,7 +43,7 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
             onClick={onClose}
           />
           <motion.div
-            className="relative z-10 flex w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-card shadow-soft md:rounded-xl"
+            className={`relative z-10 flex w-full max-w-md flex-col overflow-hidden bg-card shadow-soft md:rounded-xl ${placement === "top" ? "rounded-xl" : "rounded-t-2xl"}`}
             style={{ maxHeight: "min(88vh, calc(var(--visual-viewport-height) - 1rem))" }}
             initial={{ y: 40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}

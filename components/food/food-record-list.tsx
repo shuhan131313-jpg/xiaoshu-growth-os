@@ -20,8 +20,12 @@ export function FoodRecordList({ records, onEdit, onDelete, onToggleStatus }: Fo
             {formatFoodTime(record.createdAt)}
           </time>
           <div className="min-w-0 flex-1">
-            <button type="button" onClick={() => onEdit(record)} className="break-words text-left text-sm text-ink hover:text-primary">
-              {record.content}
+            <button type="button" onClick={() => onEdit(record)} className="break-words text-left text-sm hover:text-primary">
+              <span className={`inline rounded-lg border px-2 py-1 transition ${record.isUnplanned
+                ? "border-[#E8C7C3] bg-[#FBEEEC] text-[#8D514C]"
+                : "border-[#CFE1D3] bg-[#F0F7F1] text-[#4F7659]"}`}>
+                {record.content}
+              </span>
             </button>
           </div>
           <div className="flex shrink-0 items-center gap-1">
