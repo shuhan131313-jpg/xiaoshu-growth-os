@@ -13,7 +13,8 @@
     "test:recent-books": "node scripts/test-recent-books.mjs",
     "test:mainline": "node scripts/test-mainline.mjs",
     "test:research": "node scripts/test-research.mjs",
-    "test:weight-range": "node scripts/test-weight-range.mjs"
+    "test:weight-range": "node scripts/test-weight-range.mjs",
+    "test:input": "node scripts/test-input-experience.mjs"
   },
   "dependencies": {
     "next": "14.2.18",

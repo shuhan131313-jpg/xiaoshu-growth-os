@@ -27,18 +27,25 @@ export function FoodRecordSheet({
   const [content, setContent] = useState("");
   const [unplanned, setUnplanned] = useState(isUnplanned);
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
   const savingRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
     setContent(existing?.content ?? "");
     setUnplanned(existing?.isUnplanned ?? isUnplanned);
+    setMessage("");
   }, [open, existing, isUnplanned]);
 
   async function save() {
-    if (!content.trim() || savingRef.current) return;
+    if (!content.trim()) {
+      setMessage("请先填写吃了什么");
+      return;
+    }
+    if (savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
+    setMessage("");
     try {
       const record = existing?.id != null
         ? await updateFoodRecord(existing.id, content, unplanned)
@@ -62,14 +69,17 @@ export function FoodRecordSheet({
           <Label>吃了什么？</Label>
           <Input
             value={content}
-            onChange={(event) => setContent(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") save();
+            onChange={(event) => {
+              setContent(event.target.value);
+              if (message) setMessage("");
             }}
+            onEnterSubmit={save}
+            enterKeyHint="done"
             placeholder="例如：两个鸡蛋 + 豆浆"
             maxLength={160}
             autoFocus
           />
+          {message && <p className="mt-1.5 text-xs text-ink-soft" role="status">{message}</p>}
         </div>
         {existing && (
           <div>

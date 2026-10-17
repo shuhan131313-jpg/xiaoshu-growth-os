@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -95,6 +95,9 @@ export default function AccountPage() {
   const [expenseText, setExpenseText] = useState("");
   // 收入框
   const [incomeText, setIncomeText] = useState("");
+  const [addingType, setAddingType] = useState<"expense" | "income" | null>(null);
+  const [entryMessage, setEntryMessage] = useState<{ type: "expense" | "income"; text: string } | null>(null);
+  const addingRef = useRef(false);
 
   // 全部记账记录（最新在前，含所有月份，按月派生展示与汇总）
   const [allRecords, setAllRecords] = useState<AccountRecord[]>([]);
@@ -119,6 +122,7 @@ export default function AccountPage() {
   const [editNote, setEditNote] = useState("");
   const [editDate, setEditDate] = useState("");
   const [editSaving, setEditSaving] = useState(false);
+  const editSavingRef = useRef(false);
 
   const calPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
   const prevMonth = useMemo(() => shiftYearMonth(curMonth, -1), [curMonth]);
@@ -196,20 +200,32 @@ export default function AccountPage() {
 
   async function addRecord(type: "expense" | "income", text: string) {
     const amount = extractAmount(text);
-    if (amount <= 0) return; // 无有效数字则忽略
-    await repos.account.add({
-      date: todayKey(),
-      type,
-      amount,
-      note: text.trim() || undefined,
-      createdAt: Date.now(),
-    });
-    if (type === "expense") setExpenseText("");
-    else setIncomeText("");
-    // 新记录记在当天，把查看月份切回本月，避免记完看不到
-    setViewMonth(curMonth);
-    setCursorMonth(curMonth);
-    await Promise.all([reload(), reloadRecords()]);
+    if (amount <= 0) {
+      setEntryMessage({ type, text: "请输入包含有效金额的内容" });
+      return;
+    }
+    if (addingRef.current) return;
+    addingRef.current = true;
+    setAddingType(type);
+    setEntryMessage(null);
+    try {
+      await repos.account.add({
+        date: todayKey(),
+        type,
+        amount,
+        note: text.trim() || undefined,
+        createdAt: Date.now(),
+      });
+      if (type === "expense") setExpenseText("");
+      else setIncomeText("");
+      // 新记录记在当天，把查看月份切回本月，避免记完看不到
+      setViewMonth(curMonth);
+      setCursorMonth(curMonth);
+      await Promise.all([reload(), reloadRecords()]);
+    } finally {
+      addingRef.current = false;
+      setAddingType(null);
+    }
   }
 
   async function removeRecord(id?: number) {
@@ -230,7 +246,7 @@ export default function AccountPage() {
   }
 
   async function saveEdit() {
-    if (editingRecord?.id == null || editSaving) return;
+    if (editingRecord?.id == null || editSavingRef.current) return;
     const changes = normalizeAccountEdit({
       date: editDate,
       type: editType,
@@ -239,6 +255,7 @@ export default function AccountPage() {
     });
     if (!changes) return;
 
+    editSavingRef.current = true;
     setEditSaving(true);
     try {
       await repos.account.update(editingRecord.id, changes);
@@ -248,6 +265,7 @@ export default function AccountPage() {
         setDetailRecords(await getAccountByDate(detailDate));
       }
     } finally {
+      editSavingRef.current = false;
       setEditSaving(false);
     }
   }
@@ -371,14 +389,20 @@ export default function AccountPage() {
           <Label>支出内容</Label>
           <Input
             value={expenseText}
-            onChange={(e) => setExpenseText(e.target.value)}
+            onChange={(e) => {
+              setExpenseText(e.target.value);
+              if (entryMessage?.type === "expense") setEntryMessage(null);
+            }}
+            onEnterSubmit={() => addRecord("expense", expenseText)}
+            enterKeyHint="done"
             placeholder="午餐5 晚餐10"
           />
+          {entryMessage?.type === "expense" && <p className="mt-1.5 text-xs text-ink-soft" role="status">{entryMessage.text}</p>}
           <Button
             variant="accent"
             className="mt-3 w-full"
             onClick={() => addRecord("expense", expenseText)}
-            disabled={expensePreview <= 0}
+            disabled={expensePreview <= 0 || addingType !== null}
           >
             确认支出
             {expensePreview > 0 && (
@@ -456,14 +480,20 @@ export default function AccountPage() {
           <Label>收入内容</Label>
           <Input
             value={incomeText}
-            onChange={(e) => setIncomeText(e.target.value)}
+            onChange={(e) => {
+              setIncomeText(e.target.value);
+              if (entryMessage?.type === "income") setEntryMessage(null);
+            }}
+            onEnterSubmit={() => addRecord("income", incomeText)}
+            enterKeyHint="done"
             placeholder="红包10 / 10"
           />
+          {entryMessage?.type === "income" && <p className="mt-1.5 text-xs text-ink-soft" role="status">{entryMessage.text}</p>}
           <Button
             variant="accent"
             className="mt-3 w-full"
             onClick={() => addRecord("income", incomeText)}
-            disabled={incomePreview <= 0}
+            disabled={incomePreview <= 0 || addingType !== null}
           >
             确认收入
             {incomePreview > 0 && (
@@ -744,6 +774,8 @@ export default function AccountPage() {
               step="0.01"
               value={editAmount}
               onChange={(event) => setEditAmount(event.target.value)}
+              onEnterSubmit={saveEdit}
+              enterKeyHint="done"
               placeholder="0.00"
             />
           </div>
@@ -752,6 +784,8 @@ export default function AccountPage() {
             <Input
               value={editNote}
               onChange={(event) => setEditNote(event.target.value)}
+              onEnterSubmit={saveEdit}
+              enterKeyHint="done"
               placeholder="这笔收支的说明"
               maxLength={160}
             />

@@ -26,7 +26,13 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center">
+        <div
+          className="fixed inset-x-0 z-50 flex items-end justify-center md:inset-0 md:items-center"
+          style={{
+            top: "var(--visual-viewport-offset-top)",
+            height: "var(--visual-viewport-height)",
+          }}
+        >
           <motion.div
             className="absolute inset-0 bg-black/30"
             initial={{ opacity: 0 }}
@@ -36,7 +42,8 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
             onClick={onClose}
           />
           <motion.div
-            className="relative z-10 flex max-h-[88vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-card shadow-soft md:rounded-xl"
+            className="relative z-10 flex w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-card shadow-soft md:rounded-xl"
+            style={{ maxHeight: "min(88vh, calc(var(--visual-viewport-height) - 1rem))" }}
             initial={{ y: 40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 40, opacity: 0 }}
@@ -52,7 +59,7 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="overflow-y-auto px-5 py-4">{children}</div>
+            <div className="keyboard-scroll-region overflow-y-auto px-5 py-4">{children}</div>
           </motion.div>
         </div>
       )}

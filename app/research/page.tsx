@@ -180,6 +180,8 @@ export default function ResearchPage() {
                 step="1"
                 value={manualMinutes}
                 onChange={(event) => setManualMinutes(event.target.value)}
+                onEnterSubmit={addManualSession}
+                enterKeyHint="done"
                 placeholder="时长"
                 className="pr-10"
                 aria-label="补充记录时长（分钟）"

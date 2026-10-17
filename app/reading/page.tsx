@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BookOpen, CheckCircle2, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,11 @@ export default function ReadingPage() {
   const [editTitle, setEditTitle] = useState("");
   const [editNote, setEditNote] = useState("");
   const [editStatus, setEditStatus] = useState<RecentBookStatus>("reading");
+  const [bookMessage, setBookMessage] = useState("");
+  const [bookSaving, setBookSaving] = useState(false);
+  const [editBookSaving, setEditBookSaving] = useState(false);
+  const bookSavingRef = useRef(false);
+  const editBookSavingRef = useRef(false);
 
   async function refresh() {
     const [sp, tasks, recentBooks] = await Promise.all([
@@ -71,13 +76,25 @@ export default function ReadingPage() {
   }
 
   async function addBook() {
-    if (!bookTitle.trim()) return;
-    const now = Date.now();
-    const input = normalizeRecentBookInput(bookTitle, bookNote, "reading", now);
-    await repos.recentBooks.add({ ...input, createdAt: now });
-    setBookTitle("");
-    setBookNote("");
-    await refresh();
+    if (!bookTitle.trim()) {
+      setBookMessage("请先填写书名");
+      return;
+    }
+    if (bookSavingRef.current) return;
+    bookSavingRef.current = true;
+    setBookSaving(true);
+    setBookMessage("");
+    try {
+      const now = Date.now();
+      const input = normalizeRecentBookInput(bookTitle, bookNote, "reading", now);
+      await repos.recentBooks.add({ ...input, createdAt: now });
+      setBookTitle("");
+      setBookNote("");
+      await refresh();
+    } finally {
+      bookSavingRef.current = false;
+      setBookSaving(false);
+    }
   }
 
   async function toggleBookStatus(book: RecentBookRecord) {
@@ -97,11 +114,18 @@ export default function ReadingPage() {
   }
 
   async function saveBookEdit() {
-    if (editingBook?.id == null || !editTitle.trim()) return;
-    const patch = normalizeRecentBookInput(editTitle, editNote, editStatus);
-    await repos.recentBooks.update(editingBook.id, patch);
-    setEditingBook(undefined);
-    await refresh();
+    if (editingBook?.id == null || !editTitle.trim() || editBookSavingRef.current) return;
+    editBookSavingRef.current = true;
+    setEditBookSaving(true);
+    try {
+      const patch = normalizeRecentBookInput(editTitle, editNote, editStatus);
+      await repos.recentBooks.update(editingBook.id, patch);
+      setEditingBook(undefined);
+      await refresh();
+    } finally {
+      editBookSavingRef.current = false;
+      setEditBookSaving(false);
+    }
   }
 
   async function deleteBook(id?: number) {
@@ -177,11 +201,29 @@ export default function ReadingPage() {
           <BookOpen className="h-4 w-4" /> 最近在读
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
-          <Input value={bookTitle} onChange={(event) => setBookTitle(event.target.value)} placeholder="书名" maxLength={120} />
-          <Input value={bookNote} onChange={(event) => setBookNote(event.target.value)} placeholder="作者或备注（可选）" maxLength={160} />
+          <Input
+            value={bookTitle}
+            onChange={(event) => {
+              setBookTitle(event.target.value);
+              if (bookMessage) setBookMessage("");
+            }}
+            onEnterSubmit={addBook}
+            enterKeyHint="done"
+            placeholder="书名"
+            maxLength={120}
+          />
+          <Input
+            value={bookNote}
+            onChange={(event) => setBookNote(event.target.value)}
+            onEnterSubmit={addBook}
+            enterKeyHint="done"
+            placeholder="作者或备注（可选）"
+            maxLength={160}
+          />
         </div>
-        <Button variant="soft" size="sm" className="mt-2 w-full" onClick={addBook} disabled={!bookTitle.trim()}>
-          <Plus className="h-4 w-4" /> 添加到最近在读
+        {bookMessage && <p className="mt-1.5 text-xs text-ink-soft" role="status">{bookMessage}</p>}
+        <Button variant="soft" size="sm" className="mt-2 w-full" onClick={addBook} disabled={!bookTitle.trim() || bookSaving}>
+          <Plus className="h-4 w-4" /> {bookSaving ? "添加中…" : "添加到最近在读"}
         </Button>
 
         {books.length === 0 ? (
@@ -219,8 +261,8 @@ export default function ReadingPage() {
 
       <Sheet open={!!editingBook} onClose={() => setEditingBook(undefined)} title="修改书籍">
         <div className="space-y-4">
-          <Input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} placeholder="书名" maxLength={120} />
-          <Input value={editNote} onChange={(event) => setEditNote(event.target.value)} placeholder="作者或备注（可选）" maxLength={160} />
+          <Input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} onEnterSubmit={saveBookEdit} enterKeyHint="done" placeholder="书名" maxLength={120} />
+          <Input value={editNote} onChange={(event) => setEditNote(event.target.value)} onEnterSubmit={saveBookEdit} enterKeyHint="done" placeholder="作者或备注（可选）" maxLength={160} />
           <div className="grid grid-cols-2 gap-1 rounded-lg bg-[#F2F2F0] p-1">
             {(["reading", "finished"] as RecentBookStatus[]).map((status) => (
               <button
@@ -233,8 +275,8 @@ export default function ReadingPage() {
               </button>
             ))}
           </div>
-          <Button variant="accent" className="w-full" onClick={saveBookEdit} disabled={!editTitle.trim()}>
-            保存修改
+          <Button variant="accent" className="w-full" onClick={saveBookEdit} disabled={!editTitle.trim() || editBookSaving}>
+            {editBookSaving ? "保存中…" : "保存修改"}
           </Button>
         </div>
       </Sheet>

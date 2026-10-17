@@ -90,7 +90,7 @@ export function MobileNav() {
         </div>
       )}
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface pb-safe md:hidden">
+      <nav className="keyboard-dismissible fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface pb-safe md:hidden">
         <div className="mx-auto grid h-[68px] max-w-md grid-cols-3 items-center px-5">
           <BottomLink href="/" label="今日" active={pathname === "/"} icon={Home} />
           <button

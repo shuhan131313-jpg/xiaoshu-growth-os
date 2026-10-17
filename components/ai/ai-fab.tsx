@@ -101,7 +101,7 @@ export function AIFab() {
         transition={{ duration: 0.2 }}
         onClick={() => setOpen(true)}
         aria-label="树 AI 助手"
-        className="fixed bottom-24 right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-white shadow-soft md:bottom-8 md:right-8"
+        className="keyboard-dismissible fixed bottom-24 right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-white shadow-soft md:bottom-8 md:right-8"
       >
         <Sparkles className="h-5 w-5" />
       </motion.button>

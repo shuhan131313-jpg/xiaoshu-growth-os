@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Diamond } from "lucide-react";
 import { Sheet } from "@/components/common/sheet";
 import { Button } from "@/components/ui/button";
@@ -23,17 +23,26 @@ export function MilestoneSheet({ open, defaultDate, existing, onClose, onSaved }
   const [date, setDate] = useState(defaultDate);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const savingRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
     setTitle(existing?.title ?? "");
     setDate(existing?.date ?? defaultDate);
     setNote(existing?.note ?? "");
+    setMessage("");
   }, [open, defaultDate, existing]);
 
   async function save() {
-    if (!title.trim() || saving) return;
+    if (!title.trim()) {
+      setMessage("请先填写里程碑标题");
+      return;
+    }
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
+    setMessage("");
     try {
       const record = existing?.id != null
         ? await updateMilestone(existing.id, date, title, note)
@@ -41,6 +50,7 @@ export function MilestoneSheet({ open, defaultDate, existing, onClose, onSaved }
       onSaved(record);
       onClose();
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
@@ -52,11 +62,17 @@ export function MilestoneSheet({ open, defaultDate, existing, onClose, onSaved }
           <Label>里程碑</Label>
           <Input
             value={title}
-            onChange={(event) => setTitle(event.target.value)}
+            onChange={(event) => {
+              setTitle(event.target.value);
+              if (message) setMessage("");
+            }}
+            onEnterSubmit={save}
+            enterKeyHint="done"
             placeholder="一句话记下这件事"
             maxLength={160}
             autoFocus
           />
+          {message && <p className="mt-1.5 text-xs text-ink-soft" role="status">{message}</p>}
         </div>
         <div>
           <Label>日期</Label>

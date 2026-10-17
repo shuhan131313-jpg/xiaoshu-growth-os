@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Dumbbell, Scale, CheckCircle2, Check, Trash2, Pencil } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -158,6 +158,10 @@ export default function ExercisePage() {
   const [bowelNote, setBowelNote] = useState("");
   const [bowelDoneToday, setBowelDoneToday] = useState(false);
   const [bowelLog, setBowelLog] = useState<BowelRecord[]>([]); // 最新在前
+  const exerciseSavingRef = useRef(false);
+  const exerciseEditSavingRef = useRef(false);
+  const weightSavingRef = useRef(false);
+  const bowelSavingRef = useRef(false);
 
   // 日历日期详情（页内内联展开，只读极简文字，不弹窗）
   const [detailDate, setDetailDate] = useState<string | null>(null);
@@ -228,21 +232,26 @@ export default function ExercisePage() {
 
   async function saveWeight() {
     const v = Number(weightInput);
-    if (!weightInput.trim() || isNaN(v) || v <= 0) return;
-    const existing = await repos.weight.whereDate(todayKey());
-    if (existing.length > 0) {
-      await repos.weight.update(existing[0].id!, {
-        value: v,
-        createdAt: Date.now(),
-      });
-    } else {
-      await repos.weight.add({
-        date: todayKey(),
-        value: v,
-        createdAt: Date.now(),
-      });
+    if (!weightInput.trim() || isNaN(v) || v <= 0 || weightSavingRef.current) return;
+    weightSavingRef.current = true;
+    try {
+      const existing = await repos.weight.whereDate(todayKey());
+      if (existing.length > 0) {
+        await repos.weight.update(existing[0].id!, {
+          value: v,
+          createdAt: Date.now(),
+        });
+      } else {
+        await repos.weight.add({
+          date: todayKey(),
+          value: v,
+          createdAt: Date.now(),
+        });
+      }
+      await loadHealth();
+    } finally {
+      weightSavingRef.current = false;
     }
-    await loadHealth();
   }
 
   async function deleteWeight(id?: number) {
@@ -252,17 +261,23 @@ export default function ExercisePage() {
   }
 
   async function toggleBowel() {
-    if (bowelDoneToday) {
-      const ex = await repos.bowel.whereDate(todayKey());
-      if (ex.length > 0) await repos.bowel.delete(ex[0].id!);
-    } else {
-      await repos.bowel.add({
-        date: todayKey(),
-        note: bowelNote.trim() || undefined,
-        createdAt: Date.now(),
-      });
+    if (bowelSavingRef.current) return;
+    bowelSavingRef.current = true;
+    try {
+      if (bowelDoneToday) {
+        const ex = await repos.bowel.whereDate(todayKey());
+        if (ex.length > 0) await repos.bowel.delete(ex[0].id!);
+      } else {
+        await repos.bowel.add({
+          date: todayKey(),
+          note: bowelNote.trim() || undefined,
+          createdAt: Date.now(),
+        });
+      }
+      await loadHealth();
+    } finally {
+      bowelSavingRef.current = false;
     }
-    await loadHealth();
   }
 
   async function deleteBowel(id?: number) {
@@ -300,31 +315,39 @@ export default function ExercisePage() {
   }
 
   async function saveExercise() {
-    if (!checkInProject || !duration) return;
-    await repos.exercise.add({
-      date: todayKey(),
-      project: checkInProject,
-      duration: Number(duration) || 0,
-      createdAt: Date.now(),
-    });
-    await setTodayTask(todayKey(), "exercise", true);
-    await bumpGrowthStep();
-    setCheckInProject("");
-    setDuration("");
-    loadMonth();
-    loadAll();
+    if (!checkInProject || !duration || exerciseSavingRef.current) return;
+    exerciseSavingRef.current = true;
+    try {
+      await repos.exercise.add({
+        date: todayKey(),
+        project: checkInProject,
+        duration: Number(duration) || 0,
+        createdAt: Date.now(),
+      });
+      await setTodayTask(todayKey(), "exercise", true);
+      await bumpGrowthStep();
+      setCheckInProject("");
+      setDuration("");
+      await Promise.all([loadMonth(), loadAll()]);
+    } finally {
+      exerciseSavingRef.current = false;
+    }
   }
 
   async function saveEdit() {
-    if (!editing?.id || !project.trim() || !duration) return;
-    await repos.exercise.update(editing.id, {
-      project: project.trim(),
-      duration: Number(duration) || 0,
-      note: note.trim() || undefined,
-    });
-    cancelEdit();
-    loadMonth();
-    loadAll();
+    if (!editing?.id || !project.trim() || !duration || exerciseEditSavingRef.current) return;
+    exerciseEditSavingRef.current = true;
+    try {
+      await repos.exercise.update(editing.id, {
+        project: project.trim(),
+        duration: Number(duration) || 0,
+        note: note.trim() || undefined,
+      });
+      cancelEdit();
+      await Promise.all([loadMonth(), loadAll()]);
+    } finally {
+      exerciseEditSavingRef.current = false;
+    }
   }
 
   async function remove(id?: number) {
@@ -502,6 +525,8 @@ export default function ExercisePage() {
                 inputMode="numeric"
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
+                onEnterSubmit={saveExercise}
+                enterKeyHint="done"
                 placeholder="30"
               />
             </div>
@@ -543,6 +568,8 @@ export default function ExercisePage() {
               inputMode="numeric"
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
+              onEnterSubmit={saveEdit}
+              enterKeyHint="done"
               placeholder="30"
             />
           </div>
@@ -644,6 +671,8 @@ export default function ExercisePage() {
               inputMode="decimal"
               value={weightInput}
               onChange={(e) => setWeightInput(e.target.value)}
+              onEnterSubmit={saveWeight}
+              enterKeyHint="done"
               placeholder="如 65.5"
             />
             <Button
@@ -756,6 +785,8 @@ export default function ExercisePage() {
                 <Input
                   value={bowelNote}
                   onChange={(e) => setBowelNote(e.target.value)}
+                  onEnterSubmit={toggleBowel}
+                  enterKeyHint="done"
                   placeholder="状态、备注…"
                 />
               </div>

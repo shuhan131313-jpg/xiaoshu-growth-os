@@ -7,6 +7,9 @@
   --font-mono: "JetBrains Mono", monospace;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --visual-viewport-height: 100dvh;
+  --visual-viewport-offset-top: 0px;
+  --keyboard-inset: 0px;
 }
 
 html,
@@ -21,6 +24,7 @@ body {
     "Microsoft YaHei", "Noto Sans CJK SC", Inter, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
 
 ::selection {
@@ -45,6 +49,37 @@ input,
 textarea,
 select {
   touch-action: manipulation;
+  scroll-margin-block: 20px;
+}
+
+html {
+  scroll-padding-top: calc(var(--safe-top) + 16px);
+  scroll-padding-bottom: calc(88px + var(--safe-bottom));
+}
+
+.keyboard-scroll-region {
+  overscroll-behavior-y: contain;
+  scroll-padding-block: 20px;
+}
+
+.keyboard-dismissible {
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+@media (max-width: 767px) {
+  html[data-keyboard-open="true"] {
+    scroll-padding-bottom: 20px;
+  }
+
+  html[data-keyboard-open="true"] .keyboard-dismissible {
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(120%);
+  }
+
+  html[data-keyboard-open="true"] main {
+    padding-bottom: 20px;
+  }
 }
 
 /* 刘海屏 / 底部安全区适配 */

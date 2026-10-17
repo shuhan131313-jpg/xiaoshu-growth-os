@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
 import { Sheet } from "@/components/common/sheet";
 import { Button } from "@/components/ui/button";
@@ -21,21 +21,31 @@ export function MainlineSheet({ open, date, existing, onClose, onSaved }: Mainli
   const [category, setCategory] = useState<MainlineCategory | null>(null);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const savingRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
     setCategory(existing?.category ?? null);
     setNote(existing?.note ?? "");
+    setMessage("");
   }, [open, existing]);
 
   async function save() {
-    if (!category || saving) return;
+    if (!category) {
+      setMessage("请先选择今日主线");
+      return;
+    }
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
+    setMessage("");
     try {
       const record = await saveDailyMain(date, category, note);
       onSaved(record);
       onClose();
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
@@ -52,7 +62,10 @@ export function MainlineSheet({ open, date, existing, onClose, onSaved }: Mainli
                 <button
                   key={item}
                   type="button"
-                  onClick={() => setCategory(item)}
+                  onClick={() => {
+                    setCategory(item);
+                    setMessage("");
+                  }}
                   className={`flex h-12 items-center justify-center rounded-lg border text-sm transition ${
                     selected
                       ? "border-primary bg-primary text-white"
@@ -70,9 +83,12 @@ export function MainlineSheet({ open, date, existing, onClose, onSaved }: Mainli
           <Input
             value={note}
             onChange={(event) => setNote(event.target.value)}
+            onEnterSubmit={save}
+            enterKeyHint="done"
             placeholder="例如：修改 Figure 2 和 Discussion"
             maxLength={120}
           />
+          {message && <p className="mt-1.5 text-xs text-ink-soft" role="status">{message}</p>}
         </div>
         <Button variant="accent" className="w-full" onClick={save} disabled={!category || saving}>
           <Check className="h-4 w-4" /> {saving ? "保存中…" : existing ? "保存修改" : "保存今日主线"}
