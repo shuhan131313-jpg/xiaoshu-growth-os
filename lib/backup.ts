@@ -1,5 +1,5 @@
 import { db } from "./db/db";
-import { BACKUP_TABLE_NAMES, rowsFromBackup, type BackupData } from "./backup-format";
+import { BACKUP_TABLE_NAMES, rowsFromBackup, validateBackupData, type BackupData } from "./backup-format";
 
 type AnyTable = {
   toArray(): Promise<unknown[]>;
@@ -26,14 +26,22 @@ export async function exportAll(): Promise<string> {
 
 /** 从 JSON 字符串恢复全部数据（先清空再批量写入） */
 export async function importAll(json: string): Promise<void> {
-  const data = JSON.parse(json) as BackupData;
-  if (data.version !== 1) throw new Error("不支持的备份版本");
-  for (const name of BACKUP_TABLE_NAMES) {
-    const rows = rowsFromBackup(data, name);
-    const table = dbTables[name];
-    await table.clear();
-    if (rows.length) await table.bulkAdd(rows);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    throw new Error("文件不是有效的 JSON");
   }
+  const data = validateBackupData(parsed);
+  const transaction = db.transaction.bind(db) as unknown as (...args: any[]) => Promise<void>;
+  await transaction("rw", ...BACKUP_TABLE_NAMES.map((name) => dbTables[name]), async () => {
+    for (const name of BACKUP_TABLE_NAMES) {
+      const rows = rowsFromBackup(data, name);
+      const table = dbTables[name];
+      await table.clear();
+      if (rows.length) await table.bulkAdd(rows);
+    }
+  });
 }
 
 export type BackupExportResult = "saved" | "shared" | "downloaded" | "cancelled" | "failed";
@@ -50,10 +58,11 @@ export async function downloadBackup(json: string): Promise<BackupExportResult> 
   const blob = new Blob([json], { type: "application/json" });
   const filename = backupFilename();
 
+  const isAndroid = /Android/i.test(navigator.userAgent);
   const picker = (window as Window & {
     showSaveFilePicker?: (options: unknown) => Promise<{ createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }> }>;
   }).showSaveFilePicker;
-  if (picker) {
+  if (picker && !isAndroid) {
     try {
       const handle = await picker({ suggestedName: filename, types: [{ description: "JSON 备份", accept: { "application/json": [".json"] } }] });
       const writable = await handle.createWritable();
@@ -126,14 +135,27 @@ export function pickBackupFile(): Promise<string | null> {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "application/json,.json";
+    input.style.position = "fixed";
+    input.style.left = "-10000px";
+    input.style.width = "1px";
+    input.style.height = "1px";
+    document.body.appendChild(input);
+    let settled = false;
+    const finish = (value: string | null) => {
+      if (settled) return;
+      settled = true;
+      input.remove();
+      resolve(value);
+    };
     input.onchange = () => {
       const file = input.files?.[0];
-      if (!file) return resolve(null);
+      if (!file) return finish(null);
       const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = () => resolve(null);
+      reader.onload = () => finish(String(reader.result));
+      reader.onerror = () => finish(null);
       reader.readAsText(file);
     };
+    input.oncancel = () => finish(null);
     input.click();
   });
 }

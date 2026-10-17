@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, Upload, KeyRound, Leaf, Check, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ export default function SettingsPage() {
   const [provider, setProvider] = useState("DeepSeek");
   const [apiKey, setApiKey] = useState("");
   const [aiSaved, setAiSaved] = useState(false);
+  const [copyFallback, setCopyFallback] = useState("");
+  const copyTextRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     repos.settings
@@ -62,21 +64,33 @@ export default function SettingsPage() {
       const json = await exportAll();
       JSON.parse(json);
       const copied = await copyBackup(json);
-      flash(copied ? "已复制完整备份内容，请粘贴保存为 .json 文件" : "复制失败，请重试", !copied);
+      if (copied) {
+        setCopyFallback("");
+        flash("已复制完整备份内容，请粘贴保存为 .json 文件");
+      } else {
+        setCopyFallback(json);
+        flash("当前浏览器不允许直接复制，请在下方文本框中长按全选复制");
+      }
     } catch {
       flash("备份生成失败，请重试", true);
     }
   }
 
   async function onImport() {
-    const json = await pickBackupFile();
+    let json: string | null;
+    try {
+      json = await pickBackupFile();
+    } catch {
+      flash("无法打开文件选择器，请重试", true);
+      return;
+    }
     if (!json) return;
     if (!window.confirm("导入将覆盖当前所有本地数据，确定继续吗？")) return;
     try {
       await importAll(json);
       flash("已从备份恢复");
-    } catch (e) {
-      flash("导入失败：文件格式不正确", true);
+    } catch (error) {
+      flash(`导入失败：${error instanceof Error ? error.message : "文件格式不正确"}`, true);
     }
   }
 
@@ -117,6 +131,22 @@ export default function SettingsPage() {
           <Button variant="soft" className="w-full" onClick={onCopyBackup}>
             复制备份内容
           </Button>
+          {copyFallback && (
+            <div className="space-y-2">
+              <p className="text-xs text-ink-soft">备用文本不会自动保存，请全选后复制，再保存为以 .json 结尾的文件。</p>
+              <textarea
+                ref={copyTextRef}
+                readOnly
+                value={copyFallback}
+                onFocus={(event) => event.currentTarget.select()}
+                className="h-48 w-full rounded-xl border border-line bg-surface p-3 font-mono text-[10px] leading-4 text-ink"
+                aria-label="完整备份 JSON 文本"
+              />
+              <Button variant="outline" className="w-full" onClick={() => copyTextRef.current?.select()}>
+                全选备份内容
+              </Button>
+            </div>
+          )}
           {msg && (
             <p className="flex items-center gap-1 text-sm text-accent-dark">
               <Check className="h-4 w-4" /> {msg}
