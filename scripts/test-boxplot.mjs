@@ -21,6 +21,7 @@ const {
 const { BOXPLOT_GROUP_PALETTE, BOXPLOT_TREATMENT_LEGEND } = await importTypeScript(
   "../lib/boxplot-palette.ts"
 );
+const pageSource = await readFile(new URL("../app/boxplot/page.tsx", import.meta.url), "utf8");
 
 assert.equal(BOXPLOT_GROUP_PALETTE.length, 10, "10 个固定组均有颜色");
 assert.equal(BOXPLOT_TREATMENT_LEGEND.length, 7, "颜色按 7 个处理体系组织");
@@ -28,6 +29,11 @@ assert.deepEqual(BOXPLOT_GROUP_PALETTE[4], BOXPLOT_GROUP_PALETTE[5], "灭活高�
 assert.deepEqual(BOXPLOT_GROUP_PALETTE[6], BOXPLOT_GROUP_PALETTE[7], "未灭活高低剂量同色");
 assert.deepEqual(BOXPLOT_GROUP_PALETTE[8], BOXPLOT_GROUP_PALETTE[9], "单菌液高低剂量同色");
 assert.notEqual(BOXPLOT_GROUP_PALETTE[0].stroke, BOXPLOT_GROUP_PALETTE[1].stroke, "不同处理体系颜色可区分");
+assert.match(pageSource, /DISPLAY_SETTINGS_KEY/, "图表显示设置有独立持久化键");
+assert.match(pageSource, /修改 \$\{name\} 的横轴名称/, "每个分组提供显示名称编辑");
+assert.match(pageSource, /箱型图单位/, "箱型图提供独立单位输入");
+assert.match(pageSource, /柱形图单位/, "柱形图提供独立单位输入");
+assert.match(pageSource, /labelFor\(g\)/, "两种图表都使用显示名称而非底层组名");
 
 assert.deepEqual(parsePastedNumbers("1\n2\n3\n"), [1, 2, 3], "换行和末尾换行");
 assert.deepEqual(parsePastedNumbers("1\t2\r\n\r\n3"), [1, 2, 3], "Excel 列和空行");

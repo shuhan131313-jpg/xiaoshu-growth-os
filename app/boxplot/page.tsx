@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ClipboardEvent } from "react";
+import { useEffect, useMemo, useState, type ClipboardEvent } from "react";
 import { RotateCcw, Copy } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 import { BoxplotAnalysisBoundary } from "@/components/boxplot/boxplot-analysis-boundary";
@@ -31,6 +31,39 @@ const GROUP_NAMES = [
 ] as const;
 
 const SLOTS = 7; // 每组最多 7 个数据
+const DISPLAY_SETTINGS_KEY = "boxplot.display-settings.v1";
+
+interface DisplaySettings {
+  labels: string[];
+  boxTitle: string;
+  boxUnit: string;
+  barTitle: string;
+  barUnit: string;
+}
+
+function readDisplaySettings(): DisplaySettings {
+  const fallback: DisplaySettings = {
+    labels: [...GROUP_NAMES],
+    boxTitle: "",
+    boxUnit: "",
+    barTitle: "",
+    barUnit: "",
+  };
+  if (typeof window === "undefined") return fallback;
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(DISPLAY_SETTINGS_KEY) ?? "null") as Partial<DisplaySettings> | null;
+    if (!saved) return fallback;
+    return {
+      labels: GROUP_NAMES.map((name, index) => typeof saved.labels?.[index] === "string" ? saved.labels[index] : name),
+      boxTitle: typeof saved.boxTitle === "string" ? saved.boxTitle : "",
+      boxUnit: typeof saved.boxUnit === "string" ? saved.boxUnit : "",
+      barTitle: typeof saved.barTitle === "string" ? saved.barTitle : "",
+      barUnit: typeof saved.barUnit === "string" ? saved.barUnit : "",
+    };
+  } catch {
+    return fallback;
+  }
+}
 
 export default function BoxPlotPage() {
   const [data, setData] = useState<string[][]>(() =>
@@ -39,6 +72,24 @@ export default function BoxPlotPage() {
 
   const [copiedCol, setCopiedCol] = useState<number | null>(null);
   const [copiedText, setCopiedText] = useState(false);
+  const [displayNames, setDisplayNames] = useState<string[]>(() => readDisplaySettings().labels);
+  const [boxTitle, setBoxTitle] = useState(() => readDisplaySettings().boxTitle);
+  const [boxUnit, setBoxUnit] = useState(() => readDisplaySettings().boxUnit);
+  const [barTitle, setBarTitle] = useState(() => readDisplaySettings().barTitle);
+  const [barUnit, setBarUnit] = useState(() => readDisplaySettings().barUnit);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(DISPLAY_SETTINGS_KEY, JSON.stringify({
+      labels: displayNames,
+      boxTitle,
+      boxUnit,
+      barTitle,
+      barUnit,
+    } satisfies DisplaySettings));
+  }, [displayNames, boxTitle, boxUnit, barTitle, barUnit]);
+
+  const labelFor = (groupIndex: number) => displayNames[groupIndex]?.trim() || GROUP_NAMES[groupIndex];
 
   // 复制某一列已填写的数字（竖向换行），空框跳过；粘贴逻辑保持原样不动
   const copyColumn = async (g: number) => {
@@ -230,7 +281,13 @@ export default function BoxPlotPage() {
             key={name}
             className="flex w-24 shrink-0 flex-col rounded-xl border border-line bg-card p-3 shadow-card"
           >
-            <p className="mb-2 text-center text-xs font-medium text-primary">{name}</p>
+            <input
+              value={displayNames[g] ?? name}
+              onChange={(event) => setDisplayNames((current) => current.map((label, index) => index === g ? event.target.value : label))}
+              aria-label={`修改 ${name} 的横轴名称`}
+              className="mb-2 h-7 w-full rounded-md border border-transparent bg-transparent px-1 text-center text-xs font-medium text-primary outline-none transition focus:border-primary/30 focus:bg-surface"
+              placeholder={name}
+            />
             <div className="flex flex-col gap-1.5">
               {Array.from({ length: SLOTS }, (_, i) => (
                 <input
@@ -265,7 +322,22 @@ export default function BoxPlotPage() {
       {/* 图表区 */}
       <div className="mt-6 rounded-xl border border-line bg-card p-4 shadow-card">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-medium text-primary">实时箱型图</p>
+          <div className="min-w-0 flex-1">
+            <input
+              value={boxTitle}
+              onChange={(event) => setBoxTitle(event.target.value)}
+              placeholder="图表标题（可选）"
+              aria-label="箱型图标题"
+              className="w-full rounded-md border border-transparent bg-transparent px-1 py-0.5 text-sm font-medium text-primary outline-none transition focus:border-primary/30 focus:bg-surface"
+            />
+            <input
+              value={boxUnit}
+              onChange={(event) => setBoxUnit(event.target.value)}
+              placeholder="单位（可选，如 ng/mL）"
+              aria-label="箱型图单位"
+              className="mt-0.5 w-full rounded-md border border-transparent bg-transparent px-1 py-0.5 text-[11px] text-ink-faint outline-none transition focus:border-primary/30 focus:bg-surface"
+            />
+          </div>
           <span className="text-[11px] text-ink-faint">同一处理的高 / 低剂量使用同色</span>
         </div>
         <div className="mb-3 flex flex-wrap gap-x-3 gap-y-1.5 text-[10px] text-ink-soft">
@@ -343,7 +415,7 @@ export default function BoxPlotPage() {
                     fontSize={10}
                     fill="#666666"
                   >
-                    {name}
+                    {labelFor(g)}
                   </text>
 
                   {s && s.values.length > 0 && (
@@ -459,7 +531,22 @@ export default function BoxPlotPage() {
       {/* 均值 ± 标准差 柱形误差棒图（独立图表） */}
       <div className="mt-6 rounded-xl border border-line bg-card p-4 shadow-card">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-medium text-primary">均值 ± 标准差 · 柱形误差棒图</p>
+          <div className="min-w-0 flex-1">
+            <input
+              value={barTitle}
+              onChange={(event) => setBarTitle(event.target.value)}
+              placeholder="图表标题（可选）"
+              aria-label="柱形图标题"
+              className="w-full rounded-md border border-transparent bg-transparent px-1 py-0.5 text-sm font-medium text-primary outline-none transition focus:border-primary/30 focus:bg-surface"
+            />
+            <input
+              value={barUnit}
+              onChange={(event) => setBarUnit(event.target.value)}
+              placeholder="单位（可选，如 ng/mL）"
+              aria-label="柱形图单位"
+              className="mt-0.5 w-full rounded-md border border-transparent bg-transparent px-1 py-0.5 text-[11px] text-ink-faint outline-none transition focus:border-primary/30 focus:bg-surface"
+            />
+          </div>
           <span className="text-[11px] text-ink-faint">浅色柱为均值，同色线为标准差</span>
         </div>
 
@@ -493,7 +580,7 @@ export default function BoxPlotPage() {
                   <line x1={cx} y1={BM.top + bPlotH} x2={cx} y2={BM.top + bPlotH + 4} stroke="#9AA1A8" strokeWidth={1} />
                   {/* 组名 */}
                   <text x={cx} y={BM.top + bPlotH + 20} textAnchor="middle" fontSize={10} fill="#666666">
-                    {name}
+                    {labelFor(g)}
                   </text>
 
                   {m && (
@@ -568,12 +655,12 @@ export default function BoxPlotPage() {
             当前数据的显著性分析暂时无法完成。你已输入的数据仍然保留，可以继续修改后重试。
           </p>
         ) : cld.ok ? (
-          <p className="mt-1.5 text-[11px] text-ink-faint">
+          <p className="mx-1 mt-2 rounded-lg bg-[#EDF2EF] px-3 py-2 text-[11px] leading-5 text-ink-faint">
             柱顶字母为显著性标注（单因素 ANOVA + Tukey HSD 事后检验，α=0.05，Tukey–Kramer 校正）；相同字母表示组间差异不显著。
           </p>
         ) : (
           barHasAny && (
-            <p className="mt-1.5 text-[11px] text-ink-faint">
+          <p className="mx-1 mt-2 rounded-lg bg-[#EDF2EF] px-3 py-2 text-[11px] leading-5 text-ink-faint">
               注：{cld.reason}，暂不标注显著性字母。
             </p>
           )
