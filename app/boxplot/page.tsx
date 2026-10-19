@@ -65,6 +65,12 @@ function readDisplaySettings(): DisplaySettings {
   }
 }
 
+function labelLines(label: string): string[] {
+  const chars = [...label];
+  if (chars.length <= 6) return [label];
+  return [chars.slice(0, 6).join(""), chars.slice(6, 12).join("")];
+}
+
 export default function BoxPlotPage() {
   const [data, setData] = useState<string[][]>(() =>
     GROUP_NAMES.map(() => Array.from({ length: SLOTS }, () => ""))
@@ -229,7 +235,7 @@ export default function BoxPlotPage() {
   // 柱形图几何
   const BW = 760;
   const BH = 400;
-  const BM = { left: 52, right: 18, top: 18, bottom: 56 };
+  const BM = { left: 52, right: 18, top: 18, bottom: 70 };
   const bPlotW = BW - BM.left - BM.right;
   const bPlotH = BH - BM.top - BM.bottom;
   const bSlot = bPlotW / GROUP_NAMES.length;
@@ -245,7 +251,7 @@ export default function BoxPlotPage() {
   // 图表几何
   const W = 760;
   const H = 400;
-  const M = { left: 52, right: 18, top: 18, bottom: 56 };
+  const M = { left: 52, right: 18, top: 18, bottom: 70 };
   const plotW = W - M.left - M.right;
   const plotH = H - M.top - M.bottom;
   const slot = plotW / GROUP_NAMES.length;
@@ -408,14 +414,10 @@ export default function BoxPlotPage() {
                     strokeWidth={1}
                   />
                   {/* 组名 */}
-                  <text
-                    x={cx}
-                    y={M.top + plotH + 20}
-                    textAnchor="middle"
-                    fontSize={10}
-                    fill="#666666"
-                  >
-                    {labelFor(g)}
+                  <text x={cx} y={M.top + plotH + 18} textAnchor="middle" fontSize={10} fill="#666666">
+                    {labelLines(labelFor(g)).map((line, index) => (
+                      <tspan key={index} x={cx} dy={index === 0 ? 0 : 12}>{line}</tspan>
+                    ))}
                   </text>
 
                   {s && s.values.length > 0 && (
@@ -579,8 +581,10 @@ export default function BoxPlotPage() {
                   {/* X 轴刻度 */}
                   <line x1={cx} y1={BM.top + bPlotH} x2={cx} y2={BM.top + bPlotH + 4} stroke="#9AA1A8" strokeWidth={1} />
                   {/* 组名 */}
-                  <text x={cx} y={BM.top + bPlotH + 20} textAnchor="middle" fontSize={10} fill="#666666">
-                    {labelFor(g)}
+                  <text x={cx} y={BM.top + bPlotH + 18} textAnchor="middle" fontSize={10} fill="#666666">
+                    {labelLines(labelFor(g)).map((line, index) => (
+                      <tspan key={index} x={cx} dy={index === 0 ? 0 : 12}>{line}</tspan>
+                    ))}
                   </text>
 
                   {m && (
