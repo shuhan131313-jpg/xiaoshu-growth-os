@@ -35,6 +35,18 @@ const GROUP_NAMES = [
 const SLOTS = 7; // 每组最多 7 个数据
 const DISPLAY_SETTINGS_KEY = "boxplot.display-settings.v1";
 const DISPLAY_LABELS = ["Sham", "OVX", "E2", "UO", "IFO-H", "IFO-L", "VFO-H", "VFO-L", "WM48-H", "WM48-L"] as const;
+const LEGEND_LABELS = [
+  "假手术组",
+  "OVX 模型组",
+  "阳性药物雌二醇组",
+  "燕麦浆组",
+  "灭活发酵燕麦浆高剂量组",
+  "灭活发酵燕麦浆低剂量组",
+  "未灭活发酵燕麦浆高剂量组",
+  "未灭活发酵燕麦浆低剂量组",
+  "WM-48菌液高剂量组",
+  "WM-48菌液低剂量组",
+] as const;
 
 interface DisplaySettings {
   boxTitle: string;
@@ -769,6 +781,25 @@ export default function BoxPlotPage() {
         )}
       </div>
       </BoxplotAnalysisBoundary>
+
+      <section className="mt-6 rounded-xl border border-line bg-card p-4 shadow-card sm:p-5" aria-label="分组图例">
+        <h2 className="text-sm font-medium text-primary">分组图例</h2>
+        <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-3">
+          {LEGEND_LABELS.map((label, index) => {
+            const palette = BOXPLOT_GROUP_PALETTE[index];
+            return (
+              <div key={label} className="flex min-w-0 items-center gap-2.5 rounded-lg px-2 py-1.5">
+                <span
+                  className="h-4 w-7 shrink-0 rounded-sm border"
+                  style={{ backgroundColor: palette.fill, borderColor: palette.stroke }}
+                  aria-hidden="true"
+                />
+                <span className="min-w-0 text-sm leading-5 text-ink">{label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }

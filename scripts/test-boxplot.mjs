@@ -37,6 +37,23 @@ assert.doesNotMatch(pageSource, /同一处理的高 \/ 低剂量使用同色|浅
 assert.match(pageSource, /箱型图单位/, "箱型图提供独立单位输入");
 assert.match(pageSource, /柱形图单位/, "柱形图提供独立单位输入");
 assert.match(pageSource, /labelFor\(g\)/, "两种图表都使用显示名称而非底层组名");
+assert.match(pageSource, /LEGEND_LABELS = \[/, "底部图例使用固定中文名称");
+for (const label of [
+  "假手术组",
+  "OVX 模型组",
+  "阳性药物雌二醇组",
+  "燕麦浆组",
+  "灭活发酵燕麦浆高剂量组",
+  "灭活发酵燕麦浆低剂量组",
+  "未灭活发酵燕麦浆高剂量组",
+  "未灭活发酵燕麦浆低剂量组",
+  "WM-48菌液高剂量组",
+  "WM-48菌液低剂量组",
+]) {
+  assert.match(pageSource, new RegExp(label), `图例包含${label}`);
+}
+assert.match(pageSource, /BOXPLOT_GROUP_PALETTE\[index\]/, "图例复用现有颜色映射");
+assert.match(pageSource, /aria-label=\"分组图例\"/, "图例为独立区域");
 
 assert.deepEqual(parsePastedNumbers("1\n2\n3\n"), [1, 2, 3], "换行和末尾换行");
 assert.deepEqual(parsePastedNumbers("1\t2\r\n\r\n3"), [1, 2, 3], "Excel 列和空行");
