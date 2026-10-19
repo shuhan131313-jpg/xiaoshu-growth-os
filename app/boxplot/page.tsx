@@ -32,9 +32,9 @@ const GROUP_NAMES = [
 
 const SLOTS = 7; // 每组最多 7 个数据
 const DISPLAY_SETTINGS_KEY = "boxplot.display-settings.v1";
+const DISPLAY_LABELS = ["Sham", "OVX", "E2", "UO", "IFO-H", "IFO-L", "VFO-H", "VFO-L", "WM48-H", "WM48-L"] as const;
 
 interface DisplaySettings {
-  labels: string[];
   boxTitle: string;
   boxUnit: string;
   barTitle: string;
@@ -43,7 +43,6 @@ interface DisplaySettings {
 
 function readDisplaySettings(): DisplaySettings {
   const fallback: DisplaySettings = {
-    labels: [...GROUP_NAMES],
     boxTitle: "",
     boxUnit: "",
     barTitle: "",
@@ -54,7 +53,6 @@ function readDisplaySettings(): DisplaySettings {
     const saved = JSON.parse(window.localStorage.getItem(DISPLAY_SETTINGS_KEY) ?? "null") as Partial<DisplaySettings> | null;
     if (!saved) return fallback;
     return {
-      labels: GROUP_NAMES.map((name, index) => typeof saved.labels?.[index] === "string" ? saved.labels[index] : name),
       boxTitle: typeof saved.boxTitle === "string" ? saved.boxTitle : "",
       boxUnit: typeof saved.boxUnit === "string" ? saved.boxUnit : "",
       barTitle: typeof saved.barTitle === "string" ? saved.barTitle : "",
@@ -78,7 +76,6 @@ export default function BoxPlotPage() {
 
   const [copiedCol, setCopiedCol] = useState<number | null>(null);
   const [copiedText, setCopiedText] = useState(false);
-  const [displayNames, setDisplayNames] = useState<string[]>(() => readDisplaySettings().labels);
   const [boxTitle, setBoxTitle] = useState(() => readDisplaySettings().boxTitle);
   const [boxUnit, setBoxUnit] = useState(() => readDisplaySettings().boxUnit);
   const [barTitle, setBarTitle] = useState(() => readDisplaySettings().barTitle);
@@ -87,15 +84,14 @@ export default function BoxPlotPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(DISPLAY_SETTINGS_KEY, JSON.stringify({
-      labels: displayNames,
       boxTitle,
       boxUnit,
       barTitle,
       barUnit,
     } satisfies DisplaySettings));
-  }, [displayNames, boxTitle, boxUnit, barTitle, barUnit]);
+  }, [boxTitle, boxUnit, barTitle, barUnit]);
 
-  const labelFor = (groupIndex: number) => displayNames[groupIndex]?.trim() || GROUP_NAMES[groupIndex];
+  const labelFor = (groupIndex: number) => DISPLAY_LABELS[groupIndex];
 
   // 复制某一列已填写的数字（竖向换行），空框跳过；粘贴逻辑保持原样不动
   const copyColumn = async (g: number) => {
@@ -287,13 +283,7 @@ export default function BoxPlotPage() {
             key={name}
             className="flex w-24 shrink-0 flex-col rounded-xl border border-line bg-card p-3 shadow-card"
           >
-            <input
-              value={displayNames[g] ?? name}
-              onChange={(event) => setDisplayNames((current) => current.map((label, index) => index === g ? event.target.value : label))}
-              aria-label={`修改 ${name} 的横轴名称`}
-              className="mb-2 h-7 w-full rounded-md border border-transparent bg-transparent px-1 text-center text-xs font-medium text-primary outline-none transition focus:border-primary/30 focus:bg-surface"
-              placeholder={name}
-            />
+            <p className="mb-2 text-center text-xs font-medium text-primary">{name}</p>
             <div className="flex flex-col gap-1.5">
               {Array.from({ length: SLOTS }, (_, i) => (
                 <input
@@ -344,7 +334,6 @@ export default function BoxPlotPage() {
               className="mt-0.5 w-full rounded-md border border-transparent bg-transparent px-1 py-0.5 text-[11px] text-ink-faint outline-none transition focus:border-primary/30 focus:bg-surface"
             />
           </div>
-          <span className="text-[11px] text-ink-faint">同一处理的高 / 低剂量使用同色</span>
         </div>
         <div className="mb-3 flex flex-wrap gap-x-3 gap-y-1.5 text-[10px] text-ink-soft">
           {BOXPLOT_TREATMENT_LEGEND.map(({ label, palette }) => (
@@ -549,7 +538,6 @@ export default function BoxPlotPage() {
               className="mt-0.5 w-full rounded-md border border-transparent bg-transparent px-1 py-0.5 text-[11px] text-ink-faint outline-none transition focus:border-primary/30 focus:bg-surface"
             />
           </div>
-          <span className="text-[11px] text-ink-faint">浅色柱为均值，同色线为标准差</span>
         </div>
 
         <div className="overflow-x-auto">

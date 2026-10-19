@@ -29,8 +29,9 @@ assert.deepEqual(BOXPLOT_GROUP_PALETTE[4], BOXPLOT_GROUP_PALETTE[5], "灭活高�
 assert.deepEqual(BOXPLOT_GROUP_PALETTE[6], BOXPLOT_GROUP_PALETTE[7], "未灭活高低剂量同色");
 assert.deepEqual(BOXPLOT_GROUP_PALETTE[8], BOXPLOT_GROUP_PALETTE[9], "单菌液高低剂量同色");
 assert.notEqual(BOXPLOT_GROUP_PALETTE[0].stroke, BOXPLOT_GROUP_PALETTE[1].stroke, "不同处理体系颜色可区分");
-assert.match(pageSource, /DISPLAY_SETTINGS_KEY/, "图表显示设置有独立持久化键");
-assert.match(pageSource, /修改 \$\{name\} 的横轴名称/, "每个分组提供显示名称编辑");
+assert.match(pageSource, /DISPLAY_LABELS = \["Sham", "OVX", "E2", "UO", "IFO-H", "IFO-L", "VFO-H", "VFO-L", "WM48-H", "WM48-L"\]/, "横轴使用固定英文简称映射");
+assert.match(pageSource, /DISPLAY_SETTINGS_KEY/, "图表标题和单位有独立持久化键");
+assert.doesNotMatch(pageSource, /同一处理的高 \/ 低剂量使用同色|浅色柱为均值，同色线为标准差/, "移除图表右上角说明文字");
 assert.match(pageSource, /箱型图单位/, "箱型图提供独立单位输入");
 assert.match(pageSource, /柱形图单位/, "柱形图提供独立单位输入");
 assert.match(pageSource, /labelFor\(g\)/, "两种图表都使用显示名称而非底层组名");
