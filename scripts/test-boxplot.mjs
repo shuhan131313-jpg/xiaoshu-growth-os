@@ -41,19 +41,21 @@ assert.match(pageSource, /LEGEND_LABELS = \[/, "底部图例使用固定中文�
 for (const label of [
   "假手术组",
   "OVX 模型组",
-  "阳性药物雌二醇组",
-  "燕麦浆组",
-  "灭活发酵燕麦浆高剂量组",
-  "灭活发酵燕麦浆低剂量组",
-  "未灭活发酵燕麦浆高剂量组",
-  "未灭活发酵燕麦浆低剂量组",
-  "WM-48菌液高剂量组",
-  "WM-48菌液低剂量组",
+  "阳性对照组",
+  "未发酵燕麦组",
+  "灭活高剂量组",
+  "灭活低剂量组",
+  "未灭活高剂量组",
+  "未灭活低剂量组",
+  "菌液高剂量组",
+  "菌液低剂量组",
 ]) {
   assert.match(pageSource, new RegExp(label), `图例包含${label}`);
 }
 assert.match(pageSource, /BOXPLOT_GROUP_PALETTE\[index\]/, "图例复用现有颜色映射");
 assert.match(pageSource, /aria-label=\"分组图例\"/, "图例为独立区域");
+assert.match(pageSource, /grid grid-cols-1 gap-y-2\.5/, "图例单列竖向排列");
+assert.match(pageSource, /whitespace-nowrap text-sm/, "图例名称不换行");
 
 assert.deepEqual(parsePastedNumbers("1\n2\n3\n"), [1, 2, 3], "换行和末尾换行");
 assert.deepEqual(parsePastedNumbers("1\t2\r\n\r\n3"), [1, 2, 3], "Excel 列和空行");

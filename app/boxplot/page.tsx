@@ -38,14 +38,14 @@ const DISPLAY_LABELS = ["Sham", "OVX", "E2", "UO", "IFO-H", "IFO-L", "VFO-H", "V
 const LEGEND_LABELS = [
   "假手术组",
   "OVX 模型组",
-  "阳性药物雌二醇组",
-  "燕麦浆组",
-  "灭活发酵燕麦浆高剂量组",
-  "灭活发酵燕麦浆低剂量组",
-  "未灭活发酵燕麦浆高剂量组",
-  "未灭活发酵燕麦浆低剂量组",
-  "WM-48菌液高剂量组",
-  "WM-48菌液低剂量组",
+  "阳性对照组",
+  "未发酵燕麦组",
+  "灭活高剂量组",
+  "灭活低剂量组",
+  "未灭活高剂量组",
+  "未灭活低剂量组",
+  "菌液高剂量组",
+  "菌液低剂量组",
 ] as const;
 
 interface DisplaySettings {
@@ -784,7 +784,7 @@ export default function BoxPlotPage() {
 
       <section className="mt-6 rounded-xl border border-line bg-card p-4 shadow-card sm:p-5" aria-label="分组图例">
         <h2 className="text-sm font-medium text-primary">分组图例</h2>
-        <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-3 grid grid-cols-1 gap-y-2.5">
           {LEGEND_LABELS.map((label, index) => {
             const palette = BOXPLOT_GROUP_PALETTE[index];
             return (
@@ -794,7 +794,7 @@ export default function BoxPlotPage() {
                   style={{ backgroundColor: palette.fill, borderColor: palette.stroke }}
                   aria-hidden="true"
                 />
-                <span className="min-w-0 text-sm leading-5 text-ink">{label}</span>
+                <span className="whitespace-nowrap text-sm leading-5 text-ink">{label}</span>
               </div>
             );
           })}
