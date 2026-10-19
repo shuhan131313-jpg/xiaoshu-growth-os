@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ClipboardEvent } from "react";
-import { RotateCcw, Copy } from "lucide-react";
+import { RotateCcw, Copy, ClipboardPaste, Check } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 import { BoxplotAnalysisBoundary } from "@/components/boxplot/boxplot-analysis-boundary";
 import {
@@ -13,6 +13,8 @@ import {
   computeMeanSd,
   computeStats,
   parseGroupCells,
+  parseBatchValues,
+  flattenBatchValues,
   parsePastedNumbers,
   type MeanSd,
 } from "@/lib/boxplot-analysis";
@@ -76,6 +78,11 @@ export default function BoxPlotPage() {
 
   const [copiedCol, setCopiedCol] = useState<number | null>(null);
   const [copiedText, setCopiedText] = useState(false);
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+  const [pasteErrors, setPasteErrors] = useState<string[]>([]);
+  const [copyAllFallback, setCopyAllFallback] = useState("");
+  const [batchMessage, setBatchMessage] = useState("");
   const [boxTitle, setBoxTitle] = useState(() => readDisplaySettings().boxTitle);
   const [boxUnit, setBoxUnit] = useState(() => readDisplaySettings().boxUnit);
   const [barTitle, setBarTitle] = useState(() => readDisplaySettings().barTitle);
@@ -132,6 +139,42 @@ export default function BoxPlotPage() {
 
   const resetAll = () => {
     setData(GROUP_NAMES.map(() => Array.from({ length: SLOTS }, () => "")));
+  };
+
+  const parseBatch = () => {
+    const result = parseBatchValues(pasteText);
+    setPasteErrors(result.errors);
+    setBatchMessage(result.errors.length ? "" : `已解析 ${result.values.length} 个位置${result.values.length === 70 ? "，数量正确" : "，请确认数量"}`);
+    return result;
+  };
+
+  const confirmBatchPaste = () => {
+    const result = parseBatchValues(pasteText);
+    setPasteErrors(result.errors);
+    if (result.errors.length || result.values.length > GROUP_NAMES.length * SLOTS) return;
+    const next = GROUP_NAMES.map((_, groupIndex) =>
+      Array.from({ length: SLOTS }, (_, slotIndex) => {
+        const value = result.values[groupIndex * SLOTS + slotIndex];
+        return value === undefined ? "" : String(value);
+      })
+    );
+    setData(next);
+    setPasteOpen(false);
+    setPasteText("");
+    setBatchMessage(`已填入 ${result.values.length} 个位置`);
+  };
+
+  const copyAll = async () => {
+    const text = flattenBatchValues(data, SLOTS);
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("clipboard unavailable");
+      await navigator.clipboard.writeText(text);
+      setCopyAllFallback("");
+      setBatchMessage("已复制全部 70 个位置");
+    } catch {
+      setCopyAllFallback(text);
+      setBatchMessage("剪贴板不可用，请在下方文本框中全选复制");
+    }
   };
 
   // 粘贴一整列竖排数字：自动依次填入该列 7 个框（从第一个框开始）
@@ -266,15 +309,82 @@ export default function BoxPlotPage() {
         desc="临时实时可视化工具 · 数据不存储、刷新即清空"
       >
         <div className="mt-3 flex justify-end">
-          <button
-            type="button"
-            onClick={resetAll}
-            className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs text-ink-soft transition duration-200 hover:border-primary/40 hover:text-primary"
-          >
-            <RotateCcw className="h-3.5 w-3.5" /> 清空输入
-          </button>
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setPasteOpen(true);
+                setPasteErrors([]);
+                setBatchMessage("");
+              }}
+              className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs text-ink-soft transition duration-200 hover:border-primary/40 hover:text-primary"
+            >
+              <ClipboardPaste className="h-3.5 w-3.5" /> 一键粘贴
+            </button>
+            <button
+              type="button"
+              onClick={copyAll}
+              className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs text-ink-soft transition duration-200 hover:border-primary/40 hover:text-primary"
+            >
+              <Copy className="h-3.5 w-3.5" /> 一键复制
+            </button>
+            <button
+              type="button"
+              onClick={resetAll}
+              className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs text-ink-soft transition duration-200 hover:border-primary/40 hover:text-primary"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> 清空输入
+            </button>
+          </div>
         </div>
       </PageHeader>
+
+      {pasteOpen && (
+        <section className="mt-4 rounded-xl border border-line bg-card p-4 shadow-card">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-medium text-primary">批量粘贴 10 组数据</p>
+            <button type="button" onClick={() => setPasteOpen(false)} className="text-xs text-ink-faint hover:text-primary">取消</button>
+          </div>
+          <p className="mt-1 text-xs leading-5 text-ink-soft">按固定顺序每组 7 个位置粘贴，共 70 个。空位置请明确写 0；内部空行会被指出，不会自动挤掉。</p>
+          <textarea
+            value={pasteText}
+            onChange={(event) => {
+              setPasteText(event.target.value);
+              setPasteErrors([]);
+              setBatchMessage("");
+            }}
+            placeholder="每行一个数字，也支持 Tab 分隔"
+            rows={7}
+            className="mt-3 w-full rounded-lg border border-line bg-surface p-3 font-mono text-sm leading-5 text-ink outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
+          />
+          {pasteText.trim() && pasteErrors.length === 0 && (() => {
+            const count = parseBatchValues(pasteText).values.length;
+            return count !== GROUP_NAMES.length * SLOTS ? (
+              <p className="mt-2 rounded-lg bg-[#FFF7E6] px-3 py-2 text-xs text-[#806B20]">当前解析到 {count} 个位置，预期 70 个；确认前请检查是否需要补充或删除数据。</p>
+            ) : null;
+          })()}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" onClick={parseBatch} className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs text-ink-soft hover:border-primary/40 hover:text-primary">检查数据</button>
+            <button type="button" onClick={confirmBatchPaste} disabled={!pasteText.trim() || pasteErrors.length > 0} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs text-white disabled:cursor-not-allowed disabled:opacity-40"><Check className="h-3.5 w-3.5" />确认填入</button>
+          </div>
+          {pasteErrors.length > 0 && <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">{pasteErrors.slice(0, 3).map((error) => <p key={error}>{error}</p>)}</div>}
+          {batchMessage && <p className="mt-2 text-xs text-ink-soft">{batchMessage}</p>}
+          {pasteText.trim() && pasteErrors.length === 0 && (() => {
+            const result = parseBatchValues(pasteText);
+            if (!result.values.length) return null;
+            return <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-ink-soft sm:grid-cols-5">
+              {GROUP_NAMES.map((name, groupIndex) => <div key={name} className="rounded-lg bg-surface p-2"><p className="font-medium text-primary">{DISPLAY_LABELS[groupIndex]}</p><p className="mt-1 break-all font-mono">{Array.from({ length: SLOTS }, (_, slotIndex) => result.values[groupIndex * SLOTS + slotIndex] ?? "—").join(" · ")}</p></div>)}
+            </div>;
+          })()}
+        </section>
+      )}
+      {copyAllFallback && (
+        <section className="mt-3 rounded-xl border border-line bg-card p-4 shadow-card">
+          <p className="text-xs text-ink-soft">复制失败，请全选下面 70 行内容后手动复制。</p>
+          <textarea readOnly value={copyAllFallback} onFocus={(event) => event.currentTarget.select()} rows={7} className="mt-2 w-full rounded-lg border border-line bg-surface p-3 font-mono text-xs leading-5 text-ink" aria-label="全部分组数据" />
+        </section>
+      )}
+      {batchMessage && !pasteOpen && <p className="mt-2 text-center text-xs text-ink-soft">{batchMessage}</p>}
 
       {/* 输入区：10 组，每组占一竖列、强制单行横向排布；桌面完整可见，窄屏横向滚动 */}
       <div className="mt-4 flex flex-nowrap gap-3 overflow-x-auto pb-2">
@@ -299,7 +409,7 @@ export default function BoxPlotPage() {
               ))}
             </div>
             <p className="mt-1.5 text-center text-[10px] text-ink-faint">
-              已录入 {parsed[g].length}/{SLOTS}
+              已录入 {(data[g] ?? []).filter((value) => value.trim() !== "").length}/{SLOTS}
             </p>
             <button
               type="button"

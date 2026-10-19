@@ -20,6 +20,38 @@ export type CldResult = {
 
 const VALUE_SEPARATOR = /[\s,;，；\t\r\n]+/;
 
+export interface BatchParseResult {
+  values: number[];
+  errors: string[];
+}
+
+/** 严格解析 10 组×7 位的批量文本：内部空行/空单元会报错，不会被静默挤掉。 */
+export function parseBatchValues(text: string): BatchParseResult {
+  const source = text.trim();
+  if (!source) return { values: [], errors: ["没有检测到数据"] };
+  const tokens = source.replace(/\r\n?/g, "\n").split(/[\n\t]/);
+  const values: number[] = [];
+  const errors: string[] = [];
+  tokens.forEach((token, index) => {
+    const clean = token.trim();
+    if (!clean) {
+      errors.push(`第 ${index + 1} 个位置为空，请用 0 表示缺失值`);
+      return;
+    }
+    const number = Number(clean);
+    if (!Number.isFinite(number)) errors.push(`第 ${index + 1} 个位置不是有效数字：${clean}`);
+    else values.push(number);
+  });
+  return { values, errors };
+}
+
+export function flattenBatchValues(data: string[][], slots = 7): string {
+  return data.flatMap((group) => Array.from({ length: slots }, (_, index) => {
+    const value = group?.[index]?.trim() ?? "";
+    return value === "" ? "0" : value;
+  })).join("\n");
+}
+
 export function parsePastedNumbers(text: string): number[] {
   return text
     .split(VALUE_SEPARATOR)
@@ -35,7 +67,7 @@ export function parseGroupCells(row: unknown): number[] {
     const text = typeof value === "string" ? value.trim() : String(value ?? "").trim();
     if (!text) return [];
     const number = Number(text);
-    return Number.isFinite(number) ? [number] : [];
+    return Number.isFinite(number) && number !== 0 ? [number] : [];
   });
 }
 
@@ -54,7 +86,7 @@ function quantile(sorted: number[], q: number): number {
 }
 
 export function computeStats(values: number[]): GroupStats | null {
-  const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
+  const sorted = values.filter((value) => Number.isFinite(value) && value !== 0).sort((a, b) => a - b);
   if (sorted.length === 0) return null;
   const q1 = quantile(sorted, 0.25);
   const q2 = quantile(sorted, 0.5);
@@ -70,7 +102,7 @@ export function computeStats(values: number[]): GroupStats | null {
 }
 
 export function computeMeanSd(values: number[]): MeanSd | null {
-  const finite = values.filter(Number.isFinite);
+  const finite = values.filter((value) => Number.isFinite(value) && value !== 0);
   if (finite.length === 0) return null;
   const mean = finite.reduce((sum, value) => sum + value, 0) / finite.length;
   if (finite.length === 1) return { mean, sd: null, n: 1 };

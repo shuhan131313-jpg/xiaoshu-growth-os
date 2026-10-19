@@ -17,6 +17,8 @@ const {
   maximalCliques,
   parseGroupCells,
   parsePastedNumbers,
+  parseBatchValues,
+  flattenBatchValues,
 } = await importTypeScript("../lib/boxplot-analysis.ts");
 const { BOXPLOT_GROUP_PALETTE, BOXPLOT_TREATMENT_LEGEND } = await importTypeScript(
   "../lib/boxplot-palette.ts"
@@ -41,6 +43,11 @@ assert.deepEqual(parsePastedNumbers("1\t2\r\n\r\n3"), [1, 2, 3], "Excel 列和�
 assert.deepEqual(parsePastedNumbers("1, 错误, 2, Infinity, ,3"), [1, 2, 3], "非法值不进入统计");
 assert.deepEqual(parseGroupCells(undefined), [], "未初始化组安全视为空组");
 assert.deepEqual(parseGroupCells(["", "  ", "4", "bad", "5"]), [4, 5], "编辑中空值安全");
+assert.deepEqual(parseBatchValues("1\n0\n-2\n3"), { values: [1, 0, -2, 3], errors: [] }, "批量解析保留 0 和负数");
+assert.equal(parseBatchValues("1\n\n2").errors.length, 1, "批量解析指出内部空位置");
+const batch = Array.from({ length: 70 }, (_, index) => String(index % 7 === 0 ? 0 : index + 1)).join("\n");
+assert.equal(parseBatchValues(batch).values.length, 70, "70 个位置完整解析");
+assert.equal(flattenBatchValues([['1', '', '0'], ['-2']], 3).split("\n").length, 6, "批量复制固定输出每个位置");
 
 const oneGroup = [computeMeanSd([1, 2, 3]), null];
 assert.equal(computeCLD(oneGroup).ok, false, "只有一组时不提前运行 Tukey");
@@ -78,5 +85,6 @@ const stats = computeStats([1, 2, 3, 4, 100, Number.NaN]);
 assert.ok(stats);
 assert.equal(stats.values.includes(Number.NaN), false, "NaN 不进入箱型统计");
 assert.equal(stats.outliers.includes(100), true, "箱线图离群值逻辑保留");
+assert.deepEqual(computeStats([0, 0, 2, 4])?.values, [2, 4], "绘图统计排除 0 占位值");
 
 console.log("箱型图解析、空组、1/2/3/7 组、不同样本量、Tukey 与离群值测试通过");
