@@ -37,15 +37,15 @@ const DISPLAY_SETTINGS_KEY = "boxplot.display-settings.v1";
 const DISPLAY_LABELS = ["Sham", "OVX", "E2", "UO", "IFO-H", "IFO-L", "VFO-H", "VFO-L", "WM48-H", "WM48-L"] as const;
 const LEGEND_LABELS = [
   "假手术组",
-  "OVX 模型组",
-  "阳性对照组",
-  "未发酵燕麦组",
-  "灭活高剂量组",
-  "灭活低剂量组",
-  "未灭活高剂量组",
-  "未灭活低剂量组",
-  "菌液高剂量组",
-  "菌液低剂量组",
+  "去卵巢OVX组",
+  "阳性雌二醇组",
+  "燕浆麦组",
+  "灭活发酵燕麦浆高剂量组",
+  "灭活发酵燕麦浆低剂量组",
+  "未灭活发酵燕麦浆高剂量组",
+  "未灭活发酵燕麦浆低剂量组",
+  "WM-48菌液高剂量组",
+  "WM-48菌液低剂量组",
 ] as const;
 
 interface DisplaySettings {
