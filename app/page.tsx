@@ -18,7 +18,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { GROWTH_MODULES } from "@/lib/constants";
 import { todayKey, greeting, weekdayCN } from "@/lib/utils";
-import { getTodayTaskMap, getTodayDuration, getHeatmap, setTodayTask } from "@/lib/summary";
+import { getTodayTaskMap, getHeatmap, setTodayTask } from "@/lib/summary";
 import { repos } from "@/lib/db/repo";
 import type { DailyMainRecord } from "@/lib/db/db";
 import { getDailyMain } from "@/lib/mainline";
@@ -27,6 +27,7 @@ import { MainlineSheet } from "@/components/mainline/mainline-sheet";
 const PROGRESS_KEYS = ["exercise", "reading", "research", "gratitude", "food", "account"] as const;
 type ProgressKey = (typeof PROGRESS_KEYS)[number];
 const AUTO_KEYS = new Set<ProgressKey>(["exercise", "research", "gratitude", "food", "account"]);
+type WorkSegment = { kind: "focus" | "exercise"; duration: number; createdAt: number };
 
 const MODULES: Record<ProgressKey, {
   label: string;
@@ -51,6 +52,7 @@ export default function TodayPage() {
   const date = useMemo(() => todayKey(), []);
   const [taskMap, setTaskMap] = useState<Record<string, boolean>>({});
   const [duration, setDuration] = useState(0);
+  const [workSegments, setWorkSegments] = useState<WorkSegment[]>([]);
   const [heat, setHeat] = useState<{ date: string; count: number }[]>([]);
   const [exCount, setExCount] = useState(0);
   const [rsCount, setRsCount] = useState(0);
@@ -62,9 +64,8 @@ export default function TodayPage() {
   const [foodSummary, setFoodSummary] = useState({ total: 0, unplanned: 0 });
 
   async function load() {
-    const [map, dur, heatmap, exercise, research, gratitude, dailyMain, foodRecords, accountRecords] = await Promise.all([
+    const [map, heatmap, exercise, research, gratitude, dailyMain, foodRecords, accountRecords] = await Promise.all([
       getTodayTaskMap(date),
-      getTodayDuration(date),
       getHeatmap(7),
       repos.exercise.whereDate(date),
       repos.research.whereDate(date),
@@ -73,8 +74,17 @@ export default function TodayPage() {
       repos.foodRecords.whereDate(date),
       repos.account.whereDate(date),
     ]);
+    const segments: WorkSegment[] = [
+      ...exercise
+        .filter((record) => Number(record.duration) > 0)
+        .map((record) => ({ kind: "exercise" as const, duration: Number(record.duration), createdAt: record.createdAt })),
+      ...research
+        .filter((record) => Number(record.duration) > 0)
+        .map((record) => ({ kind: "focus" as const, duration: Number(record.duration), createdAt: record.createdAt })),
+    ].sort((a, b) => a.createdAt - b.createdAt);
     setTaskMap(map);
-    setDuration(dur);
+    setDuration(segments.reduce((sum, segment) => sum + segment.duration, 0));
+    setWorkSegments(segments);
     setHeat(heatmap);
     setExCount(exercise.length);
     setRsCount(research.length);
@@ -108,6 +118,9 @@ export default function TodayPage() {
     food: foodSummary.total > 0,
     account: accountCount > 0,
   };
+  const workPercent = Math.min(100, Math.round((duration / 360) * 100));
+  const remainingMinutes = Math.max(0, 360 - duration);
+  let segmentOffset = 0;
 
   return (
     <div className="space-y-8">
@@ -178,19 +191,45 @@ export default function TodayPage() {
       </section>
 
       <Card className="border-0 bg-[#EDF1F5] shadow-none">
-        <CardContent className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-primary">
-              <Flame className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="text-sm text-ink-soft">今日专注时长</p>
-              <p className="tabular text-2xl font-semibold text-ink">
-                {duration}<span className="text-sm font-normal text-ink-faint"> 分钟</span>
-              </p>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-primary">
+                <Flame className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-sm text-ink-soft">今日工作</p>
+                <p className="tabular text-2xl font-semibold text-ink">
+                  {duration}<span className="text-sm font-normal text-ink-faint"> 分钟</span>
+                </p>
+              </div>
+            </div>
+            <div className="text-right text-xs text-ink-faint">
+              <p>{workPercent}%</p>
+              <p>剩余 {remainingMinutes} 分钟</p>
             </div>
           </div>
-          <span className="text-xs text-ink-faint">运动·阅读·专注</span>
+          <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-line" aria-label="今日工作进度">
+            <div className="relative h-full w-full">
+              {workSegments.map((segment, index) => {
+                const start = segmentOffset;
+                segmentOffset += segment.duration;
+                const visibleDuration = Math.max(0, Math.min(segment.duration, 360 - start));
+                if (visibleDuration <= 0) return null;
+                return (
+                  <span
+                    key={`${segment.kind}-${segment.createdAt}-${index}`}
+                    className="absolute inset-y-0 border-r border-[#EDF1F5] last:border-r-0"
+                    style={{
+                      left: `${(start / 360) * 100}%`,
+                      width: `${(visibleDuration / 360) * 100}%`,
+                      backgroundColor: segment.kind === "focus" ? "#38506B" : "#9AAEC2",
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
