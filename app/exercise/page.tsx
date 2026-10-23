@@ -249,6 +249,7 @@ export default function ExercisePage() {
         });
       }
       await loadHealth();
+      window.dispatchEvent(new Event("weight-records-updated"));
     } finally {
       weightSavingRef.current = false;
     }
@@ -258,6 +259,7 @@ export default function ExercisePage() {
     if (id == null) return;
     await repos.weight.delete(id);
     await loadHealth();
+    window.dispatchEvent(new Event("weight-records-updated"));
   }
 
   async function toggleBowel() {

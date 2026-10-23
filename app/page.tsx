@@ -53,6 +53,7 @@ export default function TodayPage() {
   const [taskMap, setTaskMap] = useState<Record<string, boolean>>({});
   const [duration, setDuration] = useState(0);
   const [workSegments, setWorkSegments] = useState<WorkSegment[]>([]);
+  const [latestWeightKg, setLatestWeightKg] = useState<number | null>(null);
   const [heat, setHeat] = useState<{ date: string; count: number }[]>([]);
   const [exCount, setExCount] = useState(0);
   const [rsCount, setRsCount] = useState(0);
@@ -64,7 +65,7 @@ export default function TodayPage() {
   const [foodSummary, setFoodSummary] = useState({ total: 0, unplanned: 0 });
 
   async function load() {
-    const [map, heatmap, exercise, research, gratitude, dailyMain, foodRecords, accountRecords] = await Promise.all([
+    const [map, heatmap, exercise, research, gratitude, dailyMain, foodRecords, accountRecords, weights] = await Promise.all([
       getTodayTaskMap(date),
       getHeatmap(7),
       repos.exercise.whereDate(date),
@@ -73,6 +74,7 @@ export default function TodayPage() {
       getDailyMain(date),
       repos.foodRecords.whereDate(date),
       repos.account.whereDate(date),
+      repos.weight.all(),
     ]);
     const segments: WorkSegment[] = [
       ...exercise
@@ -95,11 +97,22 @@ export default function TodayPage() {
       unplanned: foodRecords.filter((record) => record.isUnplanned).length,
     });
     setAccountCount(accountRecords.length);
+    const latestWeight = [...weights]
+      .filter((record) => Number.isFinite(record.value) && record.value > 0 && record.date)
+      .sort((a, b) =>
+        b.date.localeCompare(a.date) ||
+        b.createdAt - a.createdAt ||
+        (b.id ?? 0) - (a.id ?? 0)
+      )[0];
+    setLatestWeightKg(latestWeight?.value ?? null);
     setReady(true);
   }
 
   useEffect(() => {
     load();
+    const onWeightUpdated = () => void load();
+    window.addEventListener("weight-records-updated", onWeightUpdated);
+    return () => window.removeEventListener("weight-records-updated", onWeightUpdated);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -119,7 +132,10 @@ export default function TodayPage() {
     account: accountCount > 0,
   };
   const workPercent = Math.min(100, Math.round((duration / 360) * 100));
-  const remainingMinutes = Math.max(0, 360 - duration);
+  const weightJin = latestWeightKg == null ? null : latestWeightKg * 2;
+  const weightPercent = weightJin == null
+    ? 0
+    : Math.min(100, Math.max(0, ((110 - weightJin) / 15) * 100));
   let segmentOffset = 0;
 
   return (
@@ -193,6 +209,24 @@ export default function TodayPage() {
       <Card className="border-0 bg-[#EDF1F5] shadow-none">
         <CardContent>
           <div className="flex items-center justify-between">
+            <p className="text-sm text-ink-soft">体重目标</p>
+            <p className="tabular text-sm font-medium text-ink">
+              {weightJin == null ? "尚未记录体重" : `${weightJin.toFixed(1)} 斤 / 95 斤`}
+            </p>
+          </div>
+          <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-line" aria-label="体重目标进度">
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-300"
+              style={{ width: `${weightPercent}%` }}
+            />
+          </div>
+          {weightJin != null && <p className="mt-1.5 text-right text-xs text-ink-faint">{Math.round(weightPercent)}%</p>}
+        </CardContent>
+      </Card>
+
+      <Card className="border-0 bg-[#EDF1F5] shadow-none">
+        <CardContent>
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-primary">
                 <Flame className="h-5 w-5" />
@@ -205,8 +239,8 @@ export default function TodayPage() {
               </div>
             </div>
             <div className="text-right text-xs text-ink-faint">
+              <p>目标 6 小时</p>
               <p>{workPercent}%</p>
-              <p>剩余 {remainingMinutes} 分钟</p>
             </div>
           </div>
           <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-line" aria-label="今日工作进度">
