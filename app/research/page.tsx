@@ -293,17 +293,17 @@ export default function ResearchPage() {
 
         <div className="mt-3">
           <Label>本次专注内容</Label>
-          <div className="mt-1 flex items-center gap-2">
+          <div className="mt-1 grid grid-cols-2 gap-2">
             <Input
               value={summary}
               onChange={(event) => setSummary(event.target.value)}
               placeholder="本次专注内容"
               maxLength={240}
-              className="min-w-0 flex-1"
+              className="min-w-0"
             />
             <Button
               variant="accent"
-              className="shrink-0 whitespace-nowrap px-3 text-xs"
+              className="w-full whitespace-nowrap px-2 text-xs"
               onClick={finishTimer}
               disabled={!timerActive || savingSession}
             >
