@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export interface TimerHandle {
@@ -13,6 +13,7 @@ interface TimerProps {
   className?: string;
   disabled?: boolean;
   onActiveChange?: (active: boolean) => void;
+  startControl?: ReactNode;
 }
 
 function fmt(sec: number): string {
@@ -25,7 +26,7 @@ function fmt(sec: number): string {
 
 /** 专注模块使用的开放式计时器：中央开始，外部按钮结束并记录。 */
 export const Timer = forwardRef<TimerHandle, TimerProps>(function Timer(
-  { size = 128, className, disabled = false, onActiveChange },
+  { size = 128, className, disabled = false, onActiveChange, startControl },
   ref
 ) {
   const [elapsed, setElapsed] = useState(0);
@@ -90,15 +91,18 @@ export const Timer = forwardRef<TimerHandle, TimerProps>(function Timer(
               {fmt(elapsed)}
             </span>
           ) : (
-            <button
-              type="button"
-              onClick={start}
-              disabled={disabled}
-              className="flex h-full w-full items-center justify-center rounded-full text-base font-semibold text-primary transition hover:bg-primary/[0.03]"
-              aria-label="开始专注"
-            >
-              开始
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={start}
+                disabled={disabled}
+                className="rounded-full px-1.5 py-1 text-sm font-semibold text-primary transition hover:bg-primary/[0.03]"
+                aria-label="开始专注"
+              >
+                开始
+              </button>
+              {startControl}
+            </div>
           )}
         </div>
       </div>

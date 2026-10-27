@@ -206,8 +206,9 @@ export default function TodayPage() {
         </div>
       </section>
 
-      <Card className="border-0 bg-[#EDF1F5] shadow-none">
-        <CardContent>
+      <Link href="/exercise#weight-record" className="block rounded-xl transition hover:bg-[#E7EDF2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
+        <Card className="border-0 bg-[#EDF1F5] shadow-none">
+          <CardContent>
           <div className="flex items-center justify-between">
             <p className="text-sm text-ink-soft">体重目标</p>
             <p className="tabular text-sm font-medium text-ink">
@@ -221,11 +222,13 @@ export default function TodayPage() {
             />
           </div>
           {weightJin != null && <p className="mt-1.5 text-right text-xs text-ink-faint">{Math.round(weightPercent)}%</p>}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </Link>
 
-      <Card className="border-0 bg-[#EDF1F5] shadow-none">
-        <CardContent>
+      <Link href="/research#focus-timer" className="block rounded-xl transition hover:bg-[#E7EDF2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
+        <Card className="border-0 bg-[#EDF1F5] shadow-none">
+          <CardContent>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-primary">
@@ -264,8 +267,9 @@ export default function TodayPage() {
               })}
             </div>
           </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </Link>
 
       <Card>
         <CardContent>

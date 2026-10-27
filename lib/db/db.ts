@@ -39,8 +39,17 @@ export interface ResearchRecord {
   date: string;
   duration: number;
   summary?: string;
+  /** 新记录可选的专注分类；旧记录没有该字段时视为未分类。 */
+  category?: "数据" | "论文" | "申博" | "求职";
   /** 旧记录没有该字段时仍按普通历史记录读取。 */
   source?: "timer" | "manual";
+  createdAt: number;
+}
+
+export interface PhoneRecord {
+  id?: number;
+  date: string;
+  duration: number; // 分钟
   createdAt: number;
 }
 
@@ -270,6 +279,7 @@ export class XiaoShuDB extends Dexie {
   milestones!: Table<MilestoneRecord, number>;
   foodRecords!: Table<FoodRecord, number>;
   recentBooks!: Table<RecentBookRecord, number>;
+  phone!: Table<PhoneRecord, number>;
 
   constructor() {
     super("xiaoshu-growth-os");
@@ -331,6 +341,9 @@ export class XiaoShuDB extends Dexie {
     });
     this.version(12).stores({
       recentBooks: "++id, status, updatedAt",
+    });
+    this.version(13).stores({
+      phone: "++id, date, createdAt",
     });
   }
 }

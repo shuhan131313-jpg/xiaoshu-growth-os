@@ -658,7 +658,7 @@ export default function ExercisePage() {
       {/* 身体指标：体重 / 排便 */}
       <div className="space-y-5 pt-1">
         {/* 体重 */}
-        <Card>
+        <Card id="weight-record">
           <CardContent>
             <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-primary">
               <Scale className="h-4 w-4" /> 体重

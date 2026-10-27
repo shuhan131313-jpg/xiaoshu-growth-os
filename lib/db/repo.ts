@@ -37,6 +37,7 @@ export const repos = {
   milestones: repo(db.milestones),
   foodRecords: repo(db.foodRecords),
   recentBooks: repo(db.recentBooks),
+  phone: repo(db.phone),
 };
 
 export type Repo = ReturnType<typeof repo>;
