@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,7 @@ export default function ResearchPage() {
   const [phoneInput, setPhoneInput] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(today.slice(0, 7));
   const [focusCategory, setFocusCategory] = useState<FocusCategory>("数据");
+  const [manualCategory, setManualCategory] = useState<FocusCategory | "">("");
   const [timerActive, setTimerActive] = useState(false);
   const [savingSession, setSavingSession] = useState(false);
   const [manualSummary, setManualSummary] = useState("");
@@ -51,6 +52,10 @@ export default function ResearchPage() {
   const [draftReady, setDraftReady] = useState(false);
   const timerRef = useRef<TimerHandle>(null);
   const manualSubmittingRef = useRef(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editSummary, setEditSummary] = useState("");
+  const [editCategory, setEditCategory] = useState<FocusCategory | "">("");
+  const [editDuration, setEditDuration] = useState("");
 
   const todayMinutes = history
     .filter((item) => item.date === today)
@@ -133,9 +138,10 @@ export default function ResearchPage() {
     manualSubmittingRef.current = true;
     setManualSaving(true);
     try {
-      const result = await createSession(minutes * 60, "manual", manualSummary, focusCategory);
+      const result = await createSession(minutes * 60, "manual", manualSummary, manualCategory || undefined);
       setManualSummary("");
       setManualMinutes("");
+      setManualCategory("");
       showFeedback(`已补充 ${result.duration} min`);
     } finally {
       manualSubmittingRef.current = false;
@@ -153,6 +159,71 @@ export default function ResearchPage() {
     setPhoneInput("");
     await refresh();
     showFeedback(`已记录玩手机 ${duration} min`);
+  }
+
+  function beginEdit(record: ResearchRecord) {
+    setEditingId(record.id ?? null);
+    setEditSummary(record.summary ?? "");
+    setEditCategory(record.category ?? "");
+    setEditDuration(String(record.duration));
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditSummary("");
+    setEditCategory("");
+    setEditDuration("");
+  }
+
+  async function saveEdit(record: ResearchRecord) {
+    if (record.id == null) return;
+    const duration = validManualMinutes(editDuration);
+    if (duration == null) {
+      showFeedback("请输入大于 0 的有效时长");
+      return;
+    }
+    await repos.research.update(record.id, {
+      duration,
+      summary: editSummary.trim() || undefined,
+      category: editCategory || undefined,
+    });
+    cancelEdit();
+    await refresh();
+    showFeedback("专注记录已更新");
+  }
+
+  async function deleteSession(record: ResearchRecord) {
+    if (record.id == null || !window.confirm("确定删除这条专注记录吗？")) return;
+    await repos.research.delete(record.id);
+    if (editingId === record.id) cancelEdit();
+    await refresh();
+    showFeedback("专注记录已删除");
+  }
+
+  function CategorySelect({
+    value,
+    onChange,
+    allowEmpty = false,
+    ariaLabel,
+  }: {
+    value: FocusCategory | "";
+    onChange: (value: FocusCategory | "") => void;
+    allowEmpty?: boolean;
+    ariaLabel: string;
+  }) {
+    const selected = value || "数据";
+    return (
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value as FocusCategory | "")}
+        className="h-10 w-[88px] shrink-0 rounded-xl border bg-white px-2 text-xs outline-none"
+        style={{ borderColor: FOCUS_CATEGORY_META[selected].color, color: FOCUS_CATEGORY_META[selected].color }}
+        aria-label={ariaLabel}
+      >
+        {allowEmpty && <option value="">未分类</option>}
+        {FOCUS_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
+      </select>
+    );
   }
 
   const monthResearch = history.filter((record) => record.date.startsWith(selectedMonth));
@@ -194,6 +265,106 @@ export default function ResearchPage() {
         </div>
       </section>
 
+      {/* 专注计时 */}
+      <section id="focus-timer" className="scroll-mt-6 border-y border-line py-4">
+        <div className="pb-3">
+          <div>
+            <p className="text-[11px] text-ink-faint">今日累计</p>
+            <p className="tabular mt-0.5 text-xl font-semibold text-ink">
+              {todayMinutes}<span className="ml-1 text-xs font-normal text-ink-faint">min</span>
+            </p>
+          </div>
+        </div>
+
+        <Timer
+          ref={timerRef}
+          size={128}
+          className="py-1"
+          disabled={savingSession}
+          onActiveChange={setTimerActive}
+          startControl={
+            <CategorySelect
+              value={focusCategory}
+              onChange={(value) => setFocusCategory(value as FocusCategory)}
+              ariaLabel="专注分类"
+            />
+          }
+        />
+
+        <div className="mt-3">
+          <Label>本次专注内容</Label>
+          <div className="mt-1 flex items-center gap-2">
+            <Input
+              value={summary}
+              onChange={(event) => setSummary(event.target.value)}
+              placeholder="本次专注内容"
+              maxLength={240}
+              className="min-w-0 flex-1"
+            />
+            <Button
+              variant="accent"
+              className="shrink-0 whitespace-nowrap px-3 text-xs"
+              onClick={finishTimer}
+              disabled={!timerActive || savingSession}
+            >
+              {savingSession ? "保存中…" : "结束并记录"}
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-4 border-t border-line pt-4">
+          <p className="mb-2 text-xs font-medium text-primary">补充记录</p>
+          <div className="flex items-center gap-2">
+            <Input
+              value={manualSummary}
+              onChange={(event) => setManualSummary(event.target.value)}
+              placeholder="补充记录内容"
+              maxLength={240}
+              className="min-w-0 flex-1"
+            />
+            <CategorySelect
+              value={manualCategory}
+              onChange={setManualCategory}
+              allowEmpty
+              ariaLabel="补充记录分类"
+            />
+          </div>
+          <div className="mt-2 grid grid-cols-[1fr_1fr] gap-2">
+            <div className="relative">
+              <Input
+                type="number"
+                inputMode="numeric"
+                min="1"
+                step="1"
+                value={manualMinutes}
+                onChange={(event) => setManualMinutes(event.target.value)}
+                onEnterSubmit={addManualSession}
+                enterKeyHint="done"
+                placeholder="时长"
+                className="pr-10"
+                aria-label="补充记录时长（分钟）"
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-faint">
+                min
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              onClick={addManualSession}
+              disabled={manualSaving || validManualMinutes(manualMinutes) == null}
+            >
+              {manualSaving ? "保存中…" : "补充记录"}
+            </Button>
+          </div>
+        </div>
+
+        {feedback && (
+          <p className="mt-3 flex items-center justify-center gap-1 rounded-lg bg-[#F2F2F0] px-3 py-2 text-xs text-ink-soft">
+            <Check className="h-3.5 w-3.5 text-primary" /> {feedback}
+          </p>
+        )}
+      </section>
+
       <Card>
         <CardContent>
           <div className="flex items-center justify-between">
@@ -233,98 +404,6 @@ export default function ResearchPage() {
         </CardContent>
       </Card>
 
-      {/* 专注计时 */}
-      <section id="focus-timer" className="scroll-mt-6 border-y border-line py-4">
-        <div className="pb-3">
-          <div>
-            <p className="text-[11px] text-ink-faint">今日累计</p>
-            <p className="tabular mt-0.5 text-xl font-semibold text-ink">
-              {todayMinutes}<span className="ml-1 text-xs font-normal text-ink-faint">min</span>
-            </p>
-          </div>
-        </div>
-
-        <Timer
-          ref={timerRef}
-          size={128}
-          className="py-1"
-          disabled={savingSession}
-          onActiveChange={setTimerActive}
-          startControl={(
-            <select
-              value={focusCategory}
-              onChange={(event) => setFocusCategory(event.target.value as FocusCategory)}
-              className="h-7 max-w-[52px] rounded-full border border-line bg-white px-1 text-[10px] text-ink outline-none"
-              style={{ borderColor: FOCUS_CATEGORY_META[focusCategory].color, color: FOCUS_CATEGORY_META[focusCategory].color }}
-              aria-label="专注分类"
-            >
-              {FOCUS_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
-            </select>
-          )}
-        />
-
-        <div className="mt-3">
-          <Label>本次专注内容</Label>
-          <Input
-            value={summary}
-            onChange={(event) => setSummary(event.target.value)}
-            placeholder="修改 Discussion 和 Figure 2"
-            maxLength={240}
-          />
-          <Button
-            variant="accent"
-            className="mt-2 w-full"
-            onClick={finishTimer}
-            disabled={!timerActive || savingSession}
-          >
-            {savingSession ? "保存中…" : "结束并记录"}
-          </Button>
-        </div>
-
-        <div className="mt-4 border-t border-line pt-4">
-          <p className="mb-2 text-xs font-medium text-primary">补充记录</p>
-          <Input
-            value={manualSummary}
-            onChange={(event) => setManualSummary(event.target.value)}
-            placeholder="刚才修改了结果部分"
-            maxLength={240}
-          />
-          <div className="mt-2 grid grid-cols-[1fr_1fr] gap-2">
-            <div className="relative">
-              <Input
-                type="number"
-                inputMode="numeric"
-                min="1"
-                step="1"
-                value={manualMinutes}
-                onChange={(event) => setManualMinutes(event.target.value)}
-                onEnterSubmit={addManualSession}
-                enterKeyHint="done"
-                placeholder="时长"
-                className="pr-10"
-                aria-label="补充记录时长（分钟）"
-              />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-faint">
-                min
-              </span>
-            </div>
-            <Button
-              variant="outline"
-              onClick={addManualSession}
-              disabled={manualSaving || validManualMinutes(manualMinutes) == null}
-            >
-              {manualSaving ? "保存中…" : "补充记录"}
-            </Button>
-          </div>
-        </div>
-
-        {feedback && (
-          <p className="mt-3 flex items-center justify-center gap-1 rounded-lg bg-[#F2F2F0] px-3 py-2 text-xs text-ink-soft">
-            <Check className="h-3.5 w-3.5 text-primary" /> {feedback}
-          </p>
-        )}
-      </section>
-
       {/* 专注记录（全部历史，跨月完整保留；统一折叠） */}
       {history.length > 0 && (
         <Card>
@@ -341,23 +420,52 @@ export default function ResearchPage() {
                   key={r.id}
                   className="border-b border-line pb-3 last:border-0"
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <span className="tabular text-sm font-medium text-ink">
                       {r.date}
                     </span>
-                    <span className="tabular text-xs text-ink-faint">
-                      {r.duration} 分钟{r.source === "manual" ? " · 补录" : ""}
-                    </span>
+                    {editingId === r.id ? (
+                      <div className="flex items-center gap-1.5">
+                        <Input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={editDuration}
+                          onChange={(event) => setEditDuration(event.target.value)}
+                          className="h-8 w-20 px-2 text-xs"
+                          aria-label="编辑专注时长"
+                        />
+                        <Button size="sm" variant="accent" onClick={() => saveEdit(r)}>保存</Button>
+                        <Button size="sm" variant="ghost" onClick={cancelEdit}>取消</Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <span className="tabular text-xs text-ink-faint">
+                          {r.duration} 分钟{r.source === "manual" ? " · 补录" : ""}
+                        </span>
+                        <button type="button" className="rounded-md p-1 text-ink-faint hover:bg-line/50 hover:text-primary" onClick={() => beginEdit(r)} aria-label="编辑专注记录">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button type="button" className="rounded-md p-1 text-ink-faint hover:bg-line/50 hover:text-red-500" onClick={() => deleteSession(r)} aria-label="删除专注记录">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  {r.category && FOCUS_CATEGORY_META[r.category] && (
+                  {editingId === r.id ? (
+                    <div className="mt-2 space-y-2">
+                      <Input value={editSummary} onChange={(event) => setEditSummary(event.target.value)} placeholder="专注内容" aria-label="编辑专注内容" />
+                      <CategorySelect value={editCategory} onChange={setEditCategory} allowEmpty ariaLabel="编辑专注分类" />
+                    </div>
+                  ) : r.category && FOCUS_CATEGORY_META[r.category] ? (
                     <span
                       className="mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium"
                       style={{ color: FOCUS_CATEGORY_META[r.category].color, backgroundColor: FOCUS_CATEGORY_META[r.category].background }}
                     >
                       {r.category}
                     </span>
-                  )}
-                  {r.summary && (
+                  ) : null}
+                  {editingId !== r.id && r.summary && (
                     <p className="mt-1 text-[13px] text-ink-soft">{r.summary}</p>
                   )}
                 </div>

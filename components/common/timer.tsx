@@ -74,37 +74,37 @@ export const Timer = forwardRef<TimerHandle, TimerProps>(function Timer(
 
   return (
     <div className={cn("flex justify-center", className)}>
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} aria-hidden="true">
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="#FFFFFF"
-            stroke="#D9DEDF"
-            strokeWidth={stroke}
-          />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          {active ? (
-            <span className="tabular text-xl font-semibold tracking-tight text-ink">
-              {fmt(elapsed)}
-            </span>
-          ) : (
-            <div className="flex items-center gap-1">
+      <div className={cn("flex items-center justify-center", !active && "gap-3")}>
+        <div className="relative shrink-0" style={{ width: size, height: size }}>
+          <svg width={size} height={size} aria-hidden="true">
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="#FFFFFF"
+              stroke="#D9DEDF"
+              strokeWidth={stroke}
+            />
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            {active ? (
+              <span className="tabular text-xl font-semibold tracking-tight text-ink">
+                {fmt(elapsed)}
+              </span>
+            ) : (
               <button
                 type="button"
                 onClick={start}
                 disabled={disabled}
-                className="rounded-full px-1.5 py-1 text-sm font-semibold text-primary transition hover:bg-primary/[0.03]"
+                className="flex h-full w-full items-center justify-center rounded-full text-base font-semibold text-primary transition hover:bg-primary/[0.03]"
                 aria-label="开始专注"
               >
                 开始
               </button>
-              {startControl}
-            </div>
-          )}
+            )}
+          </div>
         </div>
+        {!active && startControl}
       </div>
     </div>
   );
