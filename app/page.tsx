@@ -61,25 +61,17 @@ function heatColor(count: number, max: number): string {
 }
 
 function TreeMascot({ stage, emphasized }: { stage: number; emphasized?: boolean }) {
-  const bodies = [
-    "M20 63 C14 58 14 45 20 38 C24 33 30 32 36 32 C42 32 48 33 52 38 C58 45 58 58 52 63 C46 68 26 68 20 63Z",
-    "M24 63 C19 57 20 43 25 37 C28 33 32 32 36 32 C40 32 44 33 47 37 C52 43 53 57 48 63 C43 67 29 67 24 63Z",
-    "M28 63 C25 56 26 41 29 36 C31 33 34 32 36 32 C38 32 41 33 43 36 C46 41 47 56 44 63 C40 66 32 66 28 63Z",
-    "M32 63 C30 55 31 40 33 35 C34 33 35 32 36 32 C37 32 38 33 39 35 C41 40 42 55 40 63 C38 65 34 65 32 63Z",
-  ];
+  const backgroundPosition = `${Math.min(stage, 3) * 33.333333}% center`;
   return (
-    <svg viewBox="0 0 72 78" className={`h-14 w-14 ${emphasized ? "scale-110" : ""}`} aria-hidden="true">
-      <path d="M30 27 C30 20 33 17 36 17 C39 17 42 20 42 27" fill="#7F9C73" stroke="#38506B" strokeWidth="2.2" strokeLinecap="round" />
-      <path d="M36 17 C36 13 39 11 42 12 C42 16 39 18 36 18" fill="#A5BE8A" stroke="#38506B" strokeWidth="2" />
-      <path d={bodies[Math.min(stage, 3)]} fill="#F3EBDD" stroke="#38506B" strokeWidth="2.2" />
-      <circle cx="30" cy="46" r="1.7" fill="#38506B" />
-      <circle cx="42" cy="46" r="1.7" fill="#38506B" />
-      <path d={stage >= 2 ? "M33 51 Q36 54 39 51" : "M33 51 Q36 52 39 51"} fill="none" stroke="#38506B" strokeWidth="1.6" strokeLinecap="round" />
-      {stage === 0 && <path d="M18 49 L13 47 M54 49 L59 47" stroke="#A5BE8A" strokeWidth="1.8" strokeLinecap="round" />}
-      {stage === 1 && <path d="M20 56 L14 53 M52 56 L58 53" stroke="#7F9C73" strokeWidth="2" strokeLinecap="round" />}
-      {stage === 2 && <path d="M25 58 L20 62 M47 58 L52 62" stroke="#7F9C73" strokeWidth="2" strokeLinecap="round" />}
-      {stage === 3 && <path d="M23 28 L20 24 M49 28 L52 24" stroke="#D8B25C" strokeWidth="1.8" strokeLinecap="round" />}
-    </svg>
+    <span
+      className={`h-14 w-14 shrink-0 bg-contain bg-no-repeat ${emphasized ? "scale-110" : ""}`}
+      style={{
+        backgroundImage: "url(/weight-goal-mascots.png)",
+        backgroundSize: "400% 100%",
+        backgroundPosition,
+      }}
+      aria-hidden="true"
+    />
   );
 }
 
