@@ -66,7 +66,7 @@ function TreeMascot({ stage, emphasized }: { stage: number; emphasized?: boolean
     <span
       className={`h-14 w-14 shrink-0 bg-contain bg-no-repeat ${emphasized ? "scale-110" : ""}`}
       style={{
-        backgroundImage: "url(/weight-goal-mascots.png)",
+        backgroundImage: "url(/weight-goal-mascots.png?v=b45bbce)",
         backgroundSize: "400% 100%",
         backgroundPosition,
       }}
