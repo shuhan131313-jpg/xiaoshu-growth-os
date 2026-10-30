@@ -20,9 +20,21 @@ import { GROWTH_MODULES } from "@/lib/constants";
 import { todayKey, greeting, weekdayCN } from "@/lib/utils";
 import { getTodayTaskMap, getHeatmap, setTodayTask } from "@/lib/summary";
 import { repos } from "@/lib/db/repo";
-import type { DailyMainRecord } from "@/lib/db/db";
+import type { DailyMainRecord, WeightRecord } from "@/lib/db/db";
 import { getDailyMain } from "@/lib/mainline";
 import { MainlineSheet } from "@/components/mainline/mainline-sheet";
+import {
+  daysUntil,
+  getWeightGoalSettings,
+  highestWeightJin,
+  latestWeight,
+  saveWeightGoalSettings,
+  stageDates,
+  type WeightGoalSettings,
+  validWeightRecordsSince,
+  weightProgress,
+  WEIGHT_GOAL_STAGE_JIN,
+} from "@/lib/weight-goal";
 
 const PROGRESS_KEYS = ["exercise", "reading", "research", "gratitude", "food", "account"] as const;
 type ProgressKey = (typeof PROGRESS_KEYS)[number];
@@ -48,12 +60,78 @@ function heatColor(count: number, max: number): string {
   return `rgba(26,63,144,${alpha.toFixed(2)})`;
 }
 
+function TreeMascot({ stage, emphasized }: { stage: number; emphasized?: boolean }) {
+  const bodies = [
+    "M20 63 C14 58 14 45 20 38 C24 33 30 32 36 32 C42 32 48 33 52 38 C58 45 58 58 52 63 C46 68 26 68 20 63Z",
+    "M24 63 C19 57 20 43 25 37 C28 33 32 32 36 32 C40 32 44 33 47 37 C52 43 53 57 48 63 C43 67 29 67 24 63Z",
+    "M28 63 C25 56 26 41 29 36 C31 33 34 32 36 32 C38 32 41 33 43 36 C46 41 47 56 44 63 C40 66 32 66 28 63Z",
+    "M32 63 C30 55 31 40 33 35 C34 33 35 32 36 32 C37 32 38 33 39 35 C41 40 42 55 40 63 C38 65 34 65 32 63Z",
+  ];
+  return (
+    <svg viewBox="0 0 72 78" className={`h-14 w-14 ${emphasized ? "scale-110" : ""}`} aria-hidden="true">
+      <path d="M30 27 C30 20 33 17 36 17 C39 17 42 20 42 27" fill="#7F9C73" stroke="#38506B" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M36 17 C36 13 39 11 42 12 C42 16 39 18 36 18" fill="#A5BE8A" stroke="#38506B" strokeWidth="2" />
+      <path d={bodies[Math.min(stage, 3)]} fill="#F3EBDD" stroke="#38506B" strokeWidth="2.2" />
+      <circle cx="30" cy="46" r="1.7" fill="#38506B" />
+      <circle cx="42" cy="46" r="1.7" fill="#38506B" />
+      <path d={stage >= 2 ? "M33 51 Q36 54 39 51" : "M33 51 Q36 52 39 51"} fill="none" stroke="#38506B" strokeWidth="1.6" strokeLinecap="round" />
+      {stage === 0 && <path d="M18 49 L13 47 M54 49 L59 47" stroke="#A5BE8A" strokeWidth="1.8" strokeLinecap="round" />}
+      {stage === 1 && <path d="M20 56 L14 53 M52 56 L58 53" stroke="#7F9C73" strokeWidth="2" strokeLinecap="round" />}
+      {stage === 2 && <path d="M25 58 L20 62 M47 58 L52 62" stroke="#7F9C73" strokeWidth="2" strokeLinecap="round" />}
+      {stage === 3 && <path d="M23 28 L20 24 M49 28 L52 24" stroke="#D8B25C" strokeWidth="1.8" strokeLinecap="round" />}
+    </svg>
+  );
+}
+
+function WeightGoalCard({ settings, records }: { settings: WeightGoalSettings | null; records: WeightRecord[] }) {
+  const trackedRecords = settings ? validWeightRecordsSince(records, settings.startDate) : [];
+  const current = latestWeight(trackedRecords);
+  const currentJin = current ? current.value * 2 : null;
+  const startJin = settings ? highestWeightJin(records, settings.startDate) : null;
+  const progress = weightProgress(startJin, currentJin);
+  const dates = settings ? stageDates(settings) : [];
+  const stagePositions = startJin == null || startJin <= 95 ? [0, 100, 100, 100] : [0, ...WEIGHT_GOAL_STAGE_JIN.map((weight) => Math.min(100, Math.max(0, ((startJin - weight) / (startJin - 95)) * 100)))];
+  const activeStage = currentJin == null ? -1 : currentJin <= 95 ? 3 : currentJin <= 100 ? 2 : currentJin <= 105 ? 1 : 0;
+  const stageLabels = startJin == null ? ["尚未记录", "105 斤", "100 斤", "95 斤"] : [`${startJin.toFixed(1)} 斤`, "105 斤", "100 斤", "95 斤"];
+  const statuses = stageLabels.map((_, index) => {
+    if (index === 0) return "起点";
+    if (activeStage >= index) return index === 3 ? "目标完成" : "已达成";
+    if (activeStage === index - 1) return "当前目标";
+    return dates[index - 1] ? `还剩 ${daysUntil(dates[index - 1])} 天` : "待开始";
+  });
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-ink-soft">体重目标</p>
+        <p className="tabular text-sm font-medium text-ink">{currentJin == null ? "尚未记录体重" : `${currentJin.toFixed(1)} 斤 / 95 斤`}</p>
+      </div>
+      <div className="grid grid-cols-4 items-end gap-1">
+        {stageLabels.map((label, index) => (
+          <div key={label} className={`flex min-w-0 flex-col items-center text-center ${index === activeStage || (activeStage === 3 && index === 3) ? "text-primary" : "text-ink-soft"}`}>
+            <TreeMascot stage={index} emphasized={index === activeStage || (activeStage === 3 && index === 3)} />
+            <span className="tabular text-[11px] font-medium">{label}</span>
+            <span className="truncate text-[10px] text-ink-faint">{statuses[index]}</span>
+          </div>
+        ))}
+      </div>
+      <div className="relative mt-1 h-3">
+        <div className="absolute inset-x-0 top-1 h-2 rounded-full bg-line" />
+        <div className="absolute left-0 top-1 h-2 rounded-full bg-primary transition-[width] duration-300" style={{ width: `${progress}%` }} />
+        {stagePositions.map((position, index) => <span key={`${position}-${index}`} className="absolute top-0 h-4 w-px bg-[#AAB7C3]" style={{ left: `${position}%` }} />)}
+        <span className="absolute top-0 h-4 w-4 -translate-x-1/2 rounded-full border-2 border-white bg-primary shadow-sm" style={{ left: `${progress}%` }} />
+      </div>
+      {currentJin != null && <p className="text-right text-xs text-ink-faint">{Math.round(progress)}%</p>}
+    </div>
+  );
+}
+
 export default function TodayPage() {
   const date = useMemo(() => todayKey(), []);
   const [taskMap, setTaskMap] = useState<Record<string, boolean>>({});
   const [duration, setDuration] = useState(0);
   const [workSegments, setWorkSegments] = useState<WorkSegment[]>([]);
-  const [latestWeightKg, setLatestWeightKg] = useState<number | null>(null);
+  const [weightRecords, setWeightRecords] = useState<WeightRecord[]>([]);
+  const [weightGoalSettings, setWeightGoalSettings] = useState<WeightGoalSettings | null>(null);
   const [heat, setHeat] = useState<{ date: string; count: number }[]>([]);
   const [exCount, setExCount] = useState(0);
   const [rsCount, setRsCount] = useState(0);
@@ -65,7 +143,7 @@ export default function TodayPage() {
   const [foodSummary, setFoodSummary] = useState({ total: 0, unplanned: 0 });
 
   async function load() {
-    const [map, heatmap, exercise, research, gratitude, dailyMain, foodRecords, accountRecords, weights] = await Promise.all([
+    const [map, heatmap, exercise, research, gratitude, dailyMain, foodRecords, accountRecords, weights, rawGoalSettings] = await Promise.all([
       getTodayTaskMap(date),
       getHeatmap(7),
       repos.exercise.whereDate(date),
@@ -75,7 +153,13 @@ export default function TodayPage() {
       repos.foodRecords.whereDate(date),
       repos.account.whereDate(date),
       repos.weight.all(),
+      getWeightGoalSettings(date),
     ]);
+    const trackedStartWeight = highestWeightJin(weights, rawGoalSettings.startDate);
+    const goalSettings = rawGoalSettings.startWeightJin !== trackedStartWeight
+      ? { ...rawGoalSettings, startWeightJin: trackedStartWeight ?? undefined }
+      : rawGoalSettings;
+    if (goalSettings !== rawGoalSettings) await saveWeightGoalSettings(goalSettings);
     const segments: WorkSegment[] = [
       ...exercise
         .filter((record) => Number(record.duration) > 0)
@@ -97,14 +181,8 @@ export default function TodayPage() {
       unplanned: foodRecords.filter((record) => record.isUnplanned).length,
     });
     setAccountCount(accountRecords.length);
-    const latestWeight = [...weights]
-      .filter((record) => Number.isFinite(record.value) && record.value > 0 && record.date)
-      .sort((a, b) =>
-        b.date.localeCompare(a.date) ||
-        b.createdAt - a.createdAt ||
-        (b.id ?? 0) - (a.id ?? 0)
-      )[0];
-    setLatestWeightKg(latestWeight?.value ?? null);
+    setWeightRecords(weights);
+    setWeightGoalSettings(goalSettings);
     setReady(true);
   }
 
@@ -112,7 +190,11 @@ export default function TodayPage() {
     load();
     const onWeightUpdated = () => void load();
     window.addEventListener("weight-records-updated", onWeightUpdated);
-    return () => window.removeEventListener("weight-records-updated", onWeightUpdated);
+    window.addEventListener("weight-goal-updated", onWeightUpdated);
+    return () => {
+      window.removeEventListener("weight-records-updated", onWeightUpdated);
+      window.removeEventListener("weight-goal-updated", onWeightUpdated);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -132,10 +214,6 @@ export default function TodayPage() {
     account: accountCount > 0,
   };
   const workPercent = Math.min(100, Math.round((duration / 360) * 100));
-  const weightJin = latestWeightKg == null ? null : latestWeightKg * 2;
-  const weightPercent = weightJin == null
-    ? 0
-    : Math.min(100, Math.max(0, ((110 - weightJin) / 15) * 100));
   let segmentOffset = 0;
 
   return (
@@ -209,19 +287,7 @@ export default function TodayPage() {
       <Link href="/exercise#weight-record" className="block rounded-xl transition hover:bg-[#E7EDF2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
         <Card className="border-0 bg-[#EDF1F5] shadow-none">
           <CardContent>
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-ink-soft">体重目标</p>
-            <p className="tabular text-sm font-medium text-ink">
-              {weightJin == null ? "尚未记录体重" : `${weightJin.toFixed(1)} 斤 / 95 斤`}
-            </p>
-          </div>
-          <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-line" aria-label="体重目标进度">
-            <div
-              className="h-full rounded-full bg-primary transition-[width] duration-300"
-              style={{ width: `${weightPercent}%` }}
-            />
-          </div>
-          {weightJin != null && <p className="mt-1.5 text-right text-xs text-ink-faint">{Math.round(weightPercent)}%</p>}
+            <WeightGoalCard settings={weightGoalSettings} records={weightRecords} />
           </CardContent>
         </Card>
       </Link>

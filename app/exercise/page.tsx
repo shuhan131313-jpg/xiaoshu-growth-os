@@ -20,6 +20,7 @@ import {
   filterRecordsByLocalDayRange,
   type WeightTimeRange,
 } from "@/lib/weight-range";
+import { getWeightGoalSettings, saveWeightGoalSettings } from "@/lib/weight-goal";
 
 const WEEK = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -122,6 +123,7 @@ export default function ExercisePage() {
   // 体重 / 排便 简易记录
   const [weightInput, setWeightInput] = useState("");
   const [weights, setWeights] = useState<WeightRecord[]>([]); // 最新在前
+  const [goalTargetDate, setGoalTargetDate] = useState("");
   const [weightRange, setWeightRange] = useState<WeightTimeRange>(7);
   const chartWeights = useMemo(
     () => filterRecordsByLocalDayRange(weights, weightRange, today),
@@ -205,12 +207,14 @@ export default function ExercisePage() {
   }, []);
 
   async function loadHealth() {
-    const [wAll, bAll] = await Promise.all([
+    const [wAll, bAll, goalSettings] = await Promise.all([
       repos.weight.all(),
       repos.bowel.all(),
+      getWeightGoalSettings(todayKey()),
     ]);
     const wSorted = wAll.sort((a, b) => b.date.localeCompare(a.date));
     setWeights(wSorted);
+    setGoalTargetDate(goalSettings.targetDate);
     const todayW = wSorted.find((w) => w.date === todayKey());
     if (todayW) {
       setWeightInput(String(todayW.value));
@@ -223,6 +227,15 @@ export default function ExercisePage() {
     setBowelDoneToday(!!todayB);
     if (todayB) setBowelNote(todayB.note || "");
     else setBowelNote("");
+  }
+
+  async function updateGoalTargetDate(value: string) {
+    if (!value) return;
+    const settings = await getWeightGoalSettings(todayKey());
+    if (value < settings.startDate) return;
+    await saveWeightGoalSettings({ ...settings, targetDate: value });
+    setGoalTargetDate(value);
+    window.dispatchEvent(new Event("weight-goal-updated"));
   }
 
   useEffect(() => {
@@ -685,6 +698,20 @@ export default function ExercisePage() {
             >
               保存今日体重
             </Button>
+            <div className="mt-3 flex items-center justify-between gap-3 text-xs text-ink-faint">
+              <Label className="text-xs text-ink-faint">最终目标日期</Label>
+              <Input
+                type="date"
+                value={goalTargetDate}
+                min={todayKey()}
+                onChange={(event) => {
+                  setGoalTargetDate(event.target.value);
+                  void updateGoalTargetDate(event.target.value);
+                }}
+                className="h-9 w-auto min-w-[150px] px-2 text-xs"
+                aria-label="体重最终目标日期"
+              />
+            </div>
 
             {weights.length > 0 && (
               <div className="mt-4">
