@@ -100,7 +100,7 @@ function WeightGoalCard({ settings, records }: { settings: WeightGoalSettings | 
       </div>
       <div className="grid grid-cols-4 items-end gap-1">
         {stageLabels.map((label, index) => (
-          <div key={label} className={`flex min-w-0 flex-col items-center rounded-xl text-center ${index === currentTargetStage ? "bg-[#EAF2F8]" : ""} ${index === currentTargetStage || (activeStage === 3 && index === 3) ? "text-primary" : "text-ink-soft"}`}>
+          <div key={label} className={`flex min-w-0 flex-col items-center rounded-xl text-center ${index === currentTargetStage ? "bg-[#FFF1B8]" : ""} ${index === currentTargetStage || (activeStage === 3 && index === 3) ? "text-primary" : "text-ink-soft"}`}>
             <TreeMascot stage={index} emphasized={index === currentTargetStage || (activeStage === 3 && index === 3)} />
             <span className="tabular text-[11px] font-medium">{label}</span>
             <span className="truncate text-[10px] text-ink-faint">{statuses[index]}</span>
@@ -254,20 +254,20 @@ export default function TodayPage() {
             const auto = AUTO_KEYS.has(key);
             const Icon = module.icon;
             return (
-              <div key={key} className={`flex min-h-[92px] flex-col rounded-lg border px-2.5 py-2.5 ${done ? "border-[#DCE7E1] bg-[#EDF2EF]" : "border-line bg-[#F2F2F0]"}`}>
+              <div key={key} className={`flex min-h-[92px] flex-col rounded-lg border px-2.5 py-2.5 ${done ? "border-[#E8D89A] bg-[#FFF6D6]" : "border-line bg-[#F2F2F0]"}`}>
                 <Link href={module.href} className="flex flex-1 flex-col">
                   <div className="flex items-center justify-between">
-                    <Icon className={done ? "h-4 w-4 text-primary" : "h-4 w-4 text-ink-faint"} strokeWidth={1.8} />
-                    {done ? <CheckCircle2 className="h-4 w-4 text-[#5E7C6C]" /> : <Circle className="h-4 w-4 text-ink-faint" strokeWidth={1.4} />}
+                    <Icon className={done ? "h-4 w-4 text-[#B18400]" : "h-4 w-4 text-ink-faint"} strokeWidth={1.8} />
+                    {done ? <CheckCircle2 className="h-4 w-4 text-[#B18400]" /> : <Circle className="h-4 w-4 text-ink-faint" strokeWidth={1.4} />}
                   </div>
                   <p className="mt-2 text-xs font-medium leading-tight text-ink">{module.label}</p>
                 </Link>
                 {auto ? (
-                  <span className={`mt-1 text-[10px] ${done ? "text-[#5E7C6C]" : "text-ink-faint"}`}>
+                  <span className={`mt-1 text-[10px] ${done ? "text-[#9A7600]" : "text-ink-faint"}`}>
                     {done ? "已完成" : "未记录"}
                   </span>
                 ) : (
-                  <button type="button" onClick={() => toggleReading(done)} className={`mt-1 w-full text-left text-[10px] ${done ? "text-[#5E7C6C]" : "text-primary"}`}>
+                  <button type="button" onClick={() => toggleReading(done)} className={`mt-1 w-full text-left text-[10px] ${done ? "text-[#9A7600]" : "text-primary"}`}>
                     {done ? "已完成 · 取消" : "标记完成"}
                   </button>
                 )}
