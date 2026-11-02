@@ -64,11 +64,12 @@ function TreeMascot({ stage, emphasized }: { stage: number; emphasized?: boolean
   const backgroundPosition = `${Math.min(stage, 3) * 33.333333}% center`;
   return (
     <span
-      className={`h-14 w-14 shrink-0 bg-contain bg-no-repeat ${emphasized ? "scale-110" : ""}`}
+      className="h-14 w-14 shrink-0 bg-contain bg-no-repeat"
       style={{
         backgroundImage: "url(/weight-goal-mascots.png?v=b45bbce)",
         backgroundSize: "400% 100%",
         backgroundPosition,
+        transform: emphasized ? "scale(1.1) scaleX(0.8)" : "scaleX(0.88)",
       }}
       aria-hidden="true"
     />
@@ -84,11 +85,11 @@ function WeightGoalCard({ settings, records }: { settings: WeightGoalSettings | 
   const dates = settings ? stageDates(settings) : [];
   const stagePositions = startJin == null || startJin <= 95 ? [0, 100, 100, 100] : [0, ...WEIGHT_GOAL_STAGE_JIN.map((weight) => Math.min(100, Math.max(0, ((startJin - weight) / (startJin - 95)) * 100)))];
   const activeStage = currentJin == null ? -1 : currentJin <= 95 ? 3 : currentJin <= 100 ? 2 : currentJin <= 105 ? 1 : 0;
+  const currentTargetStage = activeStage >= 0 && activeStage < 3 ? activeStage + 1 : -1;
   const stageLabels = startJin == null ? ["尚未记录", "105 斤", "100 斤", "95 斤"] : [`${startJin.toFixed(1)} 斤`, "105 斤", "100 斤", "95 斤"];
   const statuses = stageLabels.map((_, index) => {
     if (index === 0) return "起点";
-    if (activeStage >= index) return index === 3 ? "目标完成" : "已达成";
-    if (activeStage === index - 1) return "当前目标";
+    if (activeStage >= index) return "已达成";
     return dates[index - 1] ? `还剩 ${daysUntil(dates[index - 1])} 天` : "待开始";
   });
   return (
@@ -99,8 +100,8 @@ function WeightGoalCard({ settings, records }: { settings: WeightGoalSettings | 
       </div>
       <div className="grid grid-cols-4 items-end gap-1">
         {stageLabels.map((label, index) => (
-          <div key={label} className={`flex min-w-0 flex-col items-center text-center ${index === activeStage || (activeStage === 3 && index === 3) ? "text-primary" : "text-ink-soft"}`}>
-            <TreeMascot stage={index} emphasized={index === activeStage || (activeStage === 3 && index === 3)} />
+          <div key={label} className={`flex min-w-0 flex-col items-center rounded-xl text-center ${index === currentTargetStage ? "bg-[#EAF2F8]" : ""} ${index === currentTargetStage || (activeStage === 3 && index === 3) ? "text-primary" : "text-ink-soft"}`}>
+            <TreeMascot stage={index} emphasized={index === currentTargetStage || (activeStage === 3 && index === 3)} />
             <span className="tabular text-[11px] font-medium">{label}</span>
             <span className="truncate text-[10px] text-ink-faint">{statuses[index]}</span>
           </div>
