@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
-import { GROWTH_MODULES } from "@/lib/constants";
 import { todayKey, greeting, weekdayCN } from "@/lib/utils";
 import { getTodayTaskMap, getHeatmap, setTodayTask } from "@/lib/summary";
 import { repos } from "@/lib/db/repo";
@@ -54,12 +53,6 @@ const MODULES: Record<ProgressKey, {
   account: { label: "记账", href: "/account", icon: Wallet },
 };
 
-function heatColor(count: number, max: number): string {
-  if (count <= 0) return "#E2E5EC";
-  const alpha = 0.25 + 0.75 * (count / max);
-  return `rgba(26,63,144,${alpha.toFixed(2)})`;
-}
-
 function TreeMascot({ stage, emphasized }: { stage: number; emphasized?: boolean }) {
   const backgroundPosition = `${Math.min(stage, 3) * 33.333333}% center`;
   return (
@@ -75,6 +68,8 @@ function TreeMascot({ stage, emphasized }: { stage: number; emphasized?: boolean
     />
   );
 }
+
+type HabitDay = { date: string; status: Record<ProgressKey, boolean> };
 
 function WeightGoalCard({ settings, records }: { settings: WeightGoalSettings | null; records: WeightRecord[] }) {
   const trackedRecords = settings ? validWeightRecordsSince(records, settings.startDate) : [];
@@ -125,7 +120,7 @@ export default function TodayPage() {
   const [workSegments, setWorkSegments] = useState<WorkSegment[]>([]);
   const [weightRecords, setWeightRecords] = useState<WeightRecord[]>([]);
   const [weightGoalSettings, setWeightGoalSettings] = useState<WeightGoalSettings | null>(null);
-  const [heat, setHeat] = useState<{ date: string; count: number }[]>([]);
+  const [habitDays, setHabitDays] = useState<HabitDay[]>([]);
   const [exCount, setExCount] = useState(0);
   const [rsCount, setRsCount] = useState(0);
   const [gratitudeCount, setGratitudeCount] = useState(0);
@@ -164,7 +159,28 @@ export default function TodayPage() {
     setTaskMap(map);
     setDuration(segments.reduce((sum, segment) => sum + segment.duration, 0));
     setWorkSegments(segments);
-    setHeat(heatmap);
+    const habitStatus = await Promise.all(heatmap.map(async ({ date: day }) => {
+      const [tasks, exerciseRows, researchRows, gratitudeRows, foodRows, accountRows] = await Promise.all([
+        getTodayTaskMap(day),
+        repos.exercise.whereDate(day),
+        repos.research.whereDate(day),
+        repos.gratitude.whereDate(day),
+        repos.foodRecords.whereDate(day),
+        repos.account.whereDate(day),
+      ]);
+      return {
+        date: day,
+        status: {
+          exercise: exerciseRows.length > 0,
+          reading: !!tasks.reading,
+          research: researchRows.length > 0,
+          gratitude: gratitudeRows.length > 0,
+          food: foodRows.length > 0,
+          account: accountRows.length > 0,
+        },
+      } satisfies HabitDay;
+    }));
+    setHabitDays(habitStatus);
     setExCount(exercise.length);
     setRsCount(research.length);
     setGratitudeCount(gratitude.length);
@@ -334,19 +350,29 @@ export default function TodayPage() {
         <CardContent>
           <p className="mb-3 text-sm font-medium text-primary">近 7 天习惯</p>
           <div className="flex justify-between gap-2">
-            {heat.map((item) => (
+            {habitDays.map((item) => {
+              const completedCount = PROGRESS_KEYS.filter((key) => item.status[key]).length;
+              return (
               <div key={item.date} className="flex flex-1 flex-col items-center gap-1.5">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.25 }}
-                  className="h-10 w-full rounded-xl"
-                  style={{ backgroundColor: heatColor(item.count, GROWTH_MODULES.length) }}
-                  title={`${item.date}：${item.count} 项`}
-                />
+                  className="grid h-10 w-full grid-cols-3 grid-rows-2 gap-0.5 rounded-xl bg-[#F2F2F0] p-1"
+                  title={`${item.date}：${completedCount} 项`}
+                >
+                  {PROGRESS_KEYS.map((key) => (
+                    <span
+                      key={key}
+                      aria-label={`${MODULES[key].label}${item.status[key] ? "已完成" : "未完成"}`}
+                      className={`rounded-[3px] border ${item.status[key] ? "border-[#E8D89A] bg-[#FFF6D6]" : "border-[#E3E4E1] bg-[#E2E5EC]"}`}
+                    />
+                  ))}
+                </motion.div>
                 <span className="text-[10px] text-ink-faint">{Number(item.date.slice(5, 7))}/{item.date.slice(8)}</span>
               </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
