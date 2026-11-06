@@ -97,6 +97,7 @@ export function WeightChangeLineChart() {
   const [analysisOpen, setAnalysisOpen] = useState(false);
   const [analysis, setAnalysis] = useState<WeightChangeLmmResult | null>(null);
   const [analysisRunning, setAnalysisRunning] = useState(false);
+  const [copiedMeanSd, setCopiedMeanSd] = useState(false);
 
   useEffect(() => {
     const saved = readPersisted();
@@ -115,6 +116,17 @@ export function WeightChangeLineChart() {
   const chartLetters = analysis?.ok && analysis.week7Letters.some(Boolean) ? analysis.week7Letters : letters;
   const svg = useMemo(() => buildLineChartSvg(stats, chartLetters, errorMode), [stats, chartLetters, errorMode]);
   const pasteResult = useMemo(() => pasteText ? parseLinePaste(pasteText) : null, [pasteText]);
+  const meanSdText = useMemo(() => {
+    const header = ["Group", ...LINE_WEEKS].join("\t");
+    const rows = LINE_GROUPS.map((group, groupIndex) => {
+      const values = stats.groups[groupIndex].map((point) => {
+        if (point.mean == null) return "—";
+        return `${point.mean.toFixed(2)} ± ${point.sd == null ? "—" : point.sd.toFixed(2)}`;
+      });
+      return [group, ...values].join("\t");
+    });
+    return [header, ...rows].join("\n");
+  }, [stats]);
 
   const setCell = (row: number, week: number, value: string) => {
     setAnalysis(null);
@@ -140,6 +152,16 @@ export function WeightChangeLineChart() {
     } catch {
       setCopyFallback(text);
       setFeedback("剪贴板不可用，请使用下方文本框手动复制");
+    }
+  };
+
+  const copyMeanSd = async () => {
+    try {
+      await navigator.clipboard.writeText(meanSdText);
+      setCopiedMeanSd(true);
+      setTimeout(() => setCopiedMeanSd(false), 1500);
+    } catch {
+      setFeedback("平均值 ± 标准差复制失败，请手动选择下方文本");
     }
   };
 
@@ -288,6 +310,13 @@ export function WeightChangeLineChart() {
             <button type="button" onClick={exportPdf} className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs text-ink-soft hover:border-primary/40 hover:text-primary"><FileText className="h-3.5 w-3.5" />PDF</button>
           </div>
           {feedback && <p className="mt-2 text-xs text-ink-soft">{feedback}</p>}
+          <section className="mt-4 rounded-lg border border-line bg-surface p-3" aria-label="各组各时间点平均值和标准差">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div><p className="text-xs font-medium text-primary">各组各时间点平均值 ± 标准差</p><p className="mt-1 text-[11px] text-ink-faint">基于变化率（%），可直接粘贴到 Excel；空组显示 —。</p></div>
+              <button type="button" onClick={() => void copyMeanSd()} className="inline-flex items-center gap-1 rounded-lg border border-line bg-card px-3 py-1.5 text-xs text-ink-soft hover:border-primary/40 hover:text-primary"><Clipboard className="h-3.5 w-3.5" />{copiedMeanSd ? "已复制 ✓" : "复制平均值 ± SD"}</button>
+            </div>
+            <pre className="mt-3 max-h-64 overflow-auto whitespace-pre rounded-md border border-line bg-card p-2 font-mono text-[10px] leading-5 text-ink">{meanSdText}</pre>
+          </section>
           <p className="mt-3 text-[11px] leading-5 text-ink-faint">Week 1 按每只动物自己的原始值计算基线变化率；Week 2 的灰色虚线标记 OVX surgery。图例、误差线和 Week 7 字母均固定在导出图内。</p>
         </div>
       )}

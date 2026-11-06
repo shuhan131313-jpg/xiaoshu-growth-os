@@ -232,7 +232,6 @@ export function buildLineChartSvg(stats: LineChartStats, letters: string[], mode
   const xOf = (week: number) => LINE_PLOT.left + (week / (LINE_WEEKS.length - 1)) * plotW;
   const yOf = (value: number) => LINE_PLOT.top + (1 - (value - stats.min) / (stats.max - stats.min || 1)) * plotH;
   const parts: string[] = [`<svg xmlns="http://www.w3.org/2000/svg" width="${LINE_SVG_WIDTH}" height="${LINE_SVG_HEIGHT}" viewBox="0 0 ${LINE_SVG_WIDTH} ${LINE_SVG_HEIGHT}"><rect width="100%" height="100%" fill="white"/>`];
-  parts.push(`<text x="24" y="42" font-family="Arial, Helvetica, sans-serif" font-size="30" fill="#222">B</text>`);
   stats.ticks.forEach((tick) => {
     const y = yOf(tick);
     parts.push(`<line x1="${LINE_PLOT.left}" y1="${y}" x2="${LINE_SVG_WIDTH - LINE_PLOT.right}" y2="${y}" stroke="#E3E5E8" stroke-width="1"/>`);
@@ -343,7 +342,6 @@ export function buildLineChartPdf(stats: LineChartStats, letters: string[], mode
     line(x, LINE_PLOT.top + plotH, x, LINE_PLOT.top + plotH + 5, "#222222");
     text(x, LINE_PLOT.top + plotH + 24, week, 12, "#222222", "center");
   });
-  text(24, 42, "B", 30);
   text(LINE_PLOT.left + plotW / 2, LINE_SVG_HEIGHT - 26, "Gavage duration (weeks)", 14, "#222222", "center");
   text(25, LINE_PLOT.top + plotH / 2, "Body weight change (%)", 14, "#222222");
   const drawMarker = (marker: LineMarker, x: number, y: number, color: string, size = 5) => {
