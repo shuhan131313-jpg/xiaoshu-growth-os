@@ -218,6 +218,12 @@ function qCritical(k: number, nu: number, alpha: number, grid: SRGrid): number {
   return (lo + hi) / 2;
 }
 
+/** Studentized-range tail probability used by the mixed-model Tukey comparisons. */
+export function tukeyPValue(q: number, k: number, nu: number): number {
+  if (!Number.isFinite(q) || q <= 0 || k < 2 || nu <= 0) return 1;
+  return Math.min(1, Math.max(0, 1 - srCdf(q, k, buildSRGrid(nu))));
+}
+
 // Bron–Kerbosch：邻接矩阵不含自环，递归时顶点不会再次进入自己的候选集。
 export function maximalCliques(adj: boolean[][]): number[][] {
   const n = adj.length;

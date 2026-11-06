@@ -20,6 +20,7 @@ import {
   parseLinePaste,
   type LineErrorMode,
 } from "@/lib/weight-change-line-chart";
+import { analyzeWeightChangeLmm, lmmResultToCsv, type WeightChangeLmmResult } from "@/lib/line-mixed-model";
 
 const STORAGE_KEY = "boxplot.weight-change-line-chart.v1";
 
@@ -93,6 +94,9 @@ export function WeightChangeLineChart() {
   const [copyFallback, setCopyFallback] = useState("");
   const [feedback, setFeedback] = useState("");
   const [hydrated, setHydrated] = useState(false);
+  const [analysisOpen, setAnalysisOpen] = useState(false);
+  const [analysis, setAnalysis] = useState<WeightChangeLmmResult | null>(null);
+  const [analysisRunning, setAnalysisRunning] = useState(false);
 
   useEffect(() => {
     const saved = readPersisted();
@@ -108,10 +112,12 @@ export function WeightChangeLineChart() {
   }, [data, letters, errorMode, hydrated]);
 
   const stats = useMemo(() => calculateLineStats(data), [data]);
-  const svg = useMemo(() => buildLineChartSvg(stats, letters, errorMode), [stats, letters, errorMode]);
+  const chartLetters = analysis?.ok && analysis.week7Letters.some(Boolean) ? analysis.week7Letters : letters;
+  const svg = useMemo(() => buildLineChartSvg(stats, chartLetters, errorMode), [stats, chartLetters, errorMode]);
   const pasteResult = useMemo(() => pasteText ? parseLinePaste(pasteText) : null, [pasteText]);
 
   const setCell = (row: number, week: number, value: string) => {
+    setAnalysis(null);
     setData((current) => current.map((source, index) => index === row ? source.map((cell, col) => col === week ? value : cell) : source));
   };
 
@@ -120,6 +126,7 @@ export function WeightChangeLineChart() {
       setPasteMessage("数据区域需要严格为 70 行 × 7 列，且只能包含数字或空白。");
       return;
     }
+    setAnalysis(null);
     setData(pasteResult.matrix);
     setPasteMessage("已填入 70 行 × 7 列原始数据。");
   };
@@ -137,6 +144,7 @@ export function WeightChangeLineChart() {
   };
 
   const reset = () => {
+    setAnalysis(null);
     setData(emptyLineMatrix());
     setLetters(LINE_GROUPS.map(() => ""));
     setPasteText("");
@@ -160,6 +168,19 @@ export function WeightChangeLineChart() {
     } catch {
       setFeedback("PNG 导出失败，请改用 SVG 或 PDF");
     }
+  };
+
+  const runAnalysis = async () => {
+    setAnalysisRunning(true);
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    setAnalysis(analyzeWeightChangeLmm(data));
+    setAnalysisRunning(false);
+  };
+
+  const exportAnalysis = () => {
+    if (!analysis) return;
+    downloadBlob(new Blob([lmmResultToCsv(analysis)], { type: "text/csv;charset=utf-8" }), "weight_change_lmm_results.csv");
+    setFeedback("已导出统计分析 CSV");
   };
 
   return (
@@ -226,6 +247,37 @@ export function WeightChangeLineChart() {
 
           {stats.invalidBaselines.length > 0 && <p className="mt-3 rounded-lg border border-[#E8D89A] bg-[#FFF6D6] px-3 py-2 text-xs leading-5 text-[#806B20]">以下动物的 Week 1 基线为空、非数字或为 0，无法计算变化率：{stats.invalidBaselines.slice(0, 8).join("、")}{stats.invalidBaselines.length > 8 ? "等" : ""}。</p>}
           {stats.invalidValues.length > 0 && <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">检测到无法解析的原始值：{stats.invalidValues.slice(0, 5).join("、")}{stats.invalidValues.length > 5 ? "等" : ""}。</p>}
+
+          <section className="mt-5 rounded-lg border border-line bg-surface" aria-label="统计分析">
+            <button type="button" onClick={() => setAnalysisOpen((current) => !current)} className="flex w-full items-center justify-between px-3 py-3 text-left">
+              <span><span className="block text-sm font-medium text-primary">统计分析</span><span className="mt-1 block text-[11px] text-ink-faint">变化率 LMM · Group × Time · Mouse ID 随机截距</span></span>
+              <ChevronDown className={`h-4 w-4 text-ink-faint transition-transform ${analysisOpen ? "rotate-180" : ""}`} />
+            </button>
+            {analysisOpen && <div className="border-t border-line px-3 pb-4 pt-3">
+              <div className="flex flex-wrap items-center gap-2 text-[11px] text-ink-soft">
+                <span className="rounded-md bg-card px-2 py-1">响应变量：Change (%)</span>
+                <span className="rounded-md bg-card px-2 py-1">Time：分类变量</span>
+                <span className="rounded-md bg-card px-2 py-1">随机效应：Mouse ID 截距</span>
+                <span className="rounded-md bg-card px-2 py-1">组间：Tukey</span>
+                <span className="rounded-md bg-card px-2 py-1">组内基线：Holm</span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button type="button" onClick={() => void runAnalysis()} disabled={analysisRunning} className="rounded-lg bg-primary px-3 py-1.5 text-xs text-white disabled:opacity-50">{analysisRunning ? "拟合中…" : "运行统计分析"}</button>
+                <button type="button" onClick={exportAnalysis} disabled={!analysis} className="rounded-lg border border-line bg-card px-3 py-1.5 text-xs text-ink-soft disabled:opacity-40">导出 CSV</button>
+              </div>
+              {analysis && <div className="mt-3 space-y-3 text-xs text-ink-soft">
+                <p className={analysis.ok ? "text-ink-soft" : "text-red-700"}>{analysis.message}</p>
+                <p>有效观测 N={analysis.n}，动物数={analysis.mouseCount}，缺失/零值比例={(analysis.missingRate * 100).toFixed(1)}%，残差自由度={analysis.dfResidual || "—"}。</p>
+                {analysis.ok && <>
+                  <div className="overflow-x-auto rounded-md border border-line bg-card"><table className="min-w-[560px] w-full text-left text-[11px]"><thead><tr className="border-b border-line"><th className="px-2 py-1.5">固定效应</th><th className="px-2 py-1.5">F</th><th className="px-2 py-1.5">df</th><th className="px-2 py-1.5">P</th></tr></thead><tbody>{analysis.effects.map((effect) => <tr key={effect.effect} className="border-b border-line last:border-0"><td className="px-2 py-1.5">{effect.effect}</td><td className="px-2 py-1.5 tabular">{Number.isFinite(effect.statistic) ? effect.statistic.toFixed(3) : "—"}</td><td className="px-2 py-1.5 tabular">{effect.df1}, {effect.df2}</td><td className="px-2 py-1.5 tabular">{effect.pValue < 0.001 ? "<0.001" : effect.pValue.toFixed(4)}</td></tr>)}</tbody></table></div>
+                  <p>Week 7 模型显著性字母已直接标注在图中最后端点：{analysis.week7Letters.map((letter, index) => `${LINE_GROUPS[index]}=${letter || "—"}`).join("；")}</p>
+                  <details><summary className="cursor-pointer text-primary">查看组间两两比较（Tukey）</summary><div className="mt-2 max-h-52 overflow-auto rounded-md border border-line bg-card p-2 text-[10px]">{analysis.groupComparisons.map((comparison) => <p key={`${comparison.time}-${comparison.groupA}-${comparison.groupB}`}>{comparison.time} · {comparison.groupA} vs {comparison.groupB}：估计 {comparison.estimate.toFixed(2)}，P={comparison.adjustedP < 0.001 ? "<0.001" : comparison.adjustedP.toFixed(4)}</p>)}</div></details>
+                  <details><summary className="cursor-pointer text-primary">查看各组相对 Week 1 的时间比较（Holm）</summary><div className="mt-2 max-h-52 overflow-auto rounded-md border border-line bg-card p-2 text-[10px]">{analysis.baselineComparisons.map((comparison) => <p key={`${comparison.group}-${comparison.time}`}>{comparison.group} · {comparison.time} vs Week 1：估计 {comparison.estimate.toFixed(2)}，P={comparison.adjustedP < 0.001 ? "<0.001" : comparison.adjustedP.toFixed(4)}</p>)}</div></details>
+                </>}
+                {analysis.warnings.map((warning) => <p key={warning} className="rounded-md bg-[#FFF6D6] px-2 py-1.5 text-[#806B20]">{warning}</p>)}
+              </div>}
+            </div>}
+          </section>
 
           <div className="mt-5 overflow-x-auto rounded-lg border border-line bg-white p-2">
             <div className="min-w-[920px]" dangerouslySetInnerHTML={{ __html: svg }} />
