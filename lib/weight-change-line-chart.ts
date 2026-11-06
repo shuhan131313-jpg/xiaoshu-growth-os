@@ -145,12 +145,15 @@ export function calculateLineStats(matrix: string[][]): LineChartStats {
     const changes: (number | null)[][] = [];
     for (let animal = 0; animal < LINE_ANIMALS_PER_GROUP; animal += 1) {
       const rowIndex = group * LINE_ANIMALS_PER_GROUP + animal;
-      const baseline = parseNumber(normalized[rowIndex]?.[0]);
-      if (baseline == null || baseline === 0) invalidBaselines.push(`${LINE_GROUPS[group]} animal ${animal + 1}`);
+      const baselineRaw = normalized[rowIndex]?.[0]?.trim() ?? "";
+      const baseline = parseNumber(baselineRaw);
+      // 空白和 0 都按缺失基线处理：整只动物不进入该组统计，但不报错。
+      if (baselineRaw !== "" && baseline == null) invalidBaselines.push(`${LINE_GROUPS[group]} animal ${animal + 1}`);
       const animalChanges = LINE_WEEKS.map((_, week) => {
         const value = parseNumber(normalized[rowIndex]?.[week]);
         if (baseline == null || baseline === 0) return null;
-        if (value == null) return null;
+        // 当前时间点为空或为 0 时忽略，不把 0 计算成 -100%。
+        if (value == null || value === 0) return null;
         return week === 0 ? 0 : ((value - baseline) / baseline) * 100;
       });
       for (let week = 0; week < LINE_WEEKS.length; week += 1) {
