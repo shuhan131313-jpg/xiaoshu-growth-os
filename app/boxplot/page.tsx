@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ClipboardEvent } from "react";
 import { RotateCcw, Copy, ClipboardPaste, Check } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 import { BoxplotAnalysisBoundary } from "@/components/boxplot/boxplot-analysis-boundary";
+import { WeightChangeLineChart } from "@/components/boxplot/weight-change-line-chart";
 import {
   BOXPLOT_GROUP_PALETTE,
   BOXPLOT_TREATMENT_LEGEND,
@@ -800,6 +801,8 @@ export default function BoxPlotPage() {
           })}
         </div>
       </section>
+
+      <WeightChangeLineChart />
     </div>
   );
 }
