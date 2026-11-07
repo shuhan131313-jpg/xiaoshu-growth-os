@@ -2,43 +2,46 @@ export interface FoodCalorieEntry {
   aliases: string[];
   kcalPer100: number;
   liquid?: boolean;
+  /** 未写数量时采用的普通一份；只用于粗略估算。 */
+  defaultAmount: number;
+  defaultUnit: "g" | "ml";
   portions?: Partial<Record<"个" | "只" | "根" | "片" | "碗" | "杯" | "勺" | "块", number>>;
 }
 
 /** 常见食品的粗略平均值；只用于“≈”估算，不替代包装或食品成分表。 */
 export const FOOD_CALORIE_DATABASE: readonly FoodCalorieEntry[] = [
-  { aliases: ["熟米饭", "米饭"], kcalPer100: 116, portions: { 碗: 150 } },
-  { aliases: ["生米", "大米"], kcalPer100: 346, portions: { 碗: 75 } },
-  { aliases: ["面条", "挂面"], kcalPer100: 110, portions: { 碗: 200 } },
-  { aliases: ["馒头"], kcalPer100: 223, portions: { 个: 80 } },
-  { aliases: ["包子"], kcalPer100: 220, portions: { 个: 100 } },
-  { aliases: ["面包", "吐司"], kcalPer100: 265, portions: { 片: 35 } },
-  { aliases: ["燕麦"], kcalPer100: 380, portions: { 杯: 30, 勺: 10 } },
-  { aliases: ["鸡蛋", "蛋"], kcalPer100: 144, portions: { 个: 50, 只: 50 } },
-  { aliases: ["牛奶"], kcalPer100: 54, liquid: true, portions: { 杯: 250 } },
-  { aliases: ["酸奶"], kcalPer100: 72, liquid: true, portions: { 杯: 200 } },
-  { aliases: ["豆浆"], kcalPer100: 31, liquid: true, portions: { 杯: 250 } },
-  { aliases: ["豆腐"], kcalPer100: 81, portions: { 块: 100 } },
-  { aliases: ["鸡胸肉", "鸡肉"], kcalPer100: 167, portions: { 块: 100 } },
-  { aliases: ["猪肉"], kcalPer100: 242, portions: { 块: 100 } },
-  { aliases: ["牛肉"], kcalPer100: 250, portions: { 块: 100 } },
-  { aliases: ["鱼", "鱼肉"], kcalPer100: 120, portions: { 块: 100 } },
-  { aliases: ["虾", "虾仁"], kcalPer100: 93, portions: { 个: 20, 只: 20 } },
-  { aliases: ["苹果"], kcalPer100: 53, portions: { 个: 200, 只: 200 } },
-  { aliases: ["香蕉"], kcalPer100: 93, portions: { 个: 120, 根: 120 } },
-  { aliases: ["橙子", "橘子"], kcalPer100: 48, portions: { 个: 180 } },
-  { aliases: ["西瓜"], kcalPer100: 31, portions: { 碗: 300 } },
-  { aliases: ["土豆"], kcalPer100: 77, portions: { 个: 150 } },
-  { aliases: ["番茄", "西红柿"], kcalPer100: 18, portions: { 个: 150 } },
-  { aliases: ["黄瓜"], kcalPer100: 15, portions: { 根: 150 } },
-  { aliases: ["青菜", "白菜", "生菜"], kcalPer100: 20, portions: { 碗: 200 } },
-  { aliases: ["饼干", "小饼干", "曲奇"], kcalPer100: 480, portions: { 片: 10, 块: 10 } },
-  { aliases: ["蛋糕"], kcalPer100: 350, portions: { 块: 80 } },
-  { aliases: ["薯片"], kcalPer100: 530 },
-  { aliases: ["巧克力"], kcalPer100: 550, portions: { 块: 10 } },
-  { aliases: ["坚果"], kcalPer100: 600, portions: { 勺: 10 } },
-  { aliases: ["可乐", "汽水"], kcalPer100: 42, liquid: true, portions: { 杯: 250 } },
-  { aliases: ["果汁"], kcalPer100: 45, liquid: true, portions: { 杯: 250 } },
+  { aliases: ["熟米饭", "米饭"], kcalPer100: 116, defaultAmount: 150, defaultUnit: "g", portions: { 碗: 150 } },
+  { aliases: ["生米", "大米"], kcalPer100: 346, defaultAmount: 75, defaultUnit: "g", portions: { 碗: 75 } },
+  { aliases: ["面条", "挂面", "拌面"], kcalPer100: 110, defaultAmount: 200, defaultUnit: "g", portions: { 碗: 200 } },
+  { aliases: ["馒头"], kcalPer100: 223, defaultAmount: 80, defaultUnit: "g", portions: { 个: 80 } },
+  { aliases: ["包子"], kcalPer100: 220, defaultAmount: 100, defaultUnit: "g", portions: { 个: 100 } },
+  { aliases: ["面包", "吐司"], kcalPer100: 265, defaultAmount: 35, defaultUnit: "g", portions: { 片: 35 } },
+  { aliases: ["燕麦"], kcalPer100: 380, defaultAmount: 30, defaultUnit: "g", portions: { 杯: 30, 勺: 10 } },
+  { aliases: ["鸡蛋", "蛋"], kcalPer100: 144, defaultAmount: 50, defaultUnit: "g", portions: { 个: 50, 只: 50 } },
+  { aliases: ["牛奶"], kcalPer100: 54, liquid: true, defaultAmount: 250, defaultUnit: "ml", portions: { 杯: 250 } },
+  { aliases: ["酸奶"], kcalPer100: 72, liquid: true, defaultAmount: 200, defaultUnit: "ml", portions: { 杯: 200 } },
+  { aliases: ["豆浆"], kcalPer100: 31, liquid: true, defaultAmount: 250, defaultUnit: "ml", portions: { 杯: 250 } },
+  { aliases: ["豆腐"], kcalPer100: 81, defaultAmount: 100, defaultUnit: "g", portions: { 块: 100 } },
+  { aliases: ["鸡胸肉", "鸡肉"], kcalPer100: 167, defaultAmount: 100, defaultUnit: "g", portions: { 块: 100 } },
+  { aliases: ["猪肉"], kcalPer100: 242, defaultAmount: 100, defaultUnit: "g", portions: { 块: 100 } },
+  { aliases: ["牛肉"], kcalPer100: 250, defaultAmount: 100, defaultUnit: "g", portions: { 块: 100 } },
+  { aliases: ["鱼", "鱼肉"], kcalPer100: 120, defaultAmount: 100, defaultUnit: "g", portions: { 块: 100 } },
+  { aliases: ["虾", "虾仁"], kcalPer100: 93, defaultAmount: 100, defaultUnit: "g", portions: { 个: 20, 只: 20 } },
+  { aliases: ["苹果"], kcalPer100: 53, defaultAmount: 200, defaultUnit: "g", portions: { 个: 200, 只: 200 } },
+  { aliases: ["香蕉"], kcalPer100: 93, defaultAmount: 120, defaultUnit: "g", portions: { 个: 120, 根: 120 } },
+  { aliases: ["橙子", "橘子"], kcalPer100: 48, defaultAmount: 180, defaultUnit: "g", portions: { 个: 180 } },
+  { aliases: ["西瓜"], kcalPer100: 31, defaultAmount: 300, defaultUnit: "g", portions: { 碗: 300 } },
+  { aliases: ["土豆"], kcalPer100: 77, defaultAmount: 150, defaultUnit: "g", portions: { 个: 150 } },
+  { aliases: ["番茄", "西红柿"], kcalPer100: 18, defaultAmount: 150, defaultUnit: "g", portions: { 个: 150 } },
+  { aliases: ["黄瓜"], kcalPer100: 15, defaultAmount: 150, defaultUnit: "g", portions: { 根: 150 } },
+  { aliases: ["青菜", "白菜", "生菜"], kcalPer100: 20, defaultAmount: 200, defaultUnit: "g", portions: { 碗: 200 } },
+  { aliases: ["饼干", "小饼干", "曲奇"], kcalPer100: 480, defaultAmount: 30, defaultUnit: "g", portions: { 片: 10, 块: 10 } },
+  { aliases: ["蛋糕"], kcalPer100: 350, defaultAmount: 80, defaultUnit: "g", portions: { 块: 80 } },
+  { aliases: ["薯片"], kcalPer100: 530, defaultAmount: 50, defaultUnit: "g" },
+  { aliases: ["巧克力"], kcalPer100: 550, defaultAmount: 20, defaultUnit: "g", portions: { 块: 10 } },
+  { aliases: ["坚果"], kcalPer100: 600, defaultAmount: 20, defaultUnit: "g", portions: { 勺: 10 } },
+  { aliases: ["可乐", "汽水"], kcalPer100: 42, liquid: true, defaultAmount: 250, defaultUnit: "ml", portions: { 杯: 250 } },
+  { aliases: ["果汁"], kcalPer100: 45, liquid: true, defaultAmount: 250, defaultUnit: "ml", portions: { 杯: 250 } },
 ];
 
 export interface FoodCalorieEstimate {
@@ -71,6 +74,10 @@ function caloriesForQuantity(entry: FoodCalorieEntry, quantity: { amount: number
   return portionGrams ? entry.kcalPer100 * amount * portionGrams / 100 : null;
 }
 
+function caloriesForDefault(entry: FoodCalorieEntry): number {
+  return entry.kcalPer100 * entry.defaultAmount / 100;
+}
+
 export function estimateFoodCalories(content: string): FoodCalorieEstimate {
   const text = content.trim().toLowerCase();
   if (!text || text === "蛋白质达标" || text === "水达标") return { kcal: null, matched: [], partial: false };
@@ -89,14 +96,13 @@ export function estimateFoodCalories(content: string): FoodCalorieEstimate {
         const before = text.slice(Math.max(0, start - 12), start);
         const after = text.slice(end, end + 16);
         const quantity = parseQuantity(after, candidate.entry) ?? parseQuantity(before, candidate.entry);
-        if (quantity) {
-          const kcal = caloriesForQuantity(candidate.entry, quantity);
-          if (kcal != null && Number.isFinite(kcal)) {
-            total += kcal;
-            found = true;
-            matched.push(candidate.alias);
-            usedRanges.push([start, end]);
-          }
+        // 相邻食物的数量可能出现在同一小段文字里；单位不适用于当前食物时，回退到普通一份。
+        const kcal = quantity ? (caloriesForQuantity(candidate.entry, quantity) ?? caloriesForDefault(candidate.entry)) : caloriesForDefault(candidate.entry);
+        if (kcal != null && Number.isFinite(kcal)) {
+          total += kcal;
+          found = true;
+          matched.push(candidate.alias);
+          usedRanges.push([start, end]);
         }
       }
       start = text.indexOf(candidate.alias, start + 1);
