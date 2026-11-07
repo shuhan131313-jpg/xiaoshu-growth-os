@@ -1,5 +1,6 @@
 import { db, type FoodRecord } from "./db/db";
 import { createFoodRecordData, editFoodRecordData, sortFoodRecords } from "./food-rules";
+import { estimateFoodCalories } from "./food-calorie";
 
 export const FOOD_DAY_MARKERS = {
   protein: "蛋白质达标",
@@ -12,6 +13,8 @@ export async function addFoodRecord(
   now = Date.now()
 ): Promise<FoodRecord> {
   const record = createFoodRecordData(content, isUnplanned, now);
+  const estimate = estimateFoodCalories(record.content);
+  if (estimate.kcal != null) record.calorieEstimate = estimate.kcal;
   const id = await db.foodRecords.add(record);
   return { ...record, id };
 }
@@ -20,17 +23,22 @@ export async function updateFoodRecord(
   id: number,
   content: string,
   isUnplanned: boolean,
-  now = Date.now()
+  now = Date.now(),
+  calorieManual?: number | null
 ): Promise<FoodRecord> {
   const existing = await db.foodRecords.get(id);
   if (!existing) throw new Error("找不到这条饮食记录");
   const updated = editFoodRecordData(existing, content, now);
+  const estimate = estimateFoodCalories(updated.content);
+  const nextManual = calorieManual === undefined ? existing.calorieManual : calorieManual ?? undefined;
   await db.foodRecords.update(id, {
     content: updated.content,
     isUnplanned,
+    calorieEstimate: estimate.kcal ?? undefined,
+    calorieManual: nextManual,
     updatedAt: updated.updatedAt,
   });
-  return { ...existing, ...updated, id, isUnplanned };
+  return { ...existing, ...updated, id, isUnplanned, calorieEstimate: estimate.kcal ?? undefined, calorieManual: nextManual };
 }
 
 export async function deleteFoodRecord(id: number): Promise<void> {
@@ -40,6 +48,7 @@ export async function deleteFoodRecord(id: number): Promise<void> {
 export async function getFoodRecordsForDate(date: string): Promise<FoodRecord[]> {
   await migrateLegacyDayMarkers(date);
   const records = await db.foodRecords.where("date").equals(date).toArray();
+  await ensureFoodCalorieEstimates(records);
   return sortFoodRecords(records);
 }
 
@@ -50,7 +59,19 @@ export async function getAllFoodRecords(): Promise<FoodRecord[]> {
       await migrateLegacyDayMarkers(row.key.slice("food-day-status:".length));
     }
   }
-  return sortFoodRecords(await db.foodRecords.toArray());
+  const records = await db.foodRecords.toArray();
+  await ensureFoodCalorieEstimates(records);
+  return sortFoodRecords(records);
+}
+
+async function ensureFoodCalorieEstimates(records: FoodRecord[]): Promise<void> {
+  await Promise.all(records.map(async (record) => {
+    if (record.id == null || record.calorieManual != null || record.calorieEstimate != null) return;
+    const estimate = estimateFoodCalories(record.content);
+    if (estimate.kcal == null) return;
+    await db.foodRecords.update(record.id, { calorieEstimate: estimate.kcal });
+    record.calorieEstimate = estimate.kcal;
+  }));
 }
 
 /** 将旧版按天布尔提醒安全转换为普通饮食记录，旧记录不重复生成。 */
@@ -67,7 +88,10 @@ export async function migrateLegacyDayMarkers(date: string): Promise<void> {
       if (status[field] === true) {
         const content = FOOD_DAY_MARKERS[field];
         if (!existing.some((record) => record.content === content && !record.isUnplanned)) {
-          await db.foodRecords.add(createFoodRecordData(content, false, now));
+          const record = createFoodRecordData(content, false, now);
+          const estimate = estimateFoodCalories(content);
+          if (estimate.kcal != null) record.calorieEstimate = estimate.kcal;
+          await db.foodRecords.add(record);
         }
       }
     }
@@ -96,6 +120,8 @@ export async function toggleFoodDayMarker(date: string, field: keyof typeof FOOD
     }
     const now = Date.now();
     const record = createFoodRecordData(content, false, now);
+    const estimate = estimateFoodCalories(content);
+    if (estimate.kcal != null) record.calorieEstimate = estimate.kcal;
     const id = await db.foodRecords.add(record);
     return { ...record, id };
   });

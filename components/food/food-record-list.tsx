@@ -3,6 +3,7 @@
 import { Pencil, Trash2 } from "lucide-react";
 import type { FoodRecord } from "@/lib/db/db";
 import { formatFoodTime } from "@/lib/food-rules";
+import { effectiveFoodCalories, isFoodMarker } from "@/lib/food-calorie";
 
 interface FoodRecordListProps {
   records: FoodRecord[];
@@ -26,6 +27,13 @@ export function FoodRecordList({ records, onEdit, onDelete, onToggleStatus }: Fo
                 : "border-[#CFE1D3] bg-[#F0F7F1] text-[#4F7659]"}`}>
                 {record.content}
               </span>
+              {!isFoodMarker(record.content) && (
+                <span className="mt-1 block text-xs text-ink-faint">
+                  {effectiveFoodCalories(record) != null
+                    ? `≈ ${effectiveFoodCalories(record)} kcal`
+                    : "热量待估算"}
+                </span>
+              )}
             </button>
           </div>
           <div className="flex shrink-0 items-center gap-1">

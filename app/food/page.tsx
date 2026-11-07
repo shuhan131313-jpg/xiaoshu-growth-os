@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { addFoodRecord, deleteFoodRecord, getFoodDayMarkerState, getFoodRecordsForDate, toggleFoodDayMarker, updateFoodRecord } from "@/lib/food";
 import { foodDaySummary, formatFoodDate, sortFoodRecords } from "@/lib/food-rules";
+import { effectiveFoodCalories, isFoodMarker } from "@/lib/food-calorie";
 import { todayKey } from "@/lib/utils";
 import type { FoodRecord } from "@/lib/db/db";
 type FoodDayStatus = { protein: boolean; water: boolean };
@@ -26,6 +27,9 @@ export default function FoodPage() {
   const [feedback, setFeedback] = useState("");
   const foodSavingRef = useRef(false);
   const summary = foodDaySummary(records);
+  const estimatedCalories = records.reduce((sum, record) => sum + (effectiveFoodCalories(record) ?? 0), 0);
+  const estimatedCount = records.filter((record) => !isFoodMarker(record.content) && effectiveFoodCalories(record) != null).length;
+  const unestimatedCount = records.filter((record) => !isFoodMarker(record.content) && effectiveFoodCalories(record) == null).length;
 
   useEffect(() => {
     Promise.all([getFoodRecordsForDate(today), getFoodDayMarkerState(today)])
@@ -104,6 +108,14 @@ export default function FoodPage() {
           ? `${summary.total} 次记录 · ${summary.unplanned} 次计划外`
           : "随手记下什么时候吃了什么，不做评价"}
       />
+
+      <section className="border-y border-line py-3">
+        <p className="text-xs text-ink-faint">今日摄入 · 估算</p>
+        <p className="mt-1 text-2xl font-semibold tracking-tight text-primary">
+          {estimatedCount > 0 ? `≈ ${Math.round(estimatedCalories)} kcal` : "—"}
+        </p>
+        {unestimatedCount > 0 && <p className="mt-1 text-xs text-ink-faint">部分记录未估算</p>}
+      </section>
 
       <div className="grid grid-cols-2 gap-2">
         {([

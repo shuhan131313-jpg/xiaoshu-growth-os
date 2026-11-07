@@ -2,6 +2,10 @@ export interface FoodRecordData {
   date: string;
   content: string;
   isUnplanned: boolean;
+  /** 自动估算值；旧记录缺少时可按内容懒估算。 */
+  calorieEstimate?: number;
+  /** 用户手动覆盖值；为空时回退到自动估算。 */
+  calorieManual?: number;
   createdAt: number;
   updatedAt: number;
 }

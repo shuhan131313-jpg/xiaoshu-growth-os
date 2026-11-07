@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { addFoodRecord, updateFoodRecord } from "@/lib/food";
+import { estimateFoodCalories } from "@/lib/food-calorie";
 import type { FoodRecord } from "@/lib/db/db";
 
 interface FoodRecordSheetProps {
@@ -28,12 +29,14 @@ export function FoodRecordSheet({
   const [unplanned, setUnplanned] = useState(isUnplanned);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [manualCalories, setManualCalories] = useState("");
   const savingRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
     setContent(existing?.content ?? "");
     setUnplanned(existing?.isUnplanned ?? isUnplanned);
+    setManualCalories(existing?.calorieManual != null ? String(existing.calorieManual) : "");
     setMessage("");
   }, [open, existing, isUnplanned]);
 
@@ -46,9 +49,16 @@ export function FoodRecordSheet({
     savingRef.current = true;
     setSaving(true);
     setMessage("");
+    const manual = manualCalories.trim() === "" ? null : Number(manualCalories);
+    if (manual !== null && (!Number.isFinite(manual) || manual < 0)) {
+      setMessage("热量请输入不小于 0 的数字");
+      savingRef.current = false;
+      setSaving(false);
+      return;
+    }
     try {
       const record = existing?.id != null
-        ? await updateFoodRecord(existing.id, content, unplanned)
+        ? await updateFoodRecord(existing.id, content, unplanned, Date.now(), manual)
         : await addFoodRecord(content, isUnplanned);
       onSaved(record);
       onClose();
@@ -106,6 +116,26 @@ export function FoodRecordSheet({
                 计划外
               </button>
             </div>
+          </div>
+        )}
+        {existing && !existing.content.includes("达标") && (
+          <div>
+            <div className="flex items-center justify-between">
+              <Label>热量（kcal，可选）</Label>
+              {manualCalories && (
+                <button type="button" className="text-xs text-primary" onClick={() => setManualCalories("")}>恢复自动估算</button>
+              )}
+            </div>
+            <Input
+              type="number"
+              min="0"
+              step="1"
+              value={manualCalories}
+              onChange={(event) => setManualCalories(event.target.value)}
+              placeholder={estimateFoodCalories(content).kcal != null ? `自动估算 ≈ ${estimateFoodCalories(content).kcal}` : "热量待估算"}
+              enterKeyHint="done"
+            />
+            <p className="mt-1 text-xs text-ink-faint">填写后优先使用手动值；清空即可恢复自动估算。</p>
           </div>
         )}
         <div className="flex items-center gap-2 text-xs text-ink-faint">
