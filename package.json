@@ -14,7 +14,8 @@
     "test:mainline": "node scripts/test-mainline.mjs",
     "test:research": "node scripts/test-research.mjs",
     "test:weight-range": "node scripts/test-weight-range.mjs",
-    "test:input": "node scripts/test-input-experience.mjs"
+    "test:input": "node scripts/test-input-experience.mjs",
+    "test:tarot": "node scripts/test-tarot.mjs"
   },
   "dependencies": {
     "next": "14.2.18",
