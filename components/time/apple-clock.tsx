@@ -50,16 +50,20 @@ export function AppleClock({ blocks = [], compact = false }: { blocks?: DisplayT
         />
       )))}
 
-      <circle cx="130" cy="123" r="60" fill="#FFFDF8" stroke="#D8D2C8" strokeWidth="1.5" />
       {Array.from({ length: 24 }, (_, index) => {
         const minute = index * 60;
-        const [x1, y1] = polar(minute, 78);
-        const [x2, y2] = polar(minute, index % 6 === 0 ? 88 : 84);
-        return <line key={index} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#8C8F8A" strokeWidth={index % 6 === 0 ? 2 : 1} strokeLinecap="round" />;
+        const [x1, y1] = polar(minute, 82);
+        const [x2, y2] = polar(minute, index % 6 === 0 ? 94 : 90);
+        const [tx, ty] = polar(minute, 108);
+        return (
+          <g key={index}>
+            <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#9C5A52" strokeWidth={index % 6 === 0 ? 2 : 1.2} strokeLinecap="round" />
+            <text x={tx} y={ty + 3} textAnchor="middle" fontSize={index % 6 === 0 ? 9 : 8} fill="#9C5A52">{index}</text>
+          </g>
+        );
       })}
-      <circle cx="116" cy="119" r="3" fill="#6D5B4D" />
-      <circle cx="144" cy="119" r="3" fill="#6D5B4D" />
-      <path d="M119 136 Q130 145 141 136" fill="none" stroke="#6D5B4D" strokeLinecap="round" strokeWidth="2.5" />
+      <circle cx="130" cy="123" r="3" fill="#9C5A52" />
+      <path d="M130 123 L130 88 M130 123 L152 139" fill="none" stroke="#9C5A52" strokeLinecap="round" strokeWidth="2" />
       {!compact && <text x="130" y="224" textAnchor="middle" fontSize="10" fill="#7B7E7A">24 小时</text>}
     </svg>
   );
