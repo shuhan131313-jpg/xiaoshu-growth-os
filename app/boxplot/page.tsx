@@ -379,6 +379,7 @@ export default function BoxPlotPage() {
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" onClick={parseBatch} className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs text-ink-soft hover:border-primary/40 hover:text-primary">检查数据</button>
             <button type="button" onClick={confirmBatchPaste} disabled={!pasteText.trim() || pasteErrors.length > 0} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs text-white disabled:cursor-not-allowed disabled:opacity-40"><Check className="h-3.5 w-3.5" />确认填入</button>
+            <button type="button" onClick={() => { setPasteText(""); setPasteErrors([]); setBatchMessage(""); }} className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs text-ink-soft hover:border-primary/40 hover:text-primary"><RotateCcw className="h-3.5 w-3.5" />清除</button>
           </div>
           {pasteErrors.length > 0 && <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">{pasteErrors.slice(0, 3).map((error) => <p key={error}>{error}</p>)}</div>}
           {batchMessage && <p className="mt-2 text-xs text-ink-soft">{batchMessage}</p>}

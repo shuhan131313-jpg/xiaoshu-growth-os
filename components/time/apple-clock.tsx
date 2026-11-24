@@ -58,7 +58,6 @@ export function AppleClock({ blocks = [], compact = false }: { blocks?: DisplayT
         );
       })}
       <circle cx="130" cy="130" r="3" fill="#38506B" />
-      {!compact && <text x="130" y="224" textAnchor="middle" fontSize="10" fill="#7B7E7A">24 小时</text>}
     </svg>
   );
 }

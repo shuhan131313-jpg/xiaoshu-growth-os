@@ -95,7 +95,6 @@ export default function TimePage() {
             <Input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="h-9 w-auto px-2 text-xs" aria-label="查看日期" />
           </div>
           <AppleClock blocks={dayBlocks} />
-          <p className="text-[11px] text-ink-faint">深蓝为专注，灰蓝为运动；其他时间段可在下方手动补充</p>
         </CardContent>
       </Card>
 
@@ -142,7 +141,11 @@ export default function TimePage() {
 }
 
 function parseTime(value: string): number | null {
-  const match = /^(\d{1,2})[:：](\d{1,2})$/.exec(value.trim());
+  const raw = value.trim();
+  const compact = /^(\d{4})$/.exec(raw);
+  const match = compact
+    ? [raw, raw.slice(0, 2), raw.slice(2)]
+    : /^(\d{1,2})[:：](\d{1,2})$/.exec(raw);
   if (!match) return null;
   const hour = Number(match[1]);
   const minute = Number(match[2]);
