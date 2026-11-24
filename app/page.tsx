@@ -312,7 +312,7 @@ export default function TodayPage() {
         </Card>
       </Link>
 
-      <Link href="/research#focus-timer" className="block rounded-xl transition hover:bg-[#E7EDF2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
+      <Link href="/research#focus-entry" className="block rounded-xl transition hover:bg-[#E7EDF2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
         <Card className="border-0 bg-[#EDF1F5] shadow-none">
           <CardContent>
           <div className="flex items-center justify-between">

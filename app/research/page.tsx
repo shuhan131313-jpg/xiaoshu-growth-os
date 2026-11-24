@@ -5,17 +5,14 @@ import { Check, ChevronLeft, ChevronRight, Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Timer, type TimerHandle } from "@/components/common/timer";
 import { FoldList } from "@/components/common/fold-list";
 import { PageHeader } from "@/components/common/page-header";
 import { repos } from "@/lib/db/repo";
-import type { PhoneRecord, ResearchRecord } from "@/lib/db/db";
+import type { ResearchRecord } from "@/lib/db/db";
 import { todayKey } from "@/lib/utils";
 import { bumpGrowthStep } from "@/lib/growth";
 import { setTodayTask } from "@/lib/summary";
-import { clearResearchDraft, getResearchDraft, saveResearchDraft } from "@/lib/research-draft";
-import { timerDurationMinutes, validManualMinutes } from "@/lib/research-rules";
+import { validManualMinutes } from "@/lib/research-rules";
 
 type FocusCategory = "数据" | "论文" | "申博" | "求职";
 
@@ -26,7 +23,6 @@ const FOCUS_CATEGORY_META: Record<FocusCategory, { color: string; background: st
   求职: { color: "#6E887D", background: "#E7EFEB" },
 };
 const FOCUS_CATEGORIES: FocusCategory[] = ["数据", "论文", "申博", "求职"];
-const PHONE_COLOR = "#A08068";
 
 function shiftMonth(month: string, offset: number): string {
   const [year, monthNumber] = month.split("-").map(Number);
@@ -36,22 +32,14 @@ function shiftMonth(month: string, offset: number): string {
 
 export default function ResearchPage() {
   const today = todayKey();
-  const [summary, setSummary] = useState("");
   const [history, setHistory] = useState<ResearchRecord[]>([]);
-  const [phoneHistory, setPhoneHistory] = useState<PhoneRecord[]>([]);
-  const [phoneInput, setPhoneInput] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(today.slice(0, 7));
-  const [focusCategory, setFocusCategory] = useState<FocusCategory>("数据");
-  const [manualCategory, setManualCategory] = useState<FocusCategory | "">("");
-  const [timerActive, setTimerActive] = useState(false);
-  const [savingSession, setSavingSession] = useState(false);
-  const [manualSummary, setManualSummary] = useState("");
-  const [manualMinutes, setManualMinutes] = useState("");
-  const [manualSaving, setManualSaving] = useState(false);
+  const [focusSummary, setFocusSummary] = useState("");
+  const [focusCategory, setFocusCategory] = useState<FocusCategory | "">("数据");
+  const [focusMinutes, setFocusMinutes] = useState("");
+  const [focusSaving, setFocusSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
-  const [draftReady, setDraftReady] = useState(false);
-  const timerRef = useRef<TimerHandle>(null);
-  const manualSubmittingRef = useRef(false);
+  const focusSubmittingRef = useRef(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editSummary, setEditSummary] = useState("");
   const [editCategory, setEditCategory] = useState<FocusCategory | "">("");
@@ -62,49 +50,31 @@ export default function ResearchPage() {
     .reduce((sum, item) => sum + item.duration, 0);
 
   async function refresh() {
-    const [all, phones] = await Promise.all([repos.research.all(), repos.phone.all()]);
+    // 清理旧的无关时长数据，避免继续保留已移除的记录。
+    await repos.phone.clear();
+    const all = await repos.research.all();
     setHistory(all.sort((a, b) => b.createdAt - a.createdAt));
-    setPhoneHistory(phones.sort((a, b) => b.createdAt - a.createdAt));
   }
 
   useEffect(() => {
     refresh();
-    getResearchDraft().then((draft) => {
-      setSummary(draft);
-      setDraftReady(true);
-    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if (!draftReady) return;
-    const timer = window.setTimeout(() => {
-      if (summary.trim()) void saveResearchDraft(summary);
-      else void clearResearchDraft();
-    }, 300);
-    return () => window.clearTimeout(timer);
-  }, [summary, draftReady]);
 
   function showFeedback(message: string) {
     setFeedback(message);
     window.setTimeout(() => setFeedback(""), 3000);
   }
 
-  async function createSession(
-    elapsedSec: number,
-    source: "timer" | "manual",
-    text: string,
-    category: FocusCategory | undefined
-  ) {
-    const dur = source === "manual"
-      ? validManualMinutes(elapsedSec / 60) ?? 1
-      : timerDurationMinutes(elapsedSec);
+  async function createSession(text: string, minutes: string, category: FocusCategory | "") {
+    const dur = validManualMinutes(minutes);
+    if (dur == null) return null;
     await repos.research.add({
       date: today,
       duration: dur,
       summary: text.trim() || undefined,
-      category,
-      source,
+      category: category || undefined,
+      source: "manual",
       createdAt: Date.now(),
     });
     await setTodayTask(today, "research", true);
@@ -113,52 +83,27 @@ export default function ResearchPage() {
     return { duration: dur };
   }
 
-  async function finishTimer() {
-    if (savingSession) return;
-    const elapsedSec = timerRef.current?.finish();
-    if (elapsedSec == null) return;
-    setSavingSession(true);
-    try {
-      const result = await createSession(elapsedSec, "timer", summary, focusCategory);
-      await clearResearchDraft();
-      setSummary("");
-      timerRef.current?.reset();
-      showFeedback(`已记录 ${result.duration} min`);
-    } finally {
-      setSavingSession(false);
-    }
-  }
-
-  async function addManualSession() {
-    const minutes = validManualMinutes(manualMinutes);
-    if (minutes == null || manualSubmittingRef.current) {
+  async function addFocusSession() {
+    if (focusSubmittingRef.current) return;
+    const minutes = validManualMinutes(focusMinutes);
+    if (minutes == null) {
       if (minutes == null) showFeedback("请输入大于 0 的有效时长");
       return;
     }
-    manualSubmittingRef.current = true;
-    setManualSaving(true);
+    focusSubmittingRef.current = true;
+    setFocusSaving(true);
     try {
-      const result = await createSession(minutes * 60, "manual", manualSummary, manualCategory || undefined);
-      setManualSummary("");
-      setManualMinutes("");
-      setManualCategory("");
-      showFeedback(`已补充 ${result.duration} min`);
+      const result = await createSession(focusSummary, focusMinutes, focusCategory);
+      if (result) {
+        setFocusSummary("");
+        setFocusMinutes("");
+        setFocusCategory("数据");
+        showFeedback(`已记录专注 ${result.duration} min`);
+      }
     } finally {
-      manualSubmittingRef.current = false;
-      setManualSaving(false);
+      focusSubmittingRef.current = false;
+      setFocusSaving(false);
     }
-  }
-
-  async function addPhoneRecord() {
-    const duration = Number(phoneInput);
-    if (!Number.isFinite(duration) || duration <= 0) {
-      showFeedback("请输入有效的玩手机时长");
-      return;
-    }
-    await repos.phone.add({ date: today, duration, createdAt: Date.now() });
-    setPhoneInput("");
-    await refresh();
-    showFeedback(`已记录玩手机 ${duration} min`);
   }
 
   function beginEdit(record: ResearchRecord) {
@@ -227,14 +172,12 @@ export default function ResearchPage() {
   }
 
   const monthResearch = history.filter((record) => record.date.startsWith(selectedMonth));
-  const monthPhone = phoneHistory.filter((record) => record.date.startsWith(selectedMonth));
   const monthValues = FOCUS_CATEGORIES.map((category) =>
     monthResearch
       .filter((record) => record.category === category)
       .reduce((sum, record) => sum + record.duration, 0)
   );
-  const phoneMinutes = monthPhone.reduce((sum, record) => sum + record.duration, 0);
-  const chartValues = [...monthValues, phoneMinutes];
+  const chartValues = monthValues;
   const chartMax = Math.max(60, ...chartValues, 0);
   const unclassifiedMinutes = monthResearch
     .filter((record) => !record.category)
@@ -244,118 +187,60 @@ export default function ResearchPage() {
     <div className="space-y-5">
       <PageHeader title="专注" desc="为需要认真投入的事情留出一段时间" />
 
-      <section className="border-y border-line py-3">
-        <div className="flex items-center gap-2">
-          <span className="shrink-0 text-sm text-ink-soft">玩手机</span>
-          <div className="relative min-w-0 flex-1">
-            <Input
-              value={phoneInput}
-              onChange={(event) => setPhoneInput(event.target.value)}
-              onEnterSubmit={addPhoneRecord}
-              enterKeyHint="done"
-              type="number"
-              inputMode="decimal"
-              min="0.1"
-              step="1"
-              placeholder="时长（分钟）"
-              aria-label="玩手机时长（分钟）"
-            />
-          </div>
-          <Button variant="outline" size="sm" onClick={addPhoneRecord}>记录</Button>
-        </div>
-      </section>
-
-      {/* 专注计时 */}
-      <section id="focus-timer" className="scroll-mt-6 border-y border-line py-4">
-        <div className="pb-3">
+      {/* 完成后统一记录专注 */}
+      <section id="focus-entry" className="scroll-mt-6 border-y border-line py-4">
+        <div className="flex items-end justify-between gap-3">
           <div>
+            <p className="text-sm font-medium text-primary">记录专注</p>
+            <p className="mt-1 text-[11px] text-ink-faint">完成后填写实际时长和类别</p>
+          </div>
+          <div className="text-right">
             <p className="text-[11px] text-ink-faint">今日累计</p>
-            <p className="tabular mt-0.5 text-xl font-semibold text-ink">
+            <p className="tabular text-xl font-semibold text-ink">
               {todayMinutes}<span className="ml-1 text-xs font-normal text-ink-faint">min</span>
             </p>
           </div>
         </div>
-
-        <Timer
-          ref={timerRef}
-          size={128}
-          className="py-1"
-          disabled={savingSession}
-          onActiveChange={setTimerActive}
-          startControl={
-            <CategorySelect
-              value={focusCategory}
-              onChange={(value) => setFocusCategory(value as FocusCategory)}
-              ariaLabel="专注分类"
-            />
-          }
-        />
-
-        <div className="mt-3">
-          <Label>本次专注内容</Label>
-          <div className="mt-1 grid grid-cols-2 gap-2">
-            <Input
-              value={summary}
-              onChange={(event) => setSummary(event.target.value)}
-              placeholder="本次专注内容"
-              maxLength={240}
-              className="min-w-0"
-            />
-            <Button
-              variant="accent"
-              className="w-full whitespace-nowrap px-2 text-xs"
-              onClick={finishTimer}
-              disabled={!timerActive || savingSession}
-            >
-              {savingSession ? "保存中…" : "结束并记录"}
-            </Button>
-          </div>
+        <div className="mt-3 flex items-center gap-2">
+          <Input
+            value={focusSummary}
+            onChange={(event) => setFocusSummary(event.target.value)}
+            onEnterSubmit={addFocusSession}
+            enterKeyHint="next"
+            placeholder="本次专注内容（可选）"
+            maxLength={240}
+            className="min-w-0 flex-1"
+          />
+          <CategorySelect
+            value={focusCategory}
+            onChange={setFocusCategory}
+            allowEmpty
+            ariaLabel="专注分类"
+          />
         </div>
-
-        <div className="mt-4 border-t border-line pt-4">
-          <p className="mb-2 text-xs font-medium text-primary">补充记录</p>
+        <div className="mt-2 grid grid-cols-[1fr_auto] gap-2">
           <div className="flex items-center gap-2">
             <Input
-              value={manualSummary}
-              onChange={(event) => setManualSummary(event.target.value)}
-              placeholder="补充记录内容"
-              maxLength={240}
-              className="min-w-0 flex-1"
-            />
-            <CategorySelect
-              value={manualCategory}
-              onChange={setManualCategory}
-              allowEmpty
-              ariaLabel="补充记录分类"
+              type="number"
+              inputMode="numeric"
+              min="1"
+              step="1"
+              value={focusMinutes}
+              onChange={(event) => setFocusMinutes(event.target.value)}
+              onEnterSubmit={addFocusSession}
+              enterKeyHint="done"
+              placeholder="时长（分钟）"
+              className="min-w-0"
+              aria-label="专注时长（分钟）"
             />
           </div>
-          <div className="mt-2 grid grid-cols-[1fr_1fr] gap-2">
-            <div className="relative">
-              <Input
-                type="number"
-                inputMode="numeric"
-                min="1"
-                step="1"
-                value={manualMinutes}
-                onChange={(event) => setManualMinutes(event.target.value)}
-                onEnterSubmit={addManualSession}
-                enterKeyHint="done"
-                placeholder="时长"
-                className="pr-10"
-                aria-label="补充记录时长（分钟）"
-              />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-faint">
-                min
-              </span>
-            </div>
-            <Button
-              variant="outline"
-              onClick={addManualSession}
-              disabled={manualSaving || validManualMinutes(manualMinutes) == null}
-            >
-              {manualSaving ? "保存中…" : "补充记录"}
-            </Button>
-          </div>
+          <Button
+            variant="accent"
+            onClick={addFocusSession}
+            disabled={focusSaving || validManualMinutes(focusMinutes) == null}
+          >
+            {focusSaving ? "保存中…" : "记录专注"}
+          </Button>
         </div>
 
         {feedback && (
@@ -385,11 +270,8 @@ export default function ResearchPage() {
               </Button>
             </div>
           </div>
-          <div className="mt-4 grid h-44 grid-cols-5 items-end gap-2 border-b border-line px-2 pt-3">
-            {[
-              ...FOCUS_CATEGORIES.map((category, index) => ({ label: category, value: monthValues[index], color: FOCUS_CATEGORY_META[category].color })),
-              { label: "玩手机", value: phoneMinutes, color: PHONE_COLOR },
-            ].map((item) => (
+          <div className="mt-4 grid h-44 grid-cols-4 items-end gap-2 border-b border-line px-2 pt-3">
+            {FOCUS_CATEGORIES.map((category, index) => ({ label: category, value: monthValues[index], color: FOCUS_CATEGORY_META[category].color })).map((item) => (
               <div key={item.label} className="flex h-full min-w-0 flex-col items-center justify-end gap-1">
                 <span className="tabular text-[10px] text-ink-faint">{item.value}</span>
                 <div className="flex h-32 w-full items-end">
@@ -441,7 +323,7 @@ export default function ResearchPage() {
                     ) : (
                       <div className="flex items-center gap-1.5">
                         <span className="tabular text-xs text-ink-faint">
-                          {r.duration} 分钟{r.source === "manual" ? " · 补录" : ""}
+                          {r.duration} 分钟
                         </span>
                         <button type="button" className="rounded-md p-1 text-ink-faint hover:bg-line/50 hover:text-primary" onClick={() => beginEdit(r)} aria-label="编辑专注记录">
                           <Pencil className="h-3.5 w-3.5" />

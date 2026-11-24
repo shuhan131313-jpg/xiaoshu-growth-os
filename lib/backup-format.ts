@@ -23,7 +23,6 @@ export const BACKUP_TABLE_NAMES = [
   "milestones",
   "foodRecords",
   "recentBooks",
-  "phone",
 ] as const;
 
 export type BackupTableName = (typeof BACKUP_TABLE_NAMES)[number];
