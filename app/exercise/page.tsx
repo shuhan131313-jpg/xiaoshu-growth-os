@@ -172,6 +172,18 @@ export default function ExercisePage() {
   const [detailWeight, setDetailWeight] = useState<number | null>(null);
 
   const calPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+  const monthlyWeightValues = useMemo(
+    () => weights
+      .filter((record) => record.date.startsWith(calPrefix) && Number.isFinite(record.value) && record.value > 0)
+      .map((record) => record.value),
+    [weights, calPrefix]
+  );
+  const monthlyWeightMax = monthlyWeightValues.length > 0 ? Math.max(...monthlyWeightValues) : null;
+  const monthlyWeightMin = monthlyWeightValues.length > 0 ? Math.min(...monthlyWeightValues) : null;
+  const monthlyExerciseCount = useMemo(
+    () => history.filter((record) => record.date.startsWith(calPrefix)).length,
+    [history, calPrefix]
+  );
 
   async function loadMonth() {
     const [exAll, bwAll] = await Promise.all([
@@ -398,6 +410,25 @@ export default function ExercisePage() {
   return (
     <div className="space-y-5">
       <PageHeader title="运动" desc="记录每一次流汗，看见坚持的形状" />
+
+      <div className="grid grid-cols-3 divide-x divide-line border-y border-line py-2.5 text-center">
+        <div>
+          <p className="text-[11px] text-ink-faint">最高</p>
+          <p className="tabular text-sm font-semibold text-ink">
+            {monthlyWeightMax == null ? "—" : `${monthlyWeightMax.toFixed(1)} kg`}
+          </p>
+        </div>
+        <div>
+          <p className="text-[11px] text-ink-faint">最低</p>
+          <p className="tabular text-sm font-semibold text-ink">
+            {monthlyWeightMin == null ? "—" : `${monthlyWeightMin.toFixed(1)} kg`}
+          </p>
+        </div>
+        <div>
+          <p className="text-[11px] text-ink-faint">运动次数</p>
+          <p className="tabular text-sm font-semibold text-ink">{monthlyExerciseCount} 次</p>
+        </div>
+      </div>
 
       {/* 月历 */}
       <Card className="rounded-xl border border-line bg-card p-3 shadow-card">

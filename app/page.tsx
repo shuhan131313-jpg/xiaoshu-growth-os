@@ -69,7 +69,7 @@ function TreeMascot({ stage, emphasized }: { stage: number; emphasized?: boolean
   );
 }
 
-type HabitDay = { date: string; status: Record<ProgressKey, boolean> };
+type HabitDay = { date: string; status: Record<ProgressKey, boolean>; workMinutes: number };
 
 function WeightGoalCard({ settings, records }: { settings: WeightGoalSettings | null; records: WeightRecord[] }) {
   const trackedRecords = settings ? validWeightRecordsSince(records, settings.startDate) : [];
@@ -85,7 +85,14 @@ function WeightGoalCard({ settings, records }: { settings: WeightGoalSettings | 
   const statuses = stageLabels.map((_, index) => {
     if (index === 0) return "起点";
     if (activeStage >= index) return "已达成";
-    return dates[index - 1] ? `还剩 ${daysUntil(dates[index - 1])} 天` : "待开始";
+    if (!dates[index - 1]) return "待开始";
+    const target = WEIGHT_GOAL_STAGE_JIN[index - 1];
+    const stageProgress = startJin != null && currentJin != null && startJin > target
+      ? Math.min(100, Math.max(0, Math.round(((startJin - currentJin) / (startJin - target)) * 100)))
+      : currentJin != null && currentJin <= target
+      ? 100
+      : 0;
+    return `还剩 ${daysUntil(dates[index - 1])} 天${currentJin == null ? "" : `/${stageProgress}%`}`;
   });
   return (
     <div className="space-y-2">
@@ -178,6 +185,8 @@ export default function TodayPage() {
           food: foodRows.length > 0,
           account: accountRows.length > 0,
         },
+        workMinutes: exerciseRows.reduce((sum, row) => sum + Math.max(0, Number(row.duration) || 0), 0)
+          + researchRows.reduce((sum, row) => sum + Math.max(0, Number(row.duration) || 0), 0),
       } satisfies HabitDay;
     }));
     setHabitDays(habitStatus);
@@ -354,6 +363,15 @@ export default function TodayPage() {
               const completedCount = PROGRESS_KEYS.filter((key) => item.status[key]).length;
               return (
               <div key={item.date} className="flex flex-1 flex-col items-center gap-1.5">
+                <span
+                  className="block h-0.5 w-full overflow-hidden rounded-full bg-line/60"
+                  aria-label={`${item.date} 工作时长 ${item.workMinutes} 分钟`}
+                >
+                  <span
+                    className="block h-full rounded-full bg-primary/75"
+                    style={{ width: `${Math.min(100, Math.max(0, (item.workMinutes / 360) * 100))}%` }}
+                  />
+                </span>
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
