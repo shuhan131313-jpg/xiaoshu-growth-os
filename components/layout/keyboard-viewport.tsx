@@ -20,31 +20,80 @@ export function KeyboardViewport() {
   useEffect(() => {
     const root = document.documentElement;
     const viewport = window.visualViewport;
+    const isMobile =
+      /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+      (window.matchMedia("(max-width: 767px)").matches &&
+        (navigator.maxTouchPoints > 0 || "ontouchstart" in window));
+    if (!isMobile) return;
+
     let baselineHeight = viewport?.height ?? window.innerHeight;
     let keyboardOpen = false;
     let frame = 0;
-    let focusTimer = 0;
+    const timers = new Set<number>();
 
     function activeEditable(): HTMLElement | null {
       return isEditable(document.activeElement) ? document.activeElement : null;
     }
 
-    function keepVisible(target = activeEditable(), behavior: ScrollBehavior = "smooth") {
+    function isScrollable(element: HTMLElement) {
+      const style = window.getComputedStyle(element);
+      return (
+        /(auto|scroll|overlay)/.test(style.overflowY) &&
+        element.scrollHeight > element.clientHeight + 2
+      );
+    }
+
+    function keepVisible(target = activeEditable(), behavior: ScrollBehavior = "auto") {
       if (!target) return;
       const currentViewport = window.visualViewport;
       const top = currentViewport?.offsetTop ?? 0;
       const height = currentViewport?.height ?? window.innerHeight;
       const bottom = top + height;
-      const rect = target.getBoundingClientRect();
-      const margin = 20;
-      if (rect.top < top + margin || rect.bottom > bottom - margin) {
+      const margin = 28;
+
+      // scrollIntoView() alone is unreliable when a Sheet locks body scrolling.
+      // Move the nearest scrollable region first, then fall back to the page.
+      let rect = target.getBoundingClientRect();
+      let delta = rect.bottom - (bottom - margin);
+      if (rect.top < top + margin) delta = rect.top - (top + margin);
+      if (Math.abs(delta) < 2) return;
+
+      let scroller = target.parentElement;
+      while (scroller && scroller !== document.body) {
+        if (isScrollable(scroller)) {
+          scroller.scrollBy({ top: delta, behavior });
+          rect = target.getBoundingClientRect();
+          delta = rect.bottom - (bottom - margin);
+          if (rect.top < top + margin) delta = rect.top - (top + margin);
+          if (Math.abs(delta) < 2) return;
+          break;
+        }
+        scroller = scroller.parentElement;
+      }
+
+      if (document.scrollingElement && document.scrollingElement.scrollHeight > window.innerHeight) {
+        window.scrollBy({ top: delta, behavior });
+      } else if (typeof target.scrollIntoView === "function") {
         target.scrollIntoView({ block: "center", inline: "nearest", behavior });
       }
     }
 
-    function scheduleVisibility(behavior: ScrollBehavior = "smooth") {
+    function scheduleVisibility(behavior: ScrollBehavior = "auto") {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => keepVisible(undefined, behavior));
+    }
+
+    function scheduleAfterKeyboard(target?: HTMLElement) {
+      for (const timer of timers) window.clearTimeout(timer);
+      timers.clear();
+      for (const delay of [0, 120, 280, 520, 820]) {
+        const timer = window.setTimeout(() => {
+          timers.delete(timer);
+          updateViewport();
+          keepVisible(target ?? activeEditable(), "auto");
+        }, delay);
+        timers.add(timer);
+      }
     }
 
     function updateViewport() {
@@ -69,11 +118,7 @@ export function KeyboardViewport() {
     function onFocus(event: FocusEvent) {
       if (!isEditable(event.target)) return;
       updateViewport();
-      window.clearTimeout(focusTimer);
-      focusTimer = window.setTimeout(() => {
-        updateViewport();
-        keepVisible(event.target as HTMLElement);
-      }, 280);
+      scheduleAfterKeyboard(event.target as HTMLElement);
     }
 
     function onInput(event: Event) {
@@ -81,8 +126,11 @@ export function KeyboardViewport() {
     }
 
     function onFocusOut() {
-      window.clearTimeout(focusTimer);
-      focusTimer = window.setTimeout(updateViewport, 180);
+      const timer = window.setTimeout(() => {
+        timers.delete(timer);
+        updateViewport();
+      }, 180);
+      timers.add(timer);
     }
 
     function onOrientationChange() {
@@ -101,7 +149,8 @@ export function KeyboardViewport() {
 
     return () => {
       window.cancelAnimationFrame(frame);
-      window.clearTimeout(focusTimer);
+      for (const timer of timers) window.clearTimeout(timer);
+      timers.clear();
       viewport?.removeEventListener("resize", updateViewport);
       viewport?.removeEventListener("scroll", updateViewport);
       window.removeEventListener("resize", updateViewport);
