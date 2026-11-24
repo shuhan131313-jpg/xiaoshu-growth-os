@@ -41,7 +41,8 @@ export function AppleClock({ blocks = [], compact = false }: { blocks?: DisplayT
           key={`${block.id}-${index}`}
           d={sectorPath(start, end, 92)}
           fill={TIME_BLOCK_COLORS[block.kind]}
-          opacity="0.82"
+          // 使用不透明扇形：同一类别的重叠时间会自然连成一块，不会叠加变深。
+          opacity="1"
         />
       )))}
 

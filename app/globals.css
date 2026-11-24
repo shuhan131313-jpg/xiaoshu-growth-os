@@ -67,6 +67,16 @@ html {
 }
 
 @media (max-width: 767px) {
+  /* 键盘可能以 overlay 方式出现，先为当前表单留出可滚动空间，
+     再由 KeyboardViewport 把焦点控件滚到可视区域。 */
+  main:focus-within {
+    padding-bottom: max(40vh, calc(20px + var(--keyboard-inset)));
+  }
+
+  .keyboard-scroll-region:focus-within {
+    padding-bottom: max(40vh, 20px);
+  }
+
   html[data-keyboard-open="true"] {
     scroll-padding-bottom: 20px;
   }

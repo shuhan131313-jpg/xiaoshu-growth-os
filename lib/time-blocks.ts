@@ -12,9 +12,9 @@ export type DisplayTimeBlock = {
 
 export const MANUAL_TIME_BLOCK_KINDS: { value: TimeBlockKind; label: string; color: string }[] = [
   { value: "sleep", label: "睡觉", color: "#9FAFC4" },
+  { value: "meal", label: "吃饭", color: "#D7AE72" },
+  { value: "entertainment", label: "亲故", color: "#B79BBE" },
   { value: "reading", label: "阅读", color: "#8EA7B7" },
-  { value: "meal", label: "聚餐", color: "#D7AE72" },
-  { value: "entertainment", label: "娱乐", color: "#B79BBE" },
   { value: "other", label: "其他", color: "#A6A9A5" },
 ];
 

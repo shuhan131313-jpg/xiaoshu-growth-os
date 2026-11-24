@@ -27,8 +27,8 @@ export default function TimePage() {
   const [blocks, setBlocks] = useState<DisplayTimeBlock[]>([]);
   const [label, setLabel] = useState("");
   const [kind, setKind] = useState<TimeBlockKind>("other");
-  const [startTime, setStartTime] = useState("09:00");
-  const [endTime, setEndTime] = useState("10:00");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [message, setMessage] = useState("");
 
   async function load() {
@@ -72,6 +72,8 @@ export default function TimePage() {
       createdAt: Date.now(),
     });
     setLabel("");
+    setStartTime("");
+    setEndTime("");
     await load();
     setMessage("时间段已记录");
   }
@@ -102,15 +104,23 @@ export default function TimePage() {
         <CardContent>
           <p className="mb-3 text-sm font-medium text-primary">手动记录时间段</p>
           <form onSubmit={addManualBlock} className="space-y-2">
-            <Input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="做了什么？如：睡觉、阅读、聚餐" />
+            <Input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="具体做了什么？" />
+            <div className="grid grid-cols-5 gap-1.5" role="group" aria-label="时间段类型">
+              {MANUAL_TIME_BLOCK_KINDS.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => setKind(item.value)}
+                  className={`min-w-0 rounded-xl border px-2 py-2 text-xs transition ${kind === item.value ? "border-primary bg-[#E8EEF5] font-medium text-primary" : "border-line bg-surface text-ink-soft"}`}
+                  style={kind === item.value ? { boxShadow: `inset 0 -2px 0 ${item.color}` } : undefined}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
             <div className="grid grid-cols-2 gap-2">
-              <select value={kind} onChange={(event) => setKind(event.target.value as TimeBlockKind)} className="h-10 rounded-xl border border-line bg-surface px-3 text-sm text-ink" aria-label="时间段类型">
-                {MANUAL_TIME_BLOCK_KINDS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-              </select>
-              <div className="grid grid-cols-2 gap-2">
-                <Input type="text" inputMode="numeric" maxLength={5} value={startTime} onChange={(event) => setStartTime(event.target.value)} placeholder="开始 05:30" aria-label="开始时间" />
-                <Input type="text" inputMode="numeric" maxLength={5} value={endTime} onChange={(event) => setEndTime(event.target.value)} placeholder="结束 06:00" aria-label="结束时间" />
-              </div>
+              <Input type="text" inputMode="numeric" maxLength={5} value={startTime} onChange={(event) => setStartTime(event.target.value)} placeholder="开始 0300" aria-label="开始时间" />
+              <Input type="text" inputMode="numeric" maxLength={5} value={endTime} onChange={(event) => setEndTime(event.target.value)} placeholder="结束 0530" aria-label="结束时间" />
             </div>
             <Button variant="accent" className="w-full" type="submit">记录时间段</Button>
           </form>

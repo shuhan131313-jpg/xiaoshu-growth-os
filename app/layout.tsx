@@ -37,6 +37,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
+  // Android Chrome/PWA：输入法展开时同步缩小布局视口，避免输入框被键盘覆盖。
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({

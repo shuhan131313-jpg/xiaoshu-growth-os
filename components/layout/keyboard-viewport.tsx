@@ -30,6 +30,13 @@ export function KeyboardViewport() {
     let keyboardOpen = false;
     let frame = 0;
     const timers = new Set<number>();
+    const virtualKeyboard = (navigator as Navigator & {
+      virtualKeyboard?: {
+        boundingRect?: DOMRectReadOnly;
+        addEventListener?: (type: string, listener: EventListener) => void;
+        removeEventListener?: (type: string, listener: EventListener) => void;
+      };
+    }).virtualKeyboard;
 
     function activeEditable(): HTMLElement | null {
       return isEditable(document.activeElement) ? document.activeElement : null;
@@ -98,7 +105,11 @@ export function KeyboardViewport() {
 
     function updateViewport() {
       const currentViewport = window.visualViewport;
-      const visualHeight = currentViewport?.height ?? window.innerHeight;
+      const virtualKeyboardHeight = virtualKeyboard?.boundingRect?.height ?? 0;
+      const visualHeight = Math.min(
+        currentViewport?.height ?? window.innerHeight,
+        Math.max(1, window.innerHeight - virtualKeyboardHeight)
+      );
       const offsetTop = currentViewport?.offsetTop ?? 0;
       baselineHeight = Math.max(baselineHeight, visualHeight);
       const metrics = keyboardViewportMetrics(
@@ -118,6 +129,7 @@ export function KeyboardViewport() {
     function onFocus(event: FocusEvent) {
       if (!isEditable(event.target)) return;
       updateViewport();
+      keepVisible(event.target as HTMLElement, "auto");
       scheduleAfterKeyboard(event.target as HTMLElement);
     }
 
@@ -141,6 +153,7 @@ export function KeyboardViewport() {
     updateViewport();
     viewport?.addEventListener("resize", updateViewport);
     viewport?.addEventListener("scroll", updateViewport);
+    virtualKeyboard?.addEventListener?.("geometrychange", updateViewport);
     window.addEventListener("resize", updateViewport);
     window.addEventListener("orientationchange", onOrientationChange);
     document.addEventListener("focusin", onFocus);
@@ -153,6 +166,7 @@ export function KeyboardViewport() {
       timers.clear();
       viewport?.removeEventListener("resize", updateViewport);
       viewport?.removeEventListener("scroll", updateViewport);
+      virtualKeyboard?.removeEventListener?.("geometrychange", updateViewport);
       window.removeEventListener("resize", updateViewport);
       window.removeEventListener("orientationchange", onOrientationChange);
       document.removeEventListener("focusin", onFocus);
