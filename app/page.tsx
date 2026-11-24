@@ -86,13 +86,15 @@ function WeightGoalCard({ settings, records }: { settings: WeightGoalSettings | 
     if (index === 0) return "起点";
     if (activeStage >= index) return "已达成";
     if (!dates[index - 1]) return "待开始";
+    const countdown = `还剩 ${daysUntil(dates[index - 1])} 天`;
+    // 只在当前正在进行的这一段显示百分比；未来阶段只显示倒计时。
+    if (index !== currentTargetStage || currentJin == null) return countdown;
     const target = WEIGHT_GOAL_STAGE_JIN[index - 1];
-    const stageProgress = startJin != null && currentJin != null && startJin > target
-      ? Math.min(100, Math.max(0, Math.round(((startJin - currentJin) / (startJin - target)) * 100)))
-      : currentJin != null && currentJin <= target
-      ? 100
+    const segmentStart = index === 1 ? startJin : WEIGHT_GOAL_STAGE_JIN[index - 2];
+    const stageProgress = segmentStart != null && segmentStart > target
+      ? Math.min(100, Math.max(0, Math.round(((segmentStart - currentJin) / (segmentStart - target)) * 100)))
       : 0;
-    return `还剩 ${daysUntil(dates[index - 1])} 天${currentJin == null ? "" : `/${stageProgress}%`}`;
+    return `${countdown}/${stageProgress}%`;
   });
   return (
     <div className="space-y-2">
