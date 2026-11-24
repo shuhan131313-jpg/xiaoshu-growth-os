@@ -19,13 +19,13 @@ export const MANUAL_TIME_BLOCK_KINDS: { value: TimeBlockKind; label: string; col
 ];
 
 export const TIME_BLOCK_COLORS: Record<DisplayTimeBlock["kind"], string> = {
-  focus: "#38506B",
-  exercise: "#9AAEC2",
-  sleep: "#9FAFC4",
-  reading: "#8EA7B7",
-  meal: "#D7AE72",
-  entertainment: "#B79BBE",
-  other: "#A6A9A5",
+  focus: "#4E7BAA",
+  exercise: "#7899B5",
+  sleep: "#D4A6B3",
+  reading: "#A5C79B",
+  meal: "#C99262",
+  entertainment: "#B7A2D0",
+  other: "#B8BCBF",
 };
 
 export function formatClockMinute(minute: number): string {

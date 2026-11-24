@@ -109,8 +109,8 @@ export default function TimePage() {
                 {MANUAL_TIME_BLOCK_KINDS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
               </select>
               <div className="grid grid-cols-2 gap-2">
-                <Input type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} aria-label="开始时间" />
-                <Input type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} aria-label="结束时间" />
+                <Input type="text" inputMode="numeric" maxLength={5} value={startTime} onChange={(event) => setStartTime(event.target.value)} placeholder="开始 05:30" aria-label="开始时间" />
+                <Input type="text" inputMode="numeric" maxLength={5} value={endTime} onChange={(event) => setEndTime(event.target.value)} placeholder="结束 06:00" aria-label="结束时间" />
               </div>
             </div>
             <Button variant="accent" className="w-full" type="submit">记录时间段</Button>
@@ -142,7 +142,7 @@ export default function TimePage() {
 }
 
 function parseTime(value: string): number | null {
-  const match = /^(\d{2}):(\d{2})$/.exec(value);
+  const match = /^(\d{1,2})[:：](\d{1,2})$/.exec(value.trim());
   if (!match) return null;
   const hour = Number(match[1]);
   const minute = Number(match[2]);
