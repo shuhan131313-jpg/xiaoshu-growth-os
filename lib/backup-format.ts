@@ -17,6 +17,7 @@ export const BACKUP_TABLE_NAMES = [
   "timeThread",
   "timeCell",
   "timeMerge",
+  "timeBlocks",
   "todo",
   "leaves",
   "dailyMain",

@@ -254,6 +254,18 @@ export interface TimeMerge {
   createdAt: number;
 }
 
+export type TimeBlockKind = "sleep" | "reading" | "meal" | "entertainment" | "other";
+
+export interface TimeBlockRecord {
+  id?: number;
+  date: string;
+  startMinute: number;
+  endMinute: number;
+  kind: TimeBlockKind;
+  label: string;
+  createdAt: number;
+}
+
 export class XiaoShuDB extends Dexie {
   dailyTasks!: Table<DailyTask, number>;
   exercise!: Table<ExerciseRecord, number>;
@@ -273,6 +285,7 @@ export class XiaoShuDB extends Dexie {
   timeThread!: Table<TimeThread, number>;
   timeCell!: Table<TimeCell, number>;
   timeMerge!: Table<TimeMerge, number>;
+  timeBlocks!: Table<TimeBlockRecord, number>;
   todo!: Table<TodoRecord, number>;
   leaves!: Table<LeavesEntry, number>;
   dailyMain!: Table<DailyMainRecord, number>;
@@ -344,6 +357,9 @@ export class XiaoShuDB extends Dexie {
     });
     this.version(13).stores({
       phone: "++id, date, createdAt",
+    });
+    this.version(14).stores({
+      timeBlocks: "++id, date, createdAt",
     });
   }
 }

@@ -21,6 +21,7 @@ import {
   type WeightTimeRange,
 } from "@/lib/weight-range";
 import { getWeightGoalSettings, saveWeightGoalSettings } from "@/lib/weight-goal";
+import { inferredTimeRange } from "@/lib/time-blocks";
 
 const WEEK = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -527,7 +528,7 @@ export default function ExercisePage() {
             <div className="space-y-1 text-sm text-ink">
               {detailExercise.map((r, i) => (
                 <p key={i}>
-                  {r.project} {r.duration} 分钟
+                  {r.project} {r.duration} 分钟 · {inferredTimeRange(r.createdAt, r.duration)}
                 </p>
               ))}
               {detailWeight != null && <p>体重 {detailWeight} kg</p>}
@@ -671,7 +672,7 @@ export default function ExercisePage() {
                     </span>
                   </p>
                   <p className="mt-0.5 tabular text-[11px] text-ink-faint">
-                    {r.date}
+                    {r.date} · {inferredTimeRange(r.createdAt, r.duration)}
                   </p>
                   {r.note && (
                     <p className="mt-1 text-[13px] text-ink-soft">{r.note}</p>

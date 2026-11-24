@@ -32,6 +32,7 @@ export const repos = {
   timeThread: repo(db.timeThread),
   timeCell: repo(db.timeCell),
   timeMerge: repo(db.timeMerge),
+  timeBlocks: repo(db.timeBlocks),
   todo: repo(db.todo),
   dailyMain: repo(db.dailyMain),
   milestones: repo(db.milestones),

@@ -22,6 +22,7 @@ import { repos } from "@/lib/db/repo";
 import type { DailyMainRecord, WeightRecord } from "@/lib/db/db";
 import { getDailyMain } from "@/lib/mainline";
 import { MainlineSheet } from "@/components/mainline/mainline-sheet";
+import { AppleClockIcon } from "@/components/time/apple-clock";
 import {
   daysUntil,
   getWeightGoalSettings,
@@ -245,28 +246,37 @@ export default function TodayPage() {
         <h1 className="mt-2 text-[32px] font-semibold tracking-[-0.035em] text-ink">
           {greeting(now)}，树。
         </h1>
-        <button
-          type="button"
-          onClick={() => setMainlineOpen(true)}
-          className="mt-6 flex w-full items-center justify-between border-y border-line py-4 text-left"
-        >
-          <span className="min-w-0">
-            <span className="block text-[10px] font-medium uppercase tracking-[0.16em] text-ink-faint">
-              Today&apos;s Main
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setMainlineOpen(true)}
+            className="flex min-w-0 items-center justify-between border-y border-line py-3 text-left"
+          >
+            <span className="min-w-0">
+              <span className="block text-[10px] font-medium uppercase tracking-[0.16em] text-ink-faint">
+                Today&apos;s Main
+              </span>
+              {mainline ? (
+                <>
+                  <span className="mt-1 block truncate text-base font-semibold text-ink">{mainline.category}</span>
+                  {mainline.note && <span className="mt-0.5 block truncate text-xs text-ink-soft">{mainline.note}</span>}
+                </>
+              ) : (
+                <span className="mt-1 block truncate text-sm font-medium text-ink">今天的主线是什么？</span>
+              )}
             </span>
-            {mainline ? (
-              <>
-                <span className="mt-1 block text-lg font-semibold text-ink">{mainline.category}</span>
-                {mainline.note && <span className="mt-0.5 block truncate text-sm text-ink-soft">{mainline.note}</span>}
-              </>
-            ) : (
-              <span className="mt-1 block text-base font-medium text-ink">今天的主线是什么？</span>
-            )}
-          </span>
-          <span className="ml-4 flex shrink-0 items-center gap-0.5 text-xs text-primary">
-            {mainline ? "修改" : "选择主线"}<ChevronRight className="h-4 w-4" />
-          </span>
-        </button>
+            <span className="ml-2 flex shrink-0 items-center text-xs text-primary">
+              <ChevronRight className="h-4 w-4" />
+            </span>
+          </button>
+          <Link href="/time" className="flex min-w-0 items-center justify-between border-y border-line py-3 text-left transition hover:bg-[#F2F2F0]">
+            <span>
+              <span className="block text-[10px] font-medium uppercase tracking-[0.16em] text-ink-faint">24 Hours</span>
+              <span className="mt-1 block text-sm font-medium text-ink">时间记录</span>
+            </span>
+            <AppleClockIcon />
+          </Link>
+        </div>
       </header>
 
       <section>

@@ -13,16 +13,20 @@ import { todayKey } from "@/lib/utils";
 import { bumpGrowthStep } from "@/lib/growth";
 import { setTodayTask } from "@/lib/summary";
 import { validManualMinutes } from "@/lib/research-rules";
+import { inferredTimeRange } from "@/lib/time-blocks";
 
-type FocusCategory = "数据" | "论文" | "申博" | "求职";
+type FocusCategory = "数据" | "论文" | "申博";
 
 const FOCUS_CATEGORY_META: Record<FocusCategory, { color: string; background: string }> = {
   数据: { color: "#5E7890", background: "#E8EFF4" },
   论文: { color: "#38506B", background: "#E4EAF0" },
   申博: { color: "#8A7567", background: "#F0EAE5" },
-  求职: { color: "#6E887D", background: "#E7EFEB" },
 };
-const FOCUS_CATEGORIES: FocusCategory[] = ["数据", "论文", "申博", "求职"];
+const FOCUS_CATEGORIES: FocusCategory[] = ["数据", "论文", "申博"];
+
+function isFocusCategory(value: unknown): value is FocusCategory {
+  return typeof value === "string" && FOCUS_CATEGORIES.includes(value as FocusCategory);
+}
 
 function shiftMonth(month: string, offset: number): string {
   const [year, monthNumber] = month.split("-").map(Number);
@@ -34,7 +38,6 @@ export default function ResearchPage() {
   const today = todayKey();
   const [history, setHistory] = useState<ResearchRecord[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(today.slice(0, 7));
-  const [focusSummary, setFocusSummary] = useState("");
   const [focusCategory, setFocusCategory] = useState<FocusCategory | "">("数据");
   const [focusMinutes, setFocusMinutes] = useState("");
   const [focusSaving, setFocusSaving] = useState(false);
@@ -66,13 +69,12 @@ export default function ResearchPage() {
     window.setTimeout(() => setFeedback(""), 3000);
   }
 
-  async function createSession(text: string, minutes: string, category: FocusCategory | "") {
+  async function createSession(minutes: string, category: FocusCategory | "") {
     const dur = validManualMinutes(minutes);
     if (dur == null) return null;
     await repos.research.add({
       date: today,
       duration: dur,
-      summary: text.trim() || undefined,
       category: category || undefined,
       source: "manual",
       createdAt: Date.now(),
@@ -93,9 +95,8 @@ export default function ResearchPage() {
     focusSubmittingRef.current = true;
     setFocusSaving(true);
     try {
-      const result = await createSession(focusSummary, focusMinutes, focusCategory);
+      const result = await createSession(focusMinutes, focusCategory);
       if (result) {
-        setFocusSummary("");
         setFocusMinutes("");
         setFocusCategory("数据");
         showFeedback(`已记录专注 ${result.duration} min`);
@@ -109,7 +110,7 @@ export default function ResearchPage() {
   function beginEdit(record: ResearchRecord) {
     setEditingId(record.id ?? null);
     setEditSummary(record.summary ?? "");
-    setEditCategory(record.category ?? "");
+    setEditCategory(isFocusCategory(record.category) ? record.category : "");
     setEditDuration(String(record.duration));
   }
 
@@ -201,22 +202,26 @@ export default function ResearchPage() {
             </p>
           </div>
         </div>
-        <div className="mt-3 flex items-center gap-2">
-          <Input
-            value={focusSummary}
-            onChange={(event) => setFocusSummary(event.target.value)}
-            onEnterSubmit={addFocusSession}
-            enterKeyHint="next"
-            placeholder="本次专注内容（可选）"
-            maxLength={240}
-            className="min-w-0 flex-1"
-          />
-          <CategorySelect
-            value={focusCategory}
-            onChange={setFocusCategory}
-            allowEmpty
-            ariaLabel="专注分类"
-          />
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {FOCUS_CATEGORIES.map((category) => {
+            const selected = focusCategory === category;
+            return (
+              <button
+                key={category}
+                type="button"
+                onClick={() => setFocusCategory(category)}
+                aria-pressed={selected}
+                className="h-10 rounded-xl border px-2 text-xs font-medium transition-colors"
+                style={{
+                  borderColor: selected ? FOCUS_CATEGORY_META[category].color : "#D9DEDF",
+                  color: selected ? FOCUS_CATEGORY_META[category].color : "#6F767D",
+                  backgroundColor: selected ? FOCUS_CATEGORY_META[category].background : "#FFFFFF",
+                }}
+              >
+                {category}
+              </button>
+            );
+          })}
         </div>
         <div className="mt-2 grid grid-cols-[1fr_auto] gap-2">
           <div className="flex items-center gap-2">
@@ -292,6 +297,7 @@ export default function ResearchPage() {
           <CardContent>
             <FoldList
               items={history}
+              startCollapsed
               title={
                 <p className="mb-3 text-sm font-medium text-primary">
                   专注记录（{history.length}）
@@ -303,9 +309,7 @@ export default function ResearchPage() {
                   className="border-b border-line pb-3 last:border-0"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="tabular text-sm font-medium text-ink">
-                      {r.date}
-                    </span>
+                    <span className="tabular text-sm font-medium text-ink">{r.date}</span>
                     {editingId === r.id ? (
                       <div className="flex items-center gap-1.5">
                         <Input
@@ -323,7 +327,7 @@ export default function ResearchPage() {
                     ) : (
                       <div className="flex items-center gap-1.5">
                         <span className="tabular text-xs text-ink-faint">
-                          {r.duration} 分钟
+                          {r.duration} 分钟 · {inferredTimeRange(r.createdAt, r.duration)}
                         </span>
                         <button type="button" className="rounded-md p-1 text-ink-faint hover:bg-line/50 hover:text-primary" onClick={() => beginEdit(r)} aria-label="编辑专注记录">
                           <Pencil className="h-3.5 w-3.5" />
@@ -339,7 +343,7 @@ export default function ResearchPage() {
                       <Input value={editSummary} onChange={(event) => setEditSummary(event.target.value)} placeholder="专注内容" aria-label="编辑专注内容" />
                       <CategorySelect value={editCategory} onChange={setEditCategory} allowEmpty ariaLabel="编辑专注分类" />
                     </div>
-                  ) : r.category && FOCUS_CATEGORY_META[r.category] ? (
+                  ) : isFocusCategory(r.category) ? (
                     <span
                       className="mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium"
                       style={{ color: FOCUS_CATEGORY_META[r.category].color, backgroundColor: FOCUS_CATEGORY_META[r.category].background }}
