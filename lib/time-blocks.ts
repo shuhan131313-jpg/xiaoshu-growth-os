@@ -28,6 +28,37 @@ export const TIME_BLOCK_COLORS: Record<DisplayTimeBlock["kind"], string> = {
   other: "#B8BCBF",
 };
 
+export type TimeSummaryKind = DisplayTimeBlock["kind"] | "blank";
+
+/** 顶部时长摘要的固定顺序；展示时会隐藏没有记录的类别，但始终保留空白。 */
+export const TIME_SUMMARY_ORDER: TimeSummaryKind[] = [
+  "sleep",
+  "focus",
+  "exercise",
+  "reading",
+  "meal",
+  "entertainment",
+  "other",
+  "blank",
+];
+
+export const TIME_SUMMARY_LABELS: Record<TimeSummaryKind, string> = {
+  sleep: "睡觉",
+  focus: "专注",
+  exercise: "运动",
+  reading: "阅读",
+  meal: "吃饭",
+  entertainment: "亲故",
+  other: "其他",
+  blank: "空白",
+};
+
+export const TIME_SUMMARY_COLORS: Record<TimeSummaryKind, string> = {
+  ...TIME_BLOCK_COLORS,
+  // 空白没有扇形，使用苹果表盘的中性底色表示未记录时间。
+  blank: "#DDE4EA",
+};
+
 export function formatClockMinute(minute: number): string {
   const normalized = ((Math.round(minute) % 1440) + 1440) % 1440;
   return `${String(Math.floor(normalized / 60)).padStart(2, "0")}:${String(normalized % 60).padStart(2, "0")}`;
@@ -85,4 +116,41 @@ export function blockDuration(startMinute: number, endMinute: number): number {
   const start = ((startMinute % 1440) + 1440) % 1440;
   const end = ((endMinute % 1440) + 1440) % 1440;
   return end >= start ? end - start : 1440 - start + end;
+}
+
+function splitInterval(startMinute: number, endMinute: number): [number, number][] {
+  const start = ((startMinute % 1440) + 1440) % 1440;
+  const end = ((endMinute % 1440) + 1440) % 1440;
+  if (end >= start) return [[start, end]];
+  return [[start, 1440], [0, end]];
+}
+
+/** 汇总各类别时长，并用所有时间段的并集估算未记录的“空白”时间。 */
+export function summarizeTimeBlocks(blocks: DisplayTimeBlock[]): Record<TimeSummaryKind, number> {
+  const minutes = Object.fromEntries(TIME_SUMMARY_ORDER.map((kind) => [kind, 0])) as Record<TimeSummaryKind, number>;
+  const intervals: [number, number][] = [];
+  blocks.forEach((block) => {
+    const duration = blockDuration(block.startMinute, block.endMinute);
+    if (duration > 0) minutes[block.kind] += duration;
+    intervals.push(...splitInterval(block.startMinute, block.endMinute));
+  });
+
+  intervals.sort((a, b) => a[0] - b[0]);
+  let covered = 0;
+  let current: [number, number] | null = null;
+  intervals.forEach(([start, end]) => {
+    if (!current) {
+      current = [start, end];
+      return;
+    }
+    if (start <= current[1]) {
+      current[1] = Math.max(current[1], end);
+    } else {
+      covered += current[1] - current[0];
+      current = [start, end];
+    }
+  });
+  if (current) covered += current[1] - current[0];
+  minutes.blank = Math.max(0, 1440 - covered);
+  return minutes;
 }

@@ -12,11 +12,15 @@ import { todayKey } from "@/lib/utils";
 import {
   MANUAL_TIME_BLOCK_KINDS,
   TIME_BLOCK_COLORS,
+  TIME_SUMMARY_COLORS,
+  TIME_SUMMARY_LABELS,
+  TIME_SUMMARY_ORDER,
   blockDuration,
   exerciseBlock,
   focusBlock,
   formatClockMinute,
   manualBlock,
+  summarizeTimeBlocks,
   type DisplayTimeBlock,
 } from "@/lib/time-blocks";
 import type { TimeBlockKind } from "@/lib/db/db";
@@ -54,6 +58,7 @@ export default function TimePage() {
   }, [date]);
 
   const dayBlocks = useMemo(() => blocks, [blocks]);
+  const summaryMinutes = useMemo(() => summarizeTimeBlocks(dayBlocks), [dayBlocks]);
 
   async function addManualBlock(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -95,6 +100,20 @@ export default function TimePage() {
           <div className="flex w-full items-center justify-between">
             <p className="flex items-center gap-1.5 text-sm font-medium text-primary"><Apple className="h-4 w-4" />时间记录</p>
             <Input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="h-9 w-auto px-2 text-xs" aria-label="查看日期" />
+          </div>
+          <div className="no-scrollbar flex w-full gap-1.5 overflow-x-auto pb-0.5" aria-label="当天各类别时长">
+            {TIME_SUMMARY_ORDER.filter((kindName) => kindName === "blank" || summaryMinutes[kindName] > 0).map((kindName) => {
+              const color = TIME_SUMMARY_COLORS[kindName];
+              return (
+                <span
+                  key={kindName}
+                  className="shrink-0 rounded-xl border px-2.5 py-1.5 text-[11px] leading-none text-primary"
+                  style={{ borderColor: color, backgroundColor: `${color}28` }}
+                >
+                  {TIME_SUMMARY_LABELS[kindName]}：{(summaryMinutes[kindName] / 60).toFixed(1)}H
+                </span>
+              );
+            })}
           </div>
           <AppleClock blocks={dayBlocks} />
         </CardContent>
