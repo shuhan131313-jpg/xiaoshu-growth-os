@@ -101,13 +101,13 @@ export default function TimePage() {
             <p className="flex items-center gap-1.5 text-sm font-medium text-primary"><Apple className="h-4 w-4" />时间记录</p>
             <Input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="h-9 w-auto px-2 text-xs" aria-label="查看日期" />
           </div>
-          <div className="no-scrollbar flex w-full gap-1.5 overflow-x-auto pb-0.5" aria-label="当天各类别时长">
+          <div className="grid w-full grid-cols-4 gap-1.5 pb-0.5" aria-label="当天各类别时长">
             {TIME_SUMMARY_ORDER.filter((kindName) => kindName === "blank" || summaryMinutes[kindName] > 0).map((kindName) => {
               const color = TIME_SUMMARY_COLORS[kindName];
               return (
                 <span
                   key={kindName}
-                  className="shrink-0 rounded-xl border px-2.5 py-1.5 text-[11px] leading-none text-primary"
+                  className="min-w-0 rounded-xl border px-1 py-1.5 text-center text-[10px] leading-none text-primary"
                   style={{ borderColor: color, backgroundColor: `${color}28` }}
                 >
                   {TIME_SUMMARY_LABELS[kindName]}：{(summaryMinutes[kindName] / 60).toFixed(1)}H
